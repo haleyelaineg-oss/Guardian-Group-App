@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Guardian Group</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/survey.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="admin-body">
+
+  <!-- LOGIN SCREEN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="../assets/logo-color.png" alt="Guardian Group" class="login-logo-img" onerror="this.style.display='none'" />
+        <div class="login-wordmark">GUARDIAN GROUP</div>
+        <div class="login-sub">Survey Dashboard</div>
+      </div>
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="field-group full">
+          <label class="field-label" for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" class="field-input" placeholder="you@guardiangroup.com" required />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="field-input" placeholder="••••••••" required />
+        </div>
+        <div class="login-error" id="loginError" style="display:none"></div>
+        <button type="submit" class="btn btn-primary login-btn">Sign In →</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard" id="dashboard" style="display:none">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img src="../assets/logo-white.png" alt="" class="sidebar-logo-img" onerror="this.style.display='none'" />
+        <div>
+          <div class="sidebar-brand">GUARDIAN GROUP</div>
+          <div class="sidebar-tag">Survey Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="overview" onclick="setView('overview', this)">
+          <span class="nav-icon">◈</span> Overview
+        </button>
+        <button class="nav-item" data-view="responses" onclick="setView('responses', this)">
+          <span class="nav-icon">◧</span> Responses
+        </button>
+        <button class="nav-item" data-view="workshops" onclick="setView('workshops', this)">
+          <span class="nav-icon">◫</span> Workshops
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-signout" onclick="signOut()">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="dash-main">
+
+      <!-- WORKSHOP SELECTOR -->
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <label class="top-bar-label">Workshop</label>
+          <select id="workshopSelect" class="workshop-select" onchange="loadWorkshopData()">
+            <option value="">Loading workshops...</option>
+          </select>
+        </div>
+        <div class="top-bar-right" id="shareLink" style="display:none">
+          <span class="share-label">Survey Link:</span>
+          <code class="share-url" id="shareLinkText"></code>
+          <button class="btn-copy" onclick="copyLink()">Copy</button>
+        </div>
+      </div>
+
+      <!-- VIEW: OVERVIEW ──────────────────────────────────── -->
+      <div class="view active" id="view-overview">
+        <div class="view-header">
+          <h1 class="view-title" id="overviewTitle">Select a workshop</h1>
+          <p class="view-sub" id="overviewSub">Choose a workshop above to see its response data</p>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stat-cards" id="statCards">
+          <div class="stat-card">
+            <div class="stat-value" id="statTotal">—</div>
+            <div class="stat-label">Total Responses</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-value" id="statRequired">—</div>
+            <div class="stat-label">Required Fields Complete</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statDate">—</div>
+            <div class="stat-label">Workshop Date</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statLatest">—</div>
+            <div class="stat-label">Latest Response</div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW -->
+        <div class="charts-row" id="chartsRow">
+          <div class="chart-card">
+            <h3 class="chart-title">Industry Breakdown</h3>
+            <div class="chart-wrap"><canvas id="chartIndustry"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Safety Involvement</h3>
+            <div class="chart-wrap"><canvas id="chartInvolvement"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Safety II Familiarity</h3>
+            <div class="chart-wrap"><canvas id="chartFamiliarity"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Safety Culture Level</h3>
+            <div class="chart-wrap"><canvas id="chartCulture"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Time in Industry</h3>
+            <div class="chart-wrap"><canvas id="chartIndustryExp"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Reason for Attending</h3>
+            <div class="chart-wrap"><canvas id="chartReason"></canvas></div>
+          </div>
+        </div>
+
+        <!-- OPEN-ENDED RESPONSES -->
+        <div class="open-section" id="openSection">
+          <h2 class="open-title">What People Are Hoping to Get</h2>
+          <p class="open-hint">Read these before your workshop — they're your facilitation compass.</p>
+          <div class="open-cards" id="openCards"></div>
+        </div>
+
+        <div class="open-section" id="challengeSection">
+          <h2 class="open-title">Specific Challenges Mentioned</h2>
+          <div class="open-cards" id="challengeCards"></div>
+        </div>
+
+      </div>
+
+      <!-- VIEW: ALL RESPONSES ─────────────────────────────── -->
+      <div class="view" id="view-responses">
+        <div class="view-header">
+          <h1 class="view-title">All Responses</h1>
+          <p class="view-sub">Click a row to expand the full response</p>
+        </div>
+        <div class="responses-table-wrap">
+          <table class="responses-table" id="responsesTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Organization</th>
+                <th>Role</th>
+                <th>Industry</th>
+                <th>Submitted</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="responsesBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyResponses" style="display:none">
+            <p>No responses yet for this workshop.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: WORKSHOPS ─────────────────────────────────── -->
+      <div class="view" id="view-workshops">
+        <div class="view-header">
+          <h1 class="view-title">Workshops</h1>
+          <button class="btn btn-primary" onclick="showCreateWorkshop()">+ New Workshop</button>
+        </div>
+
+        <!-- CREATE FORM -->
+        <div class="create-form-card" id="createWorkshopCard" style="display:none">
+          <h3 class="card-title">Create New Workshop</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="newTitle">Workshop Title <span class="required">*</span></label>
+              <input type="text" id="newTitle" class="field-input" placeholder="e.g. Safety Leadership Foundations" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="newSubtitle">Subtitle / Tagline</label>
+              <input type="text" id="newSubtitle" class="field-input" placeholder="e.g. Moving Beyond Compliance to Culture" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newFacilitator">Facilitator</label>
+              <input type="text" id="newFacilitator" class="field-input" placeholder="e.g. Haley Vincent" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newDate">Workshop Date</label>
+              <input type="date" id="newDate" class="field-input" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="newSlug">URL Slug <span class="required">*</span></label>
+              <p class="field-hint">Lowercase, hyphens only — this becomes the survey link. e.g. safety-leadership-q1</p>
+              <input type="text" id="newSlug" class="field-input" placeholder="safety-leadership-q1" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideCreateWorkshop()">Cancel</button>
+            <button class="btn btn-primary" onclick="createWorkshop()">Create Workshop →</button>
+          </div>
+        </div>
+
+        <div class="workshops-list" id="workshopsList"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

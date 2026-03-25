@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pre-Workshop Survey — Guardian Group</title>
+  <link rel="icon" href="assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/survey.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- HEADER -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="logo-mark">
+          <img src="assets/logo-white.png" alt="Guardian Group" class="logo-img" onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'" />
+          <span id="logo-text" class="logo-text" style="display:none">GUARDIAN GROUP</span>
+        </div>
+        <div class="header-tag">Beyond Compliance</div>
+      </div>
+    </header>
+
+    <!-- LOADING STATE -->
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loading-spinner"></div>
+      <p>Loading your workshop...</p>
+    </div>
+
+    <!-- ERROR STATE (no valid workshop) -->
+    <div class="error-screen" id="errorScreen" style="display:none">
+      <div class="error-inner">
+        <div class="shield-icon">⚠</div>
+        <h2>Workshop Not Found</h2>
+        <p>This survey link doesn't match an active workshop. Please check your registration email for the correct link, or contact us at <a href="mailto:hello@guardiangroup.com">hello@guardiangroup.com</a>.</p>
+      </div>
+    </div>
+
+    <!-- SURVEY CONTAINER -->
+    <main class="survey-container" id="surveyContainer" style="display:none">
+
+      <!-- WORKSHOP HERO -->
+      <section class="workshop-hero">
+        <div class="hero-inner">
+          <div class="pre-label">Pre-Workshop Survey</div>
+          <h1 class="workshop-title" id="workshopTitle">Loading...</h1>
+          <p class="workshop-subtitle" id="workshopSubtitle"></p>
+          <div class="hero-meta">
+            <span class="meta-item" id="heroFacilitator"></span>
+            <span class="meta-item" id="heroDate"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROGRESS BAR -->
+      <div class="progress-wrap">
+        <div class="progress-inner">
+          <div class="progress-steps" id="progressSteps"></div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-label" id="progressLabel">Step 1 of 5</div>
+        </div>
+      </div>
+
+      <!-- FORM SECTIONS -->
+      <form class="survey-form" id="surveyForm" novalidate>
+
+        <!-- SECTION 1: ABOUT YOU -->
+        <section class="form-section active" data-section="1">
+          <div class="section-header">
+            <div class="section-number">01</div>
+            <div class="section-meta">
+              <h2 class="section-title">About You</h2>
+              <p class="section-desc">Let's start with the basics so we know who's in the room.</p>
+            </div>
+          </div>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="fullName">Full Name <span class="required">*</span></label>
+              <input type="text" id="fullName" name="full_name" class="field-input" placeholder="Your full name" required />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="jobTitle">Job Title / Role <span class="required">*</span></label>
+              <input type="text" id="jobTitle" name="job_title" class="field-input" placeholder="e.g. Safety Manager" required />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="organization">Organization <span class="required">*</span></label>
+              <input type="text" id="organization" name="organization" class="field-input" placeholder="Company or org name" required />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="industry">Industry / Sector <span class="required">*</span></label>
+              <select id="industry" name="industry" class="field-input field-select" required>
+                <option value="">Select your industry...</option>
+                <option>Construction / Trades</option>
+                <option>Healthcare</option>
+                <option>Aviation / Aerospace</option>
+                <option>Oil, Gas & Energy</option>
+                <option>Manufacturing</option>
+                <option>Transportation / Logistics</option>
+                <option>Government / Public Sector</option>
+                <option>Education</option>
+                <option>Mining</option>
+                <option>Utilities</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="timeInRole">Time in Current Role</label>
+              <select id="timeInRole" name="time_in_role" class="field-input field-select">
+                <option value="">Select...</option>
+                <option>Less than 1 year</option>
+                <option>1–3 years</option>
+                <option>3–5 years</option>
+                <option>5–10 years</option>
+                <option>More than 10 years</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="timeInIndustry">Time in Industry</label>
+              <select id="timeInIndustry" name="time_in_industry" class="field-input field-select">
+                <option value="">Select...</option>
+                <option>Less than 2 years</option>
+                <option>2–5 years</option>
+                <option>5–10 years</option>
+                <option>10–20 years</option>
+                <option>More than 20 years</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label">Your Primary Safety Involvement <span class="required">*</span></label>
+              <p class="field-hint">Select all that apply</p>
+              <div class="checkbox-group" id="safetyInvolvement">
+                <label class="check-item"><input type="checkbox" value="I make or influence safety decisions" /><span class="check-box"></span><span>I make or influence safety decisions</span></label>
+                <label class="check-item"><input type="checkbox" value="I implement safety programs" /><span class="check-box"></span><span>I implement safety programs</span></label>
+                <label class="check-item"><input type="checkbox" value="I supervise people and manage safety day-to-day" /><span class="check-box"></span><span>I supervise people and manage safety day-to-day</span></label>
+                <label class="check-item"><input type="checkbox" value="I work on the front line" /><span class="check-box"></span><span>I work on the front line</span></label>
+                <label class="check-item"><input type="checkbox" value="I train others on safety" /><span class="check-box"></span><span>I train others on safety</span></label>
+                <label class="check-item"><input type="checkbox" value="Safety is not my primary responsibility but it affects my work" /><span class="check-box"></span><span>Safety affects my work but isn't my primary role</span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: STARTING POINT -->
+        <section class="form-section" data-section="2">
+          <div class="section-header">
+            <div class="section-number">02</div>
+            <div class="section-meta">
+              <h2 class="section-title">Where You're Starting From</h2>
+              <p class="section-desc">No right or wrong answers — this helps us calibrate the conversation for your group.</p>
+            </div>
+          </div>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="safetyIIFamiliarity">Familiarity with Safety II / Human & Organizational Performance (HOP) <span class="required">*</span></label>
+              <div class="radio-group" id="safetyIIFamiliarity">
+                <label class="radio-item"><input type="radio" name="safety_ii_familiarity" value="Never heard of it" /><span class="radio-box"></span><span>Never heard of it</span></label>
+                <label class="radio-item"><input type="radio" name="safety_ii_familiarity" value="I've heard the term but don't know much" /><span class="radio-box"></span><span>I've heard the term but don't know much</span></label>
+                <label class="radio-item"><input type="radio" name="safety_ii_familiarity" value="I have some familiarity" /><span class="radio-box"></span><span>I have some familiarity</span></label>
+                <label class="radio-item"><input type="radio" name="safety_ii_familiarity" value="I've had formal training or reading in this area" /><span class="radio-box"></span><span>I've had formal training or reading in this area</span></label>
+                <label class="radio-item"><input type="radio" name="safety_ii_familiarity" value="I actively apply these concepts in my work" /><span class="radio-box"></span><span>I actively apply these concepts in my work</span></label>
+              </div>
+            </div>
+            <div class="field-group full">
+              <label class="field-label">Current Safety Culture in Your Organization</label>
+              <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="safety_culture" value="Reactive — we respond to incidents after they happen" /><span class="radio-box"></span><span>Reactive — we respond to incidents after they happen</span></label>
+                <label class="radio-item"><input type="radio" name="safety_culture" value="Compliance-focused — we follow the rules and check the boxes" /><span class="radio-box"></span><span>Compliance-focused — we follow the rules and check the boxes</span></label>
+                <label class="radio-item"><input type="radio" name="safety_culture" value="Proactive — we actively try to prevent incidents" /><span class="radio-box"></span><span>Proactive — we actively try to prevent incidents</span></label>
+                <label class="radio-item"><input type="radio" name="safety_culture" value="Generative — safety is truly embedded in how we lead and operate" /><span class="radio-box"></span><span>Generative — safety is truly embedded in how we lead and operate</span></label>
+                <label class="radio-item"><input type="radio" name="safety_culture" value="I'm not sure / it varies across the organization" /><span class="radio-box"></span><span>I'm not sure / it varies across the organization</span></label>
+              </div>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="safetyLeadership">What does safety leadership look like in your organization right now?</label>
+              <p class="field-hint">A few words or a sentence is perfect.</p>
+              <textarea id="safetyLeadership" name="safety_leadership_description" class="field-input field-textarea" rows="3" placeholder="Describe it in your own words..."></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 3: WHAT YOU HOPE TO GET -->
+        <section class="form-section" data-section="3">
+          <div class="section-header">
+            <div class="section-number">03</div>
+            <div class="section-meta">
+              <h2 class="section-title">What You're Hoping to Get</h2>
+              <p class="section-desc">We read every response. Your answers shape what we cover.</p>
+            </div>
+          </div>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label">Primary Reason for Attending <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-item"><input type="radio" name="attendance_reason" value="My organization registered me" /><span class="radio-box"></span><span>My organization registered me</span></label>
+                <label class="radio-item"><input type="radio" name="attendance_reason" value="I'm looking for new tools and approaches" /><span class="radio-box"></span><span>I'm looking for new tools and approaches</span></label>
+                <label class="radio-item"><input type="radio" name="attendance_reason" value="I want to improve safety outcomes on my team" /><span class="radio-box"></span><span>I want to improve safety outcomes on my team</span></label>
+                <label class="radio-item"><input type="radio" name="attendance_reason" value="I'm building a case internally for a culture shift" /><span class="radio-box"></span><span>I'm building a case internally for a culture shift</span></label>
+                <label class="radio-item"><input type="radio" name="attendance_reason" value="I'm exploring what Guardian Group offers" /><span class="radio-box"></span><span>I'm exploring what Guardian Group offers</span></label>
+                <label class="radio-item"><input type="radio" name="attendance_reason" value="Personal professional development" /><span class="radio-box"></span><span>Personal professional development</span></label>
+              </div>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="oneThing">The ONE thing you most hope to walk away with <span class="required">*</span></label>
+              <p class="field-hint">Be as specific as you'd like.</p>
+              <textarea id="oneThing" name="one_thing_wanted" class="field-input field-textarea" rows="4" placeholder="What would make this workshop a success for you?" required></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="specificChallenge">A specific challenge you're hoping this workshop will help you address</label>
+              <textarea id="specificChallenge" name="specific_challenge" class="field-input field-textarea" rows="3" placeholder="Optional — but often the most useful thing we learn before a workshop..."></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="doNotCover">Anything you're hoping we DON'T cover, or that feels less relevant to your situation?</label>
+              <textarea id="doNotCover" name="do_not_cover" class="field-input field-textarea" rows="2" placeholder="Optional — helps us use your time well"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 4: TEAM & ORG -->
+        <section class="form-section" data-section="4">
+          <div class="section-header">
+            <div class="section-number">04</div>
+            <div class="section-meta">
+              <h2 class="section-title">Your Team & Organization</h2>
+              <p class="section-desc">Helps us use examples that fit your actual context.</p>
+            </div>
+          </div>
+          <div class="fields-grid">
+            <div class="field-group half">
+              <label class="field-label" for="teamSize">People in your team / direct responsibility</label>
+              <select id="teamSize" name="team_size" class="field-input field-select">
+                <option value="">Select...</option>
+                <option>Just me</option>
+                <option>2–5 people</option>
+                <option>6–15 people</option>
+                <option>16–50 people</option>
+                <option>51–100 people</option>
+                <option>More than 100 people</option>
+                <option>Not applicable</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="orgSize">Overall organization size</label>
+              <select id="orgSize" name="org_size" class="field-input field-select">
+                <option value="">Select...</option>
+                <option>Solo / freelance</option>
+                <option>Small (2–25 employees)</option>
+                <option>Medium (26–200 employees)</option>
+                <option>Large (201–1,000 employees)</option>
+                <option>Enterprise (1,000+ employees)</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="orgChange">Any significant organizational changes affecting safety right now?</label>
+              <p class="field-hint">e.g. leadership transition, rapid growth, incident aftermath, regulatory pressure</p>
+              <textarea id="orgChange" name="org_change_context" class="field-input field-textarea" rows="3" placeholder="Optional — this context often matters more than people expect..."></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 5: LOGISTICS -->
+        <section class="form-section" data-section="5">
+          <div class="section-header">
+            <div class="section-number">05</div>
+            <div class="section-meta">
+              <h2 class="section-title">Logistics</h2>
+              <p class="section-desc">A few quick operational things so we're set up for success.</p>
+            </div>
+          </div>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="email">Email Address <span class="required">*</span></label>
+              <input type="email" id="email" name="email" class="field-input" placeholder="you@example.com" required />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="timeZone">Time Zone</label>
+              <input type="text" id="timeZone" name="time_zone" class="field-input" placeholder="e.g. EST, CST, PST..." />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="techCheck">Tech check complete?</label>
+              <select id="techCheck" name="tech_check" class="field-input field-select">
+                <option value="">Select...</option>
+                <option>Yes, I'm all set</option>
+                <option>No, but I'll do it before the session</option>
+                <option>I need help — please send instructions</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="accessibility">Accessibility needs or accommodations</label>
+              <textarea id="accessibility" name="accessibility_needs" class="field-input field-textarea" rows="2" placeholder="Let us know anything that would help make this workshop more accessible for you"></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="anythingElse">Anything else we should know?</label>
+              <textarea id="anythingElse" name="anything_else" class="field-input field-textarea" rows="3" placeholder="Catch-all — if something is on your mind, this is the place..."></textarea>
+            </div>
+          </div>
+        </section>
+
+      </form>
+
+      <!-- NAV BUTTONS -->
+      <div class="form-nav">
+        <button class="btn btn-ghost" id="btnBack" style="display:none">← Back</button>
+        <div class="nav-right">
+          <span class="required-note">* Required fields</span>
+          <button class="btn btn-primary" id="btnNext">Continue →</button>
+          <button class="btn btn-submit" id="btnSubmit" style="display:none">Submit Survey →</button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-screen" id="successScreen" style="display:none">
+      <div class="success-inner">
+        <div class="success-shield">
+          <img src="assets/logo-color.png" alt="" class="success-logo" onerror="this.style.display='none'" />
+        </div>
+        <h2>You're all set.</h2>
+        <p>We read every response before the workshop. Your answers will directly shape what we cover and how we show up for you.</p>
+        <p class="success-sub">See you soon.</p>
+        <div class="success-tag">— Guardian Group Safety & Leadership Solutions</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <p>Guardian Group Safety & Leadership Solutions &nbsp;·&nbsp; Beyond Compliance</p>
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/survey.js"></script>
+</body>
+</html>
