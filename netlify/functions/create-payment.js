@@ -1,4 +1,4 @@
-const { Client, Environment } = require('square');
+const { SquareClient, SquareEnvironment } = require('square');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -8,23 +8,23 @@ exports.handler = async (event) => {
   try {
     const { nonce, amountCents, note, buyerEmail } = JSON.parse(event.body);
 
-    const client = new Client({
-      accessToken: process.env.SQUARE_ACCESS_TOKEN,
-      environment: Environment.Sandbox
+    const client = new SquareClient({
+      token: process.env.SQUARE_ACCESS_TOKEN,
+      environment: SquareEnvironment.Sandbox // change to SquareEnvironment.Production when ready
     });
 
-    const response = await client.paymentsApi.createPayment({
+    const response = await client.payments.create({
       sourceId: nonce,
       idempotencyKey: `${Date.now()}-${Math.random()}`,
       amountMoney: {
-        amount: amountCents,
+        amount: BigInt(amountCents),
         currency: 'USD'
       },
       note: note || 'Guardian Group Workshop',
       buyerEmailAddress: buyerEmail
     });
 
-    const payment = response.result.payment;
+    const payment = response.payment;
 
     return {
       statusCode: 200,
