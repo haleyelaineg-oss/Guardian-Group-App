@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upcoming Workshops — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/survey.css" />
+  <link rel="stylesheet" href="../css/workshops.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- HEADER -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="logo-mark">
+          <img src="../assets/logo-white.png" alt="Guardian Group" class="logo-img"
+            onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'" />
+          <span id="logo-text" class="logo-text" style="display:none">GUARDIAN GROUP</span>
+        </div>
+        <div class="header-tag">Beyond Compliance</div>
+      </div>
+    </header>
+
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+      <div class="hero-inner">
+        <div class="pre-label">Guardian Group Safety &amp; Leadership Solutions</div>
+        <h1 class="workshop-title">Upcoming Workshops</h1>
+        <p class="workshop-subtitle">Practical safety leadership development — built for people who do the work.</p>
+      </div>
+    </section>
+
+    <!-- LOADING -->
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loading-spinner"></div>
+      <p>Loading workshops...</p>
+    </div>
+
+    <!-- WORKSHOPS MAIN -->
+    <main class="workshops-main" id="workshopsMain" style="display:none">
+
+      <!-- WORKSHOP GRID — populated by workshops.js -->
+      <div class="workshops-grid" id="workshopsGrid"></div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state-block" id="emptyState" style="display:none">
+        <div class="empty-icon">◈</div>
+        <h3>No upcoming workshops right now</h3>
+        <p>New sessions are added regularly. In the meantime, <a href="mailto:hello@guardiangroupsls.com">get in touch</a> to discuss a private or custom workshop for your team.</p>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <p>Guardian Group Safety &amp; Leadership Solutions &nbsp;·&nbsp; Beyond Compliance</p>
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/workshops.js"></script>
+</body>
+</html>

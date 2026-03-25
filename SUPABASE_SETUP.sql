@@ -13,7 +13,8 @@ CREATE TABLE workshops (
   workshop_date DATE,
   slug TEXT UNIQUE NOT NULL, -- used in the shareable URL
   is_active BOOLEAN DEFAULT true,
-  accent_color TEXT DEFAULT '#2A5C76' -- per-workshop brand accent
+  accent_color TEXT DEFAULT '#2A5C76', -- per-workshop brand accent
+  survey_config JSONB -- dynamic survey definition (array of question objects)
 );
 
 -- ── PRE-WORKSHOP SURVEY RESPONSES ────────────────────────────
@@ -52,8 +53,23 @@ CREATE TABLE pre_survey_responses (
   time_zone TEXT,
   accessibility_needs TEXT,
   tech_check TEXT,
-  anything_else TEXT
+  anything_else TEXT,
+  dynamic_answers JSONB -- optional payload for custom survey builder questions
 );
+
+-- ── CUSTOM SURVEY RESPONSES (dynamic builder) ───────────────
+CREATE TABLE custom_survey_responses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+  answers JSONB NOT NULL
+);
+
+-- Public can submit custom dynamic survey responses
+ALTER TABLE custom_survey_responses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can insert custom survey responses"
+  ON custom_survey_responses FOR INSERT
+  WITH CHECK (true);
 
 -- ── POST-WORKSHOP SURVEY RESPONSES ───────────────────────────
 CREATE TABLE post_survey_responses (

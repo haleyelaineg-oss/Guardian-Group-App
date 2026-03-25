@@ -58,6 +58,9 @@
         <button class="nav-item" data-view="workshops" onclick="setView('workshops', this)">
           <span class="nav-icon">◫</span> Workshops
         </button>
+        <button class="nav-item" data-view="survey-builder" onclick="setView('survey-builder', this)">
+          <span class="nav-icon">▣</span> Survey Builder
+        </button>
       </nav>
       <div class="sidebar-footer">
         <button class="btn-signout" onclick="signOut()">Sign Out</button>
@@ -217,6 +220,60 @@
         </div>
 
         <div class="workshops-list" id="workshopsList"></div>
+      </div>
+
+      <!-- VIEW: SURVEY BUILDER -->
+      <div class="view" id="view-survey-builder">
+        <div class="view-header">
+          <h1 class="view-title">Survey Builder</h1>
+          <p class="view-sub">Create or update the pre-workshop survey structure for selected workshop.</p>
+        </div>
+        <div class="builder-card">
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="surveyQuestionText">Question text</label>
+              <input type="text" id="surveyQuestionText" class="field-input" placeholder="e.g. What is your biggest safety challenge?" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="surveyQuestionType">Type</label>
+              <select id="surveyQuestionType" class="field-input">
+                <option value="text">Single line text</option>
+                <option value="textarea">Paragraph</option>
+                <option value="select">Dropdown</option>
+                <option value="radio">Radio</option>
+                <option value="checkbox">Checkboxes</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="surveyQuestionSection">Section</label>
+              <select id="surveyQuestionSection" class="field-input">
+                <option value="1">1 - About You</option>
+                <option value="2">2 - Starting Point</option>
+                <option value="3">3 - Your Goals</option>
+                <option value="4">4 - Team & Org</option>
+                <option value="5">5 - Logistics</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="surveyQuestionRequired">Required</label>
+              <select id="surveyQuestionRequired" class="field-input">
+                <option value="true">Yes</option>
+                <option value="false" selected>No</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="surveyQuestionOptions">Options (comma-separated, for select/radio/checkbox)</label>
+              <input type="text" id="surveyQuestionOptions" class="field-input" placeholder="Option A, Option B, Option C" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-primary" onclick="addSurveyQuestion()">Add Question</button>
+            <button class="btn btn-ghost" onclick="saveSurveyConfig()">Save Survey</button>
+          </div>
+        </div>
+
+        <div class="survey-questions-list" id="surveyQuestionsList"></div>
+        <div class="tiny-note">Tip: Use this for per-workshop dynamic surveys. If no builder config exists, default survey remains.</div>
       </div>
 
     </main>

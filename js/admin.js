@@ -51,6 +51,10 @@ function setView(viewName, btn) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${viewName}`).classList.add('active');
   btn.classList.add('active');
+
+  if (viewName === 'survey-builder') {
+    loadSurveyBuilder();
+  }
 }
 
 // ── WORKSHOPS ─────────────────────────────────────────────────
@@ -172,17 +176,110 @@ async function loadWorkshopData() {
   document.getElementById('shareLinkText').textContent = link;
   document.getElementById('shareLink').style.display = 'flex';
 
-  // Get responses
-  const { data: responses } = await ggClient
-    .from('pre_survey_responses')
-    .select('*')
-    .eq('workshop_id', workshopId)
-    .order('created_at', { ascending: false });
+  // Get responses (supports static and dynamic surveys)
+  const [{ data: preResponses }, { data: customResponses }] = await Promise.all([
+    ggClient.from('pre_survey_responses').select('*').eq('workshop_id', workshopId).order('created_at', { ascending: false }),
+    ggClient.from('custom_survey_responses').select('*').eq('workshop_id', workshopId).order('created_at', { ascending: false }),
+  ]);
 
-  allResponses = responses || [];
+  const isDynamic = Array.isArray(ws.survey_config) && ws.survey_config.length > 0;
+  allResponses = isDynamic ? (customResponses || []) : (preResponses || []);
 
-  updateOverview(ws, allResponses);
-  updateResponsesTable(allResponses);
+  updateOverview(ws, allResponses, isDynamic);
+  updateResponsesTable(allResponses, isDynamic);
+  loadSurveyBuilder();
+}
+
+async function loadSurveyBuilder() {
+  const workshopId = document.getElementById('workshopSelect').value;
+  if (!workshopId) return;
+
+  const { data: ws, error } = await ggClient.from('workshops').select('survey_config').eq('id', workshopId).single();
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  window.surveyBuilderConfig = Array.isArray(ws?.survey_config) ? ws.survey_config : [];
+  renderSurveyQuestionList();
+}
+
+function renderSurveyQuestionList() {
+  const list = document.getElementById('surveyQuestionsList');
+  if (!list) return;
+  const questions = window.surveyBuilderConfig || [];
+
+  if (!questions.length) {
+    list.innerHTML = '<p style="color:var(--gg-muted); font-style:italic;">No survey questions configured yet.</p>';
+    return;
+  }
+
+  list.innerHTML = questions
+    .sort((a, b) => (a.section - b.section) || (a.position - b.position))
+    .map((q, idx) => `
+    <div class="survey-question-item">
+      <div class="survey-question-text">${escHtml(q.text)}</div>
+      <div class="survey-question-meta">Section ${q.section} • ${q.type} • Required: ${q.required ? 'Yes' : 'No'}</div>
+      <div class="survey-question-meta">Options: ${q.options && q.options.length ? escHtml(q.options.join(' / ')) : 'n/a'}</div>
+      <button class="btn-sm btn-sm-ghost" onclick="removeSurveyQuestion(${idx})">Remove</button>
+    </div>
+  `).join('');
+}
+
+function addSurveyQuestion() {
+  const text = document.getElementById('surveyQuestionText').value.trim();
+  const type = document.getElementById('surveyQuestionType').value;
+  const section = Number(document.getElementById('surveyQuestionSection').value);
+  const required = document.getElementById('surveyQuestionRequired').value === 'true';
+  const optionsRaw = document.getElementById('surveyQuestionOptions').value.trim();
+
+  if (!text) {
+    alert('Question text is required');
+    return;
+  }
+
+  const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const options = optionsRaw ? optionsRaw.split(',').map(item => item.trim()).filter(Boolean) : [];
+
+  if (!window.surveyBuilderConfig) window.surveyBuilderConfig = [];
+
+  window.surveyBuilderConfig.push({
+    id,
+    text,
+    type,
+    required,
+    section,
+    options,
+    position: window.surveyBuilderConfig.length + 1,
+  });
+
+  document.getElementById('surveyQuestionText').value = '';
+  document.getElementById('surveyQuestionOptions').value = '';
+
+  renderSurveyQuestionList();
+}
+
+function removeSurveyQuestion(index) {
+  window.surveyBuilderConfig.splice(index, 1);
+  renderSurveyQuestionList();
+}
+
+async function saveSurveyConfig() {
+  const workshopId = document.getElementById('workshopSelect').value;
+  if (!workshopId) {
+    alert('Please select a workshop first');
+    return;
+  }
+
+  const { error } = await ggClient.from('workshops').update({ survey_config: window.surveyBuilderConfig }).eq('id', workshopId);
+  if (error) {
+    alert('Failed to save survey config');
+    console.error(error);
+    return;
+  }
+
+  alert('Survey configuration saved. The survey page will now serve this custom survey.');
+  loadSurveyBuilder();
 }
 
 function copyLink() {
@@ -193,9 +290,9 @@ function copyLink() {
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────
-function updateOverview(ws, responses) {
+function updateOverview(ws, responses, isDynamic = false) {
   document.getElementById('overviewTitle').textContent = ws.title;
-  document.getElementById('overviewSub').textContent = ws.subtitle || 'Pre-workshop survey responses';
+  document.getElementById('overviewSub').textContent = ws.subtitle || (isDynamic ? 'Custom survey responses' : 'Pre-workshop survey responses');
   document.getElementById('statTotal').textContent = responses.length || '0';
   document.getElementById('statRequired').textContent = responses.length ? `${responses.length}/${responses.length}` : '—';
   document.getElementById('statDate').textContent = ws.workshop_date ? formatDate(ws.workshop_date) : '—';
@@ -204,6 +301,13 @@ function updateOverview(ws, responses) {
     : '—';
 
   if (responses.length === 0) {
+    document.getElementById('chartsRow').style.opacity = '0.3';
+    document.getElementById('openSection').style.display = 'none';
+    document.getElementById('challengeSection').style.display = 'none';
+    return;
+  }
+
+  if (isDynamic) {
     document.getElementById('chartsRow').style.opacity = '0.3';
     document.getElementById('openSection').style.display = 'none';
     document.getElementById('challengeSection').style.display = 'none';
@@ -323,7 +427,7 @@ function buildOpenEndedCards(responses) {
 }
 
 // ── RESPONSES TABLE ───────────────────────────────────────────
-function updateResponsesTable(responses) {
+function updateResponsesTable(responses, isDynamic = false) {
   const tbody = document.getElementById('responsesBody');
   const empty = document.getElementById('emptyResponses');
 
@@ -333,6 +437,30 @@ function updateResponsesTable(responses) {
     return;
   }
   empty.style.display = 'none';
+
+  if (isDynamic) {
+    tbody.innerHTML = responses.map((r, i) => `
+      <tr onclick="toggleDetail(${i})">
+        <td><strong>Response ${i + 1}</strong></td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>${timeAgo(r.created_at)}</td>
+        <td><button class="expand-btn" id="expand-btn-${i}">View</button></td>
+      </tr>
+      <tr class="response-detail-row" id="detail-row-${i}">
+        <td colspan="6">
+          <div class="detail-grid">
+            <div class="detail-item detail-full">
+              <div class="detail-label">Answers</div>
+              <div class="detail-value"><pre>${escHtml(JSON.stringify(r.answers || {}, null, 2))}</pre></div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    return;
+  }
 
   tbody.innerHTML = responses.map((r, i) => `
     <tr onclick="toggleDetail(${i})">

@@ -35,7 +35,7 @@
       <div class="error-inner">
         <div class="shield-icon">⚠</div>
         <h2>Workshop Not Found</h2>
-        <p>This survey link doesn't match an active workshop. Please check your registration email for the correct link, or contact us at <a href="mailto:hello@guardiangroup.com">hello@guardiangroup.com</a>.</p>
+        <p>This survey link doesn't match an active workshop. Please check your registration email for the correct link, or contact us at <a href="mailto:info@guardiangroup.com">info@guardiangroup.com</a>.</p>
       </div>
     </div>
 
@@ -66,6 +66,18 @@
         </div>
       </div>
 
+      <!-- DYNAMIC SURVEY (from builder) -->
+      <div id="dynamicSurveyWrapper" style="display:none">
+        <form class="survey-form" id="dynamicSurveyForm" novalidate></form>
+        <div class="form-nav" id="dynamicFormNav" style="display:flex; justify-content: flex-end; margin-top: 16px">
+          <div class="nav-right">
+            <span class="required-note" id="dynamicRequiredNote" style="display:none">* Required fields</span>
+            <button class="btn btn-submit" id="btnDynamicSubmit">Submit Survey →</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="staticSurveyWrapper">
       <!-- FORM SECTIONS -->
       <form class="survey-form" id="surveyForm" novalidate>
 
@@ -311,6 +323,7 @@
           <button class="btn btn-submit" id="btnSubmit" style="display:none">Submit Survey →</button>
         </div>
       </div>
+      </div> <!-- staticSurveyWrapper -->
 
     </main>
 

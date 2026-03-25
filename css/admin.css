@@ -339,6 +339,38 @@
   margin-bottom: 10px;
   font-style: italic;
 }
+
+.builder-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(22,67,91,0.08);
+  margin-bottom: 20px;
+}
+
+.survey-questions-list {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(22,67,91,0.08);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.survey-question-item {
+  border-bottom: 1px solid rgba(22,67,91,0.1);
+  padding: 10px 0;
+}
+
+.survey-question-item:last-child { border-bottom: none; }
+
+.survey-question-text { font-weight: 600; color: var(--gg-dark); }
+
+.survey-question-meta { font-size: 12px; color: var(--gg-muted); margin-top: 4px; }
+
+.tiny-note { font-size: 12px; color: var(--gg-muted); margin-top: 12px; }
+
+}
 .open-card-meta {
   font-size: 12px;
   font-weight: 600;

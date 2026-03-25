@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/survey.css" />
+  <link rel="stylesheet" href="../css/workshops.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- HEADER -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="logo-mark">
+          <img src="../assets/logo-white.png" alt="Guardian Group" class="logo-img"
+            onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'" />
+          <span id="logo-text" class="logo-text" style="display:none">GUARDIAN GROUP</span>
+        </div>
+        <div class="header-tag">Beyond Compliance</div>
+      </div>
+    </header>
+
+    <!-- LOADING STATE -->
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loading-spinner"></div>
+      <p>Loading workshop...</p>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div class="error-screen" id="errorScreen" style="display:none">
+      <div class="error-inner">
+        <div class="shield-icon">⚠</div>
+        <h2>Workshop Not Found</h2>
+        <p id="errorMessage">This registration link doesn't match an active workshop. Please check your link or <a href="mailto:hello@guardiangroupsls.com">contact us</a>.</p>
+        <br />
+        <a href="/workshops/" class="btn btn-ghost" style="display:inline-block; margin-top:8px;">View All Workshops</a>
+      </div>
+    </div>
+
+    <!-- REGISTRATION CONTAINER -->
+    <div id="registrationContainer" style="display:none">
+
+      <!-- WORKSHOP MINI-HERO -->
+      <section class="reg-hero">
+        <div class="hero-inner">
+          <div class="pre-label">Workshop Registration</div>
+          <h1 class="workshop-title" id="regWorkshopTitle">Loading...</h1>
+          <div class="hero-meta">
+            <span class="meta-item" id="regHeroDate"></span>
+            <span class="meta-item" id="regHeroFacilitator"></span>
+            <span class="meta-item" id="regHeroPrice"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROGRESS BAR -->
+      <div class="progress-wrap reg-progress">
+        <div class="progress-inner">
+          <div class="progress-steps" id="progressSteps">
+            <div class="progress-step active" data-step="1">1</div>
+            <div class="progress-step" data-step="2">2</div>
+            <div class="progress-step" data-step="3">3</div>
+            <div class="progress-step" data-step="4">4</div>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progressFill" style="width:25%"></div>
+          </div>
+          <div class="progress-label" id="progressLabel">Step 1 of 4</div>
+        </div>
+      </div>
+
+      <!-- STEP CONTENT WRAPPER -->
+      <main class="reg-container">
+
+        <!-- ── STEP 1: REGISTRATION TYPE ───────────────────── -->
+        <section class="reg-step active" data-step="1" id="step1">
+          <div class="step-header">
+            <div class="step-number">01</div>
+            <div>
+              <h2 class="step-title">Who Are You Registering?</h2>
+              <p class="step-desc">Choose the option that best fits your situation.</p>
+            </div>
+          </div>
+
+          <div class="reg-type-grid" id="regTypeGrid">
+
+            <label class="reg-type-card" data-type="myself">
+              <input type="radio" name="reg_type" value="myself" />
+              <div class="reg-type-radio"></div>
+              <div class="reg-type-text">
+                <h3>Just Myself</h3>
+                <p>I'm registering for one seat. My contact info is the attendee info.</p>
+              </div>
+            </label>
+
+            <label class="reg-type-card" data-type="myself_and_others">
+              <input type="radio" name="reg_type" value="myself_and_others" />
+              <div class="reg-type-radio"></div>
+              <div class="reg-type-text">
+                <h3>Myself and Others</h3>
+                <p>I'm attending, plus I'm bringing colleagues or team members. I'll provide each attendee's details.</p>
+              </div>
+            </label>
+
+            <label class="reg-type-card" data-type="others_only">
+              <input type="radio" name="reg_type" value="others_only" />
+              <div class="reg-type-radio"></div>
+              <div class="reg-type-text">
+                <h3>I'm Registering Others Only</h3>
+                <p>I'm purchasing seats for people on my team. I won't be attending myself.</p>
+              </div>
+            </label>
+
+          </div>
+        </section>
+
+        <!-- ── STEP 2: PURCHASER INFO ──────────────────────── -->
+        <section class="reg-step" data-step="2" id="step2">
+          <div class="step-header">
+            <div class="step-number">02</div>
+            <div>
+              <h2 class="step-title">Your Details</h2>
+              <p class="step-desc">This is who we'll send the confirmation and receipt to.</p>
+            </div>
+          </div>
+
+          <form class="survey-form" id="purchaserForm" novalidate>
+            <div class="fields-grid">
+              <div class="field-group full">
+                <label class="field-label" for="purchaserName">Full Name <span class="required">*</span></label>
+                <input type="text" id="purchaserName" name="full_name" class="field-input" placeholder="Your full name" required />
+              </div>
+              <div class="field-group full">
+                <label class="field-label" for="purchaserEmail">Email Address <span class="required">*</span></label>
+                <input type="email" id="purchaserEmail" name="email" class="field-input" placeholder="you@example.com" required />
+              </div>
+              <div class="field-group half">
+                <label class="field-label" for="purchaserCompany">Company / Organization <span class="required">*</span></label>
+                <input type="text" id="purchaserCompany" name="company" class="field-input" placeholder="Company name" required />
+              </div>
+              <div class="field-group half">
+                <label class="field-label" for="purchaserPhone">Phone <span style="font-weight:400; color:var(--gg-muted)">(optional)</span></label>
+                <input type="tel" id="purchaserPhone" name="phone" class="field-input" placeholder="+1 (555) 000-0000" />
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- ── STEP 3: ATTENDEE INFO ───────────────────────── -->
+        <section class="reg-step" data-step="3" id="step3">
+          <div class="step-header">
+            <div class="step-number">03</div>
+            <div>
+              <h2 class="step-title">Attendee Details</h2>
+              <p class="step-desc" id="step3Desc">Tell us who's attending so we can prepare materials for everyone.</p>
+            </div>
+          </div>
+
+          <!-- Seat count (hidden for "just myself") -->
+          <div class="seat-count-wrap" id="seatCountWrap">
+            <label class="field-label" for="seatCount">Number of seats:</label>
+            <input type="number" id="seatCount" class="field-input seat-count-input" min="1" max="50" value="2" />
+            <span id="seatAvailNote" style="font-size:13px; color:var(--gg-muted)"></span>
+          </div>
+
+          <div class="attendees-list" id="attendeesList"></div>
+        </section>
+
+        <!-- ── STEP 4: PAYMENT ─────────────────────────────── -->
+        <section class="reg-step" data-step="4" id="step4">
+          <div class="step-header">
+            <div class="step-number">04</div>
+            <div>
+              <h2 class="step-title">Review &amp; Pay</h2>
+              <p class="step-desc">Confirm your order and complete payment to secure your seat(s).</p>
+            </div>
+          </div>
+
+          <!-- Order Summary -->
+          <div class="order-summary">
+            <div class="order-summary-header">Order Summary</div>
+            <div class="order-summary-body" id="orderSummaryBody">
+              <div class="order-summary-row">
+                <span class="order-summary-label">Workshop</span>
+                <span class="order-summary-value" id="summaryWorkshop">—</span>
+              </div>
+              <div class="order-summary-row">
+                <span class="order-summary-label">Date</span>
+                <span class="order-summary-value" id="summaryDate">—</span>
+              </div>
+              <div class="order-summary-row">
+                <span class="order-summary-label">Registrant</span>
+                <span class="order-summary-value" id="summaryRegistrant">—</span>
+              </div>
+              <hr class="order-summary-divider" />
+              <div class="order-summary-row">
+                <span class="order-summary-label">Seats</span>
+                <span class="order-summary-value" id="summarySeats">—</span>
+              </div>
+              <div class="order-summary-row">
+                <span class="order-summary-label">Price per seat</span>
+                <span class="order-summary-value" id="summaryPricePerSeat">—</span>
+              </div>
+            </div>
+            <div class="order-total-row">
+              <span class="order-total-label">Total</span>
+              <span class="order-total-amount" id="summaryTotal">—</span>
+            </div>
+          </div>
+
+          <!-- Square Payment -->
+          <div class="payment-section">
+            <div class="payment-section-label">Card Details</div>
+            <div id="card-container"></div>
+            <div class="payment-error" id="paymentError"></div>
+            <p class="payment-security-note">
+              <span>🔒</span> Payments are processed securely by Square. Guardian Group does not store your card details.
+            </p>
+          </div>
+
+        </section>
+
+        <!-- FORM NAV BUTTONS -->
+        <div class="form-nav" id="formNav">
+          <button class="btn btn-ghost" id="btnBack" style="display:none">← Back</button>
+          <div class="nav-right">
+            <span class="required-note" id="requiredNote">* Required fields</span>
+            <button class="btn btn-primary" id="btnNext">Continue →</button>
+            <button class="btn btn-submit" id="btnPay" style="display:none">Complete Registration →</button>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- SUCCESS SCREEN -->
+    <div class="success-screen" id="successScreen" style="display:none">
+      <div class="success-inner">
+        <div class="success-shield">
+          <img src="../assets/logo-color.png" alt="" class="success-logo" onerror="this.style.display='none'" />
+        </div>
+        <h2>You're Registered!</h2>
+        <p>Your spot is confirmed. We're looking forward to seeing you.</p>
+
+        <div class="confirmation-details" id="confirmationDetails"></div>
+
+        <p class="success-sub">Check your email for a confirmation &amp; receipt.</p>
+        <p style="font-size:14px; color:var(--gg-muted); margin-top:12px;">
+          Questions? Reach us at <a href="mailto:hello@guardiangroupsls.com" style="color:var(--gg-mid)">hello@guardiangroupsls.com</a>
+        </p>
+        <div class="success-tag">— Guardian Group Safety &amp; Leadership Solutions</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <p>Guardian Group Safety &amp; Leadership Solutions &nbsp;·&nbsp; Beyond Compliance</p>
+    </footer>
+
+  </div>
+
+  <!-- Square Web Payments SDK — replace sandbox URL with production when ready -->
+  <!-- Sandbox:    https://sandbox.web.squarecdn.com/v1/square.js  -->
+  <!-- Production: https://web.squarecdn.com/v1/square.js          -->
+  <script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/register.js"></script>
+</body>
+</html>

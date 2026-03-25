@@ -9,6 +9,9 @@ let currentSection = 1;
 const totalSections = 5;
 let workshopData = null;
 
+let useDynamicSurvey = false;
+let dynamicQuestions = [];
+
 const sectionTitles = ['About You', 'Starting Point', 'Your Goals', 'Team & Org', 'Logistics'];
 
 // ── INIT ─────────────────────────────────────────────────────
@@ -58,9 +61,112 @@ function loadWorkshop(ws) {
     document.documentElement.style.setProperty('--gg-mid', ws.accent_color);
   }
 
+  workshopData = ws;
+
+  const hasDynamic = Array.isArray(ws.survey_config) && ws.survey_config.length > 0;
+  if (hasDynamic) {
+    useDynamicSurvey = true;
+    dynamicQuestions = ws.survey_config;
+    setupDynamicSurvey();
+  } else {
+    useDynamicSurvey = false;
+    setupStaticSurvey();
+  }
+}
+
+function setupStaticSurvey() {
+  document.getElementById('staticSurveyWrapper').style.display = 'block';
+  document.getElementById('dynamicSurveyWrapper').style.display = 'none';
+  document.querySelector('.progress-wrap').style.display = 'block';
+  document.getElementById('btnBack').style.display = currentSection > 1 ? 'inline-flex' : 'none';
+  document.getElementById('btnNext').style.display = currentSection < totalSections ? 'inline-flex' : 'none';
+  document.getElementById('btnSubmit').style.display = currentSection === totalSections ? 'inline-flex' : 'none';
   buildProgressSteps();
   updateProgress();
+  goToSection(1);
 }
+
+function setupDynamicSurvey() {
+  document.getElementById('staticSurveyWrapper').style.display = 'none';
+  document.getElementById('dynamicSurveyWrapper').style.display = 'block';
+  document.querySelector('.progress-wrap').style.display = 'none';
+
+  const form = document.getElementById('dynamicSurveyForm');
+  form.innerHTML = '';
+
+  const questions = [...dynamicQuestions].sort((a, b) => (a.section - b.section) || (a.position - b.position));
+  if (!questions.length) {
+    form.innerHTML = '<p>Please define survey questions in the admin dashboard.</p>';
+    return;
+  }
+
+  let lastSection = null;
+  questions.forEach(q => {
+    if (q.section !== lastSection) {
+      const sectionLabel = document.createElement('div');
+      sectionLabel.className = 'section-header';
+      sectionLabel.innerHTML = `<div class="section-number">${String(q.section).padStart(2, '0')}</div><div class="section-meta"><h2 class="section-title">${sectionTitles[q.section - 1] || 'Custom'}<\/h2><p class="section-desc">Custom questions for this section.<\/p><\/div>`;
+      form.appendChild(sectionLabel);
+      lastSection = q.section;
+    }
+
+    const fieldGroup = document.createElement('div');
+    fieldGroup.className = 'field-group full';
+
+    const label = document.createElement('label');
+    label.className = 'field-label';
+    label.setAttribute('for', q.id);
+    label.textContent = q.text;
+    if (q.required) label.innerHTML += ' <span class="required">*</span>';
+    fieldGroup.appendChild(label);
+
+    let inputEl;
+    if (q.type === 'textarea') {
+      inputEl = document.createElement('textarea');
+      inputEl.rows = 3;
+      inputEl.className = 'field-input field-textarea';
+    } else if (q.type === 'select') {
+      inputEl = document.createElement('select');
+      inputEl.className = 'field-input field-select';
+      inputEl.innerHTML = '<option value="">Select...</option>' + (q.options || []).map(opt => `<option>${opt}<\/option>`).join('');
+    } else if (q.type === 'radio' || q.type === 'checkbox') {
+      const group = document.createElement('div');
+      group.className = q.type === 'radio' ? 'radio-group' : 'checkbox-group';
+      (q.options || []).forEach((opt, idx) => {
+        const item = document.createElement('label');
+        item.className = `${q.type}-item`;
+        const input = document.createElement('input');
+        input.type = q.type;
+        input.name = q.id;
+        input.value = opt;
+        item.appendChild(input);
+        const box = document.createElement('span');
+        box.className = `${q.type}-box`;
+        item.appendChild(box);
+        const labelText = document.createElement('span');
+        labelText.textContent = opt;
+        item.appendChild(labelText);
+        group.appendChild(item);
+      });
+      fieldGroup.appendChild(group);
+      form.appendChild(fieldGroup);
+      return;
+    } else {
+      inputEl = document.createElement('input');
+      inputEl.type = 'text';
+      inputEl.className = 'field-input';
+    }
+
+    inputEl.id = q.id;
+    inputEl.name = q.id;
+    inputEl.dataset.required = q.required ? 'true' : 'false';
+    fieldGroup.appendChild(inputEl);
+    form.appendChild(fieldGroup);
+  });
+
+  document.getElementById('dynamicRequiredNote').style.display = questions.some(q => q.required) ? 'inline' : 'none';
+}
+
 
 function showError() {
   document.getElementById('loadingScreen').style.display = 'none';
@@ -70,6 +176,7 @@ function showError() {
 // ── PROGRESS ─────────────────────────────────────────────────
 function buildProgressSteps() {
   const container = document.getElementById('progressSteps');
+  container.innerHTML = '';
   for (let i = 1; i <= totalSections; i++) {
     const step = document.createElement('div');
     step.className = 'progress-step';
@@ -107,6 +214,8 @@ document.getElementById('btnBack').addEventListener('click', () => {
 });
 
 document.getElementById('btnSubmit').addEventListener('click', submitForm);
+
+document.getElementById('btnDynamicSubmit').addEventListener('click', submitDynamicForm);
 
 function goToSection(n) {
   document.querySelector(`.form-section[data-section="${currentSection}"]`).classList.remove('active');
@@ -301,6 +410,67 @@ async function submitForm() {
   document.getElementById('surveyContainer').style.display = 'none';
   document.getElementById('successScreen').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function submitDynamicForm(event) {
+  event.preventDefault();
+  if (!useDynamicSurvey) return;
+
+  if (!validateDynamicSurvey()) return;
+
+  const answers = collectDynamicAnswers();
+
+  const payload = {
+    workshop_id: workshopData.id,
+    answers,
+  };
+
+  const { error } = await ggClient.from('custom_survey_responses').insert(payload);
+
+  if (error) {
+    alert('Something went wrong submitting your custom survey response. Please try again.');
+    console.error(error);
+    return;
+  }
+
+  document.getElementById('dynamicSurveyWrapper').style.display = 'none';
+  document.getElementById('successScreen').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateDynamicSurvey() {
+  let valid = true;
+  dynamicQuestions.forEach(q => {
+    if (!q.required) return;
+    const val = getDynamicQuestionValue(q);
+    if (val === null || val === '' || (Array.isArray(val) && val.length === 0)) {
+      valid = false;
+      alert(`Please answer required question: ${q.text}`);
+    }
+  });
+  return valid;
+}
+
+function getDynamicQuestionValue(q) {
+  if (q.type === 'radio') {
+    const checked = document.querySelector(`#dynamicSurveyForm input[name='${q.id}']:checked`);
+    return checked ? checked.value : null;
+  }
+  if (q.type === 'checkbox') {
+    const checked = Array.from(document.querySelectorAll(`#dynamicSurveyForm input[name='${q.id}']:checked`));
+    return checked.map(el => el.value);
+  }
+  const el = document.getElementById(q.id);
+  if (!el) return null;
+  return el.value.trim();
+}
+
+function collectDynamicAnswers() {
+  const answers = {};
+  dynamicQuestions.forEach(q => {
+    answers[q.id] = getDynamicQuestionValue(q);
+  });
+  return answers;
 }
 
 // ── START ─────────────────────────────────────────────────────
