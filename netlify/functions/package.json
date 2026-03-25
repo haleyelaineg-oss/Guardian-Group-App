@@ -1,7 +1,4 @@
 {
   "name": "guardian-group-functions",
-  "version": "1.0.0",
-  "dependencies": {
-    "square": "^44.0.1"
-  }
+  "version": "1.0.0"
 }
