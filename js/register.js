@@ -420,7 +420,7 @@ async function handlePayment() {
     const amountCents = Math.round((workshop.price_per_seat || 0) * attendees.length * 100);
 
     // 2. Charge via Netlify function (create this at /netlify/functions/create-payment.js)
-    const resp = await fetch('/api/create-payment', {
+    const resp = await fetch('/.netlify/functions/create-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
