@@ -1,3 +1,8 @@
+[[redirects]]
+  from = "/"
+  to = "/workshops/"
+  status = 302
+
 [[headers]]
   for = "/*"
   [headers.values]
