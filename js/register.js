@@ -440,7 +440,24 @@ async function handlePayment() {
     // 3. Write to Supabase
     await writeToSupabase(transactionId, orderId, attendees);
 
-    // 4. Show confirmation
+    // 4. Send confirmation emails (non-blocking — don't fail registration if email fails)
+    const purchaser = {
+      name:  document.getElementById('purchaserName').value.trim(),
+      email: document.getElementById('purchaserEmail').value.trim()
+    };
+    fetch('/.netlify/functions/send-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workshop,
+        attendees,
+        purchaser,
+        registrationType,
+        totalPaid: (workshop.price_per_seat || 0) * attendees.length
+      })
+    }).catch(err => console.error('Confirmation email failed:', err));
+
+    // 5. Show confirmation
     showSuccess(attendees);
 
   } catch (err) {

@@ -7,6 +7,8 @@ const ggClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let allResponses = [];
 let charts = {};
+let editingWorkshopId = null;
+let loadedWorkshops = [];
 
 // ── AUTH ──────────────────────────────────────────────────────
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -87,18 +89,23 @@ function renderWorkshopsList(workshops) {
 
   list.innerHTML = workshops.map(ws => `
     <div class="workshop-card ${ws.is_active ? '' : 'inactive'}">
-      <div class="wc-title">${ws.title}</div>
-      ${ws.subtitle ? `<div class="wc-subtitle">${ws.subtitle}</div>` : ''}
+      <div class="wc-title">${escHtml(ws.title)}</div>
+      ${ws.subtitle ? `<div class="wc-subtitle">${escHtml(ws.subtitle)}</div>` : ''}
       <div class="wc-meta">
-        ${ws.facilitator ? `<span class="wc-badge">👤 ${ws.facilitator}</span>` : ''}
+        ${ws.facilitator ? `<span class="wc-badge">👤 ${escHtml(ws.facilitator)}</span>` : ''}
         ${ws.workshop_date ? `<span class="wc-badge">📅 ${formatDate(ws.workshop_date)}</span>` : ''}
         <span class="wc-badge ${ws.is_active ? 'active-badge' : ''}">${ws.is_active ? '● Active' : '○ Inactive'}</span>
       </div>
       <div style="font-size:12px; color:var(--gg-muted); font-family:monospace; margin-top:4px;">
-        Link: ?workshop=${ws.slug}
+        Link: ?workshop=${escHtml(ws.slug)}
       </div>
+      ${ws.meeting_link
+        ? `<div style="font-size:12px; color:var(--gg-muted); margin-top:4px;">🔗 <a href="${escHtml(ws.meeting_link)}" target="_blank" style="color:var(--gg-muted);">Zoom link set</a></div>`
+        : `<div style="font-size:12px; color:var(--gg-muted); margin-top:4px;">🔗 No Zoom link yet</div>`
+      }
       <div class="wc-actions">
-        <button class="btn-sm btn-sm-ghost" onclick="copyWorkshopLink('${ws.slug}')">Copy Link</button>
+        <button class="btn-sm btn-sm-ghost" onclick="copyWorkshopLink('${escHtml(ws.slug)}')">Copy Link</button>
+        <button class="btn-sm btn-sm-ghost" onclick="showEditWorkshop('${ws.id}')">Edit</button>
         <button class="btn-sm btn-sm-ghost" onclick="toggleActive('${ws.id}', ${ws.is_active})">${ws.is_active ? 'Deactivate' : 'Activate'}</button>
       </div>
     </div>
@@ -144,6 +151,7 @@ async function createWorkshop() {
     subtitle: document.getElementById('newSubtitle').value.trim() || null,
     facilitator: document.getElementById('newFacilitator').value.trim() || null,
     workshop_date: document.getElementById('newDate').value || null,
+    meeting_link: document.getElementById('newMeetingLink').value.trim() || null,
     slug,
   });
 
@@ -158,8 +166,58 @@ async function createWorkshop() {
   document.getElementById('newFacilitator').value = '';
   document.getElementById('newDate').value = '';
   document.getElementById('newSlug').value = '';
+  document.getElementById('newMeetingLink').value = '';
   loadWorkshops();
   alert('Workshop created! ✓');
+}
+
+async function showEditWorkshop(id) {
+  const { data: ws, error } = await ggClient.from('workshops').select('*').eq('id', id).single();
+  if (error || !ws) { alert('Could not load workshop.'); return; }
+
+  editingWorkshopId = id;
+  document.getElementById('editTitle').value = ws.title || '';
+  document.getElementById('editSubtitle').value = ws.subtitle || '';
+  document.getElementById('editFacilitator').value = ws.facilitator || '';
+  document.getElementById('editDate').value = ws.workshop_date || '';
+  document.getElementById('editMeetingLink').value = ws.meeting_link || '';
+
+  document.getElementById('editWorkshopModal').style.display = 'flex';
+}
+
+function hideEditWorkshop() {
+  document.getElementById('editWorkshopModal').style.display = 'none';
+  editingWorkshopId = null;
+}
+
+function handleModalOverlayClick(event) {
+  if (event.target === document.getElementById('editWorkshopModal')) {
+    hideEditWorkshop();
+  }
+}
+
+async function saveWorkshop() {
+  if (!editingWorkshopId) return;
+
+  const title = document.getElementById('editTitle').value.trim();
+  if (!title) { alert('Title is required.'); return; }
+
+  const { error } = await ggClient.from('workshops').update({
+    title,
+    subtitle: document.getElementById('editSubtitle').value.trim() || null,
+    facilitator: document.getElementById('editFacilitator').value.trim() || null,
+    workshop_date: document.getElementById('editDate').value || null,
+    meeting_link: document.getElementById('editMeetingLink').value.trim() || null,
+  }).eq('id', editingWorkshopId);
+
+  if (error) {
+    alert('Error saving workshop: ' + error.message);
+    return;
+  }
+
+  hideEditWorkshop();
+  loadWorkshops();
+  alert('Workshop saved! ✓');
 }
 
 // ── LOAD WORKSHOP DATA ────────────────────────────────────────

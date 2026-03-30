@@ -45,18 +45,18 @@
         <img src="../assets/logo-white.png" alt="" class="sidebar-logo-img" onerror="this.style.display='none'" />
         <div>
           <div class="sidebar-brand">GUARDIAN GROUP</div>
-          <div class="sidebar-tag">Survey Admin</div>
+          <div class="sidebar-tag">Admin Dashboard</div>
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-view="overview" onclick="setView('overview', this)">
-          <span class="nav-icon">◈</span> Overview
-        </button>
-        <button class="nav-item" data-view="responses" onclick="setView('responses', this)">
-          <span class="nav-icon">◧</span> Responses
-        </button>
         <button class="nav-item" data-view="workshops" onclick="setView('workshops', this)">
           <span class="nav-icon">◫</span> Workshops
+        </button>
+        <button class="nav-item active" data-view="overview" onclick="setView('overview', this)">
+          <span class="nav-icon">◈</span> Survey Response Overview
+        </button>
+        <button class="nav-item" data-view="responses" onclick="setView('responses', this)">
+          <span class="nav-icon">◧</span> Survey Responses
         </button>
         <button class="nav-item" data-view="survey-builder" onclick="setView('survey-builder', this)">
           <span class="nav-icon">▣</span> Survey Builder
@@ -88,7 +88,7 @@
       <!-- VIEW: OVERVIEW ──────────────────────────────────── -->
       <div class="view active" id="view-overview">
         <div class="view-header">
-          <h1 class="view-title" id="overviewTitle">Select a workshop</h1>
+          <h1 class="view-title" id="overviewTitle">Select a Workshop</h1>
           <p class="view-sub" id="overviewSub">Choose a workshop above to see its response data</p>
         </div>
 
@@ -212,12 +212,18 @@
               <p class="field-hint">Lowercase, hyphens only — this becomes the survey link. e.g. safety-leadership-q1</p>
               <input type="text" id="newSlug" class="field-input" placeholder="safety-leadership-q1" />
             </div>
+            <div class="field-group full">
+              <label class="field-label" for="newMeetingLink">Zoom Meeting Link</label>
+              <p class="field-hint">You can add this now or later by editing the workshop.</p>
+              <input type="url" id="newMeetingLink" class="field-input" placeholder="https://zoom.us/j/..." />
+            </div>
           </div>
           <div class="create-form-actions">
             <button class="btn btn-ghost" onclick="hideCreateWorkshop()">Cancel</button>
             <button class="btn btn-primary" onclick="createWorkshop()">Create Workshop →</button>
           </div>
         </div>
+
 
         <div class="workshops-list" id="workshopsList"></div>
       </div>
@@ -277,6 +283,42 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- EDIT WORKSHOP MODAL -->
+  <div class="modal-overlay" id="editWorkshopModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Workshop</h3>
+        <button class="modal-close" onclick="hideEditWorkshop()">✕</button>
+      </div>
+      <div class="fields-grid">
+        <div class="field-group full">
+          <label class="field-label" for="editTitle">Workshop Title <span class="required">*</span></label>
+          <input type="text" id="editTitle" class="field-input" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="editSubtitle">Subtitle / Tagline</label>
+          <input type="text" id="editSubtitle" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="editFacilitator">Facilitator</label>
+          <input type="text" id="editFacilitator" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="editDate">Workshop Date</label>
+          <input type="date" id="editDate" class="field-input" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="editMeetingLink">Zoom Meeting Link</label>
+          <input type="url" id="editMeetingLink" class="field-input" placeholder="https://zoom.us/j/..." />
+        </div>
+      </div>
+      <div class="create-form-actions">
+        <button class="btn btn-ghost" onclick="hideEditWorkshop()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWorkshop()">Save Changes →</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
