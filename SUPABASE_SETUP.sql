@@ -21,7 +21,7 @@ CREATE TABLE workshops (
 CREATE TABLE pre_survey_responses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT now(),
-  workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+  workshop_id UUID REFERENCES workshops(id) ON DELETE CASUSDE,
 
   -- Section 1: About You
   full_name TEXT NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE pre_survey_responses (
 CREATE TABLE custom_survey_responses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT now(),
-  workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+  workshop_id UUID REFERENCES workshops(id) ON DELETE CASUSDE,
   answers JSONB NOT NULL
 );
 
@@ -75,7 +75,7 @@ CREATE POLICY "Public can insert custom survey responses"
 CREATE TABLE post_survey_responses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT now(),
-  workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+  workshop_id UUID REFERENCES workshops(id) ON DELETE CASUSDE,
 
   -- Respondent
   full_name TEXT,
@@ -103,7 +103,7 @@ CREATE TABLE post_survey_responses (
 CREATE TABLE quiz_responses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT now(),
-  workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+  workshop_id UUID REFERENCES workshops(id) ON DELETE CASUSDE,
 
   -- Respondent
   full_name TEXT NOT NULL,

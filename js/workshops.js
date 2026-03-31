@@ -246,5 +246,5 @@ function formatDate(dateStr) {
 }
 
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
 }
