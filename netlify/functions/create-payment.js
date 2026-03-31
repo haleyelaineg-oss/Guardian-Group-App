@@ -10,7 +10,7 @@ exports.handler = async (event) => {
 
     const client = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN,
-      environment: Environment.Sandbox // change to Environment.Production when ready
+      environment: Environment.Production // change to Environment.Production when ready
     });
 
     const response = await client.paymentsApi.createPayment({

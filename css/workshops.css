@@ -17,6 +17,12 @@
   max-width: 1080px;
 }
 
+.logo-mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ── PAGE HERO (workshops listing) ──────────────────────────── */
 .page-hero {
   background: linear-gradient(135deg, var(--gg-dark) 0%, var(--gg-mid) 100%);
@@ -43,7 +49,7 @@
 /* ── WORKSHOP CARDS GRID ─────────────────────────────────────── */
 .workshops-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 28px;
 }
 
@@ -102,7 +108,7 @@
 
 .workshop-card-title {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--gg-dark);
   line-height: 1.15;
@@ -110,7 +116,7 @@
 }
 
 .workshop-card-subtitle {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--gg-muted);
   font-weight: 300;
   line-height: 1.5;
@@ -129,7 +135,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--gg-muted);
 }
 .card-meta-icon {
@@ -143,7 +149,7 @@
   font-weight: 500;
 }
 .card-meta-seats-low {
-  color: #b45309;
+  color: #c0392b;
   font-weight: 600;
 }
 .card-meta-seats-none {
@@ -169,11 +175,12 @@
 
 .workshop-card-footer {
   padding: 0 28px 28px;
+  display: flex;
+  gap: 10px;
 }
 .workshop-card-footer .btn {
-  width: 100%;
+  flex: 1;
   text-align: center;
-  display: block;
 }
 .workshop-card-footer .btn-disabled {
   background: var(--gg-pale);
@@ -564,8 +571,143 @@
   max-width: 720px;
 }
 
+/* ── WORKSHOP DETAIL MODAL ───────────────────────────────────── */
+.ws-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 30, 50, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.ws-modal-card {
+  background: var(--gg-white);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(10,30,50,0.25);
+  position: relative;
+}
+.ws-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  color: var(--gg-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  line-height: 1;
+}
+.ws-modal-close:hover { background: white; color: var(--gg-dark); }
+.ws-modal-accent {
+  height: 6px;
+  border-radius: 16px 16px 0 0;
+}
+.ws-modal-body {
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ws-modal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(42,92,118,0.1);
+  color: var(--gg-mid);
+  align-self: flex-start;
+}
+.ws-modal-status.open {
+  background: rgba(22,91,60,0.1);
+  color: #165b3c;
+}
+.ws-modal-status::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ws-modal-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gg-dark);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0;
+}
+.ws-modal-subtitle {
+  font-size: 15px;
+  color: var(--gg-muted);
+  font-weight: 300;
+  line-height: 1.5;
+  margin: 0;
+}
+.ws-modal-description {
+  font-size: 15px;
+  color: var(--gg-text);
+  line-height: 1.7;
+  margin: 0;
+}
+.ws-modal-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gg-pale);
+}
+.ws-modal-price {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--gg-dark);
+  letter-spacing: -0.02em;
+  padding-top: 8px;
+}
+.ws-modal-price span {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gg-muted);
+  letter-spacing: 0;
+}
+.ws-modal-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+}
+.ws-modal-actions .btn {
+  flex: 1;
+  text-align: center;
+}
+.btn-disabled {
+  background: var(--gg-pale);
+  color: var(--gg-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+  pointer-events: none;
+}
+
 /* ── RESPONSIVE ──────────────────────────────────────────────── */
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .workshops-grid {
     grid-template-columns: 1fr;
   }

@@ -99,20 +99,20 @@ function buildCard(w, seatsSold) {
   }
 
   if (w.facilitator) {
-    meta.appendChild(metaRow('👤', 'Facilitator', w.facilitator));
+    meta.appendChild(metaRow('👤', 'Lead By', w.facilitator));
   }
 
   if (seatsRemaining !== null) {
-    const seatsEl = metaRow('◉', 'Seats', '');
+    const seatsEl = metaRow('◉', 'Seats Remaining', '');
     const valEl = seatsEl.querySelector('.card-meta-value');
     if (isFull) {
-      valEl.textContent = 'Sold out';
+      valEl.textContent = 'Sold Out';
       valEl.className = 'card-meta-value card-meta-seats-none';
-    } else if (seatsRemaining <= 5) {
+    } else if (seatsRemaining < 10) {
       valEl.textContent = `${seatsRemaining} seat${seatsRemaining === 1 ? '' : 's'} left`;
       valEl.className = 'card-meta-value card-meta-seats-low';
     } else {
-      valEl.textContent = `${seatsRemaining} seats available`;
+      valEl.textContent = `${seatsRemaining}`;
     }
     meta.appendChild(seatsEl);
   }
@@ -133,6 +133,12 @@ function buildCard(w, seatsSold) {
   const footer = document.createElement('div');
   footer.className = 'workshop-card-footer';
 
+  const learnBtn = document.createElement('button');
+  learnBtn.className = 'btn btn-ghost';
+  learnBtn.textContent = 'Learn More';
+  learnBtn.addEventListener('click', () => openWsModal(w, seatsSold));
+  footer.appendChild(learnBtn);
+
   if (isFull) {
     const btn = document.createElement('span');
     btn.className = 'btn btn-disabled';
@@ -148,6 +154,69 @@ function buildCard(w, seatsSold) {
 
   card.appendChild(footer);
   return card;
+}
+
+// ── Workshop detail modal ─────────────────────────────────
+function openWsModal(w, seatsSold) {
+  const seatsRemaining = w.max_seats ? w.max_seats - seatsSold : null;
+  const isFull = seatsRemaining !== null && seatsRemaining <= 0;
+  const isOpen = w.status === 'registration_open';
+  const accentColor = w.accent_color || '#2A5C76';
+
+  document.getElementById('wsModalAccent').style.background = accentColor;
+  document.getElementById('wsModalTitle').textContent = w.title;
+  document.getElementById('wsModalSubtitle').textContent = w.subtitle || '';
+  document.getElementById('wsModalSubtitle').style.display = w.subtitle ? '' : 'none';
+  document.getElementById('wsModalDescription').textContent = w.description || '';
+  document.getElementById('wsModalDescription').style.display = w.description ? '' : 'none';
+
+  const statusEl = document.getElementById('wsModalStatus');
+  statusEl.textContent = isFull ? 'Sold Out' : (isOpen ? 'Registration Open' : 'Upcoming');
+  statusEl.className = 'ws-modal-status' + (isOpen && !isFull ? ' open' : '');
+
+  const meta = document.getElementById('wsModalMeta');
+  const rows = [];
+  if (w.scheduled_at) rows.push(['📅', 'Date', formatDateTime(w.scheduled_at, w.duration_minutes)]);
+  else if (w.workshop_date) rows.push(['📅', 'Date', formatDate(w.workshop_date)]);
+  if (w.facilitator) rows.push(['👤', 'Lead By', w.facilitator]);
+  if (seatsRemaining !== null) {
+    const seatsText = isFull ? 'Sold out' : (seatsRemaining < 10 ? `${seatsRemaining} seat${seatsRemaining === 1 ? '' : 's'} left` : `${seatsRemaining} seats available`);
+    rows.push(['◉', 'Availability', seatsText]);
+  }
+  meta.innerHTML = rows.map(([icon, label, value]) =>
+    `<div class="card-meta-row"><span class="card-meta-icon">${icon}</span><span class="card-meta-label" style="color:var(--gg-muted);font-size:13px">${label}:</span><span class="card-meta-value">${value}</span></div>`
+  ).join('');
+
+  const priceEl = document.getElementById('wsModalPrice');
+  if (w.price_per_seat != null) {
+    priceEl.innerHTML = formatCurrency(w.price_per_seat) + ' <span>per seat</span>';
+    priceEl.style.display = '';
+  } else {
+    priceEl.style.display = 'none';
+  }
+
+  const registerBtn = document.getElementById('wsModalRegister');
+  if (isFull) {
+    registerBtn.textContent = 'Sold Out';
+    registerBtn.className = 'btn btn-disabled ws-modal-register';
+    registerBtn.removeAttribute('href');
+  } else {
+    registerBtn.textContent = 'Register Now →';
+    registerBtn.className = 'btn btn-primary ws-modal-register';
+    registerBtn.href = `/register/?workshop=${encodeURIComponent(w.slug)}`;
+  }
+
+  document.getElementById('wsModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeWsModal() {
+  document.getElementById('wsModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function handleWsModalClick(e) {
+  if (e.target === document.getElementById('wsModal')) closeWsModal();
 }
 
 // ── Helper: single meta row element ──────────────────────

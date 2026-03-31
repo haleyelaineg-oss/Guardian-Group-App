@@ -54,19 +54,24 @@ function setView(viewName, btn) {
   document.getElementById(`view-${viewName}`).classList.add('active');
   btn.classList.add('active');
 
-  if (viewName === 'survey-builder') {
-    loadSurveyBuilder();
-  }
+  if (viewName === 'survey-builder') loadSurveyBuilder();
+  if (viewName === 'registrants') loadRegistrants();
 }
 
 // ── WORKSHOPS ─────────────────────────────────────────────────
 async function loadWorkshops() {
-  const { data, error } = await ggClient
-    .from('workshops')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const [{ data, error }, { data: seatData }] = await Promise.all([
+    ggClient.from('workshops').select('*').order('created_at', { ascending: false }),
+    ggClient.from('registrations').select('workshop_id, seats_purchased')
+  ]);
 
   if (error || !data) return;
+
+  // Tally seats per workshop
+  const seatsByWorkshop = {};
+  (seatData || []).forEach(r => {
+    seatsByWorkshop[r.workshop_id] = (seatsByWorkshop[r.workshop_id] || 0) + (r.seats_purchased || 0);
+  });
 
   const select = document.getElementById('workshopSelect');
   select.innerHTML = '<option value="">— Select a workshop —</option>';
@@ -77,28 +82,44 @@ async function loadWorkshops() {
     select.appendChild(opt);
   });
 
-  renderWorkshopsList(data);
+  renderWorkshopsList(data, seatsByWorkshop);
 }
 
-function renderWorkshopsList(workshops) {
+function renderWorkshopsList(workshops, seatsByWorkshop = {}) {
   const list = document.getElementById('workshopsList');
   if (!workshops.length) {
     list.innerHTML = '<p style="color:var(--gg-muted); font-style:italic; grid-column:1/-1">No workshops yet. Create your first one above.</p>';
     return;
   }
 
-  list.innerHTML = workshops.map(ws => `
+  list.innerHTML = workshops.map(ws => {
+    const soldSeats = seatsByWorkshop[ws.id] || 0;
+    const maxSeats = ws.max_seats || null;
+    const seatsRemaining = maxSeats !== null ? maxSeats - soldSeats : null;
+
+    let seatsDisplay = '';
+    if (maxSeats !== null) {
+      const remainingText = seatsRemaining <= 0 ? 'Sold out' : `${seatsRemaining} of ${maxSeats} seats remaining`;
+      const color = seatsRemaining <= 0 ? '#c0392b' : seatsRemaining <= 10 ? '#b45309' : 'var(--gg-muted)';
+      seatsDisplay = `<div style="font-size:12px; color:${color}; margin-top:4px;">◉ ${soldSeats} registered · ${remainingText}</div>`;
+    } else if (soldSeats > 0) {
+      seatsDisplay = `<div style="font-size:12px; color:var(--gg-muted); margin-top:4px;">◉ ${soldSeats} registered</div>`;
+    }
+
+    return `
     <div class="workshop-card ${ws.is_active ? '' : 'inactive'}">
       <div class="wc-title">${escHtml(ws.title)}</div>
       ${ws.subtitle ? `<div class="wc-subtitle">${escHtml(ws.subtitle)}</div>` : ''}
       <div class="wc-meta">
         ${ws.facilitator ? `<span class="wc-badge">👤 ${escHtml(ws.facilitator)}</span>` : ''}
         ${ws.workshop_date ? `<span class="wc-badge">📅 ${formatDate(ws.workshop_date)}</span>` : ''}
+        ${ws.price_per_seat != null ? `<span class="wc-badge">💲 ${formatCurrency(ws.price_per_seat)}/seat</span>` : ''}
         <span class="wc-badge ${ws.is_active ? 'active-badge' : ''}">${ws.is_active ? '● Active' : '○ Inactive'}</span>
       </div>
       <div style="font-size:12px; color:var(--gg-muted); font-family:monospace; margin-top:4px;">
         Link: ?workshop=${escHtml(ws.slug)}
       </div>
+      ${seatsDisplay}
       ${ws.meeting_link
         ? `<div style="font-size:12px; color:var(--gg-muted); margin-top:4px;">🔗 <a href="${escHtml(ws.meeting_link)}" target="_blank" style="color:var(--gg-muted);">Zoom link set</a></div>`
         : `<div style="font-size:12px; color:var(--gg-muted); margin-top:4px;">🔗 No Zoom link yet</div>`
@@ -107,13 +128,21 @@ function renderWorkshopsList(workshops) {
         <button class="btn-sm btn-sm-ghost" onclick="copyWorkshopLink('${escHtml(ws.slug)}')">Copy Link</button>
         <button class="btn-sm btn-sm-ghost" onclick="showEditWorkshop('${ws.id}')">Edit</button>
         <button class="btn-sm btn-sm-ghost" onclick="toggleActive('${ws.id}', ${ws.is_active})">${ws.is_active ? 'Deactivate' : 'Activate'}</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteWorkshop('${ws.id}', '${escHtml(ws.title).replace(/'/g, "\\'")}')">Delete</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function toggleActive(id, current) {
   await ggClient.from('workshops').update({ is_active: !current }).eq('id', id);
+  loadWorkshops();
+}
+
+async function deleteWorkshop(id, title) {
+  if (!confirm(`Delete "${title}"?\n\nThis cannot be undone. Any existing registrations will remain in the database.`)) return;
+  const { error } = await ggClient.from('workshops').delete().eq('id', id);
+  if (error) { alert('Error deleting workshop: ' + error.message); return; }
   loadWorkshops();
 }
 
@@ -146,12 +175,19 @@ async function createWorkshop() {
   const slug = document.getElementById('newSlug').value.trim();
   if (!title || !slug) { alert('Title and slug are required.'); return; }
 
+  const newDate = document.getElementById('newDate').value;
+  const newTime = document.getElementById('newTime').value;
   const { error } = await ggClient.from('workshops').insert({
     title,
-    subtitle: document.getElementById('newSubtitle').value.trim() || null,
-    facilitator: document.getElementById('newFacilitator').value.trim() || null,
-    workshop_date: document.getElementById('newDate').value || null,
-    meeting_link: document.getElementById('newMeetingLink').value.trim() || null,
+    subtitle:        document.getElementById('newSubtitle').value.trim() || null,
+    facilitator:     document.getElementById('newFacilitator').value.trim() || null,
+    workshop_date:   newDate || null,
+    scheduled_at:    buildScheduledAt(newDate, newTime),
+    duration_minutes: parseFloat(document.getElementById('newDuration').value) * 60 || null,
+    description:     document.getElementById('newDescription').value.trim() || null,
+    price_per_seat:  parseFloat(document.getElementById('newCost').value) || null,
+    max_seats:       parseInt(document.getElementById('newMaxSeats').value, 10) || null,
+    meeting_link:    document.getElementById('newMeetingLink').value.trim() || null,
     slug,
   });
 
@@ -165,7 +201,12 @@ async function createWorkshop() {
   document.getElementById('newSubtitle').value = '';
   document.getElementById('newFacilitator').value = '';
   document.getElementById('newDate').value = '';
+  document.getElementById('newTime').value = '';
+  document.getElementById('newDuration').value = '';
   document.getElementById('newSlug').value = '';
+  document.getElementById('newDescription').value = '';
+  document.getElementById('newCost').value = '';
+  document.getElementById('newMaxSeats').value = '';
   document.getElementById('newMeetingLink').value = '';
   loadWorkshops();
   alert('Workshop created! ✓');
@@ -179,7 +220,12 @@ async function showEditWorkshop(id) {
   document.getElementById('editTitle').value = ws.title || '';
   document.getElementById('editSubtitle').value = ws.subtitle || '';
   document.getElementById('editFacilitator').value = ws.facilitator || '';
-  document.getElementById('editDate').value = ws.workshop_date || '';
+  document.getElementById('editDate').value = ws.workshop_date || (ws.scheduled_at ? ws.scheduled_at.slice(0, 10) : '');
+  document.getElementById('editTime').value = ws.scheduled_at ? new Date(ws.scheduled_at).toTimeString().slice(0, 5) : '';
+  document.getElementById('editDuration').value = ws.duration_minutes ? ws.duration_minutes / 60 : '';
+  document.getElementById('editDescription').value = ws.description || '';
+  document.getElementById('editCost').value = ws.price_per_seat ?? '';
+  document.getElementById('editMaxSeats').value = ws.max_seats ?? '';
   document.getElementById('editMeetingLink').value = ws.meeting_link || '';
 
   document.getElementById('editWorkshopModal').style.display = 'flex';
@@ -202,12 +248,19 @@ async function saveWorkshop() {
   const title = document.getElementById('editTitle').value.trim();
   if (!title) { alert('Title is required.'); return; }
 
+  const editDate = document.getElementById('editDate').value;
+  const editTime = document.getElementById('editTime').value;
   const { error } = await ggClient.from('workshops').update({
     title,
-    subtitle: document.getElementById('editSubtitle').value.trim() || null,
-    facilitator: document.getElementById('editFacilitator').value.trim() || null,
-    workshop_date: document.getElementById('editDate').value || null,
-    meeting_link: document.getElementById('editMeetingLink').value.trim() || null,
+    subtitle:         document.getElementById('editSubtitle').value.trim() || null,
+    facilitator:      document.getElementById('editFacilitator').value.trim() || null,
+    workshop_date:    editDate || null,
+    scheduled_at:     buildScheduledAt(editDate, editTime),
+    duration_minutes: parseFloat(document.getElementById('editDuration').value) * 60 || null,
+    description:      document.getElementById('editDescription').value.trim() || null,
+    price_per_seat:   parseFloat(document.getElementById('editCost').value) || null,
+    max_seats:        parseInt(document.getElementById('editMaxSeats').value, 10) || null,
+    meeting_link:     document.getElementById('editMeetingLink').value.trim() || null,
   }).eq('id', editingWorkshopId);
 
   if (error) {
@@ -246,6 +299,7 @@ async function loadWorkshopData() {
   updateOverview(ws, allResponses, isDynamic);
   updateResponsesTable(allResponses, isDynamic);
   loadSurveyBuilder();
+  loadRegistrants();
 }
 
 async function loadSurveyBuilder() {
@@ -282,6 +336,24 @@ function renderSurveyQuestionList() {
       <button class="btn-sm btn-sm-ghost" onclick="removeSurveyQuestion(${idx})">Remove</button>
     </div>
   `).join('');
+}
+
+function loadSurveyTemplate() {
+  if (window.surveyBuilderConfig && window.surveyBuilderConfig.length > 0) {
+    if (!confirm('This will replace your current questions with the default template. Continue?')) return;
+  }
+  window.surveyBuilderConfig = [
+    { id: 'full_name',        text: 'Full Name',                                   type: 'text',     required: true,  section: 1, options: [], position: 1 },
+    { id: 'organization',     text: 'Organization / Company',                      type: 'text',     required: true,  section: 1, options: [], position: 2 },
+    { id: 'job_title',        text: 'Job Title / Role',                            type: 'text',     required: true,  section: 1, options: [], position: 3 },
+    { id: 'industry',         text: 'Industry',                                    type: 'select',   required: true,  section: 1, options: ['Construction', 'Oil & Gas', 'Mining', 'Manufacturing', 'Healthcare', 'Transportation', 'Utilities', 'Government', 'Other'], position: 4 },
+    { id: 'time_in_role',     text: 'How long have you been in a safety role?',    type: 'select',   required: false, section: 1, options: ['Less than 1 year', '1–3 years', '3–5 years', '5–10 years', '10+ years'], position: 5 },
+    { id: 'safety_involvement', text: 'What best describes your involvement in safety? (Select all that apply)', type: 'checkbox', required: false, section: 2, options: ['Primary safety role', 'Safety as part of a broader role', 'Supervisor/manager with safety responsibilities', 'Executive/leadership', 'Safety committee member'], position: 6 },
+    { id: 'one_thing_wanted', text: 'What is the ONE thing you most want to get out of this workshop?', type: 'textarea', required: true,  section: 3, options: [], position: 7 },
+    { id: 'specific_challenge', text: 'Is there a specific challenge you\'re hoping this workshop will help with?', type: 'textarea', required: false, section: 3, options: [], position: 8 },
+    { id: 'accessibility_needs', text: 'Do you have any accessibility needs we should know about?',   type: 'text',     required: false, section: 5, options: [], position: 9 },
+  ];
+  renderSurveyQuestionList();
 }
 
 function addSurveyQuestion() {
@@ -608,7 +680,99 @@ function toggleDetail(i) {
   if (btn) btn.textContent = isOpen ? 'View' : 'Close';
 }
 
+// ── REGISTRANTS ───────────────────────────────────────────────
+async function loadRegistrants() {
+  const workshopId = document.getElementById('workshopSelect').value;
+  const container = document.getElementById('registrantsContent');
+
+  if (!workshopId) {
+    container.innerHTML = '<p class="empty-hint">Select a workshop above to view its registrants.</p>';
+    return;
+  }
+
+  container.innerHTML = '<p class="empty-hint">Loading...</p>';
+
+  const [{ data: registrations, error }, { data: attendanceRows }] = await Promise.all([
+    ggClient
+      .from('registrations')
+      .select('id, registration_type, seats_purchased, total_paid, created_at, square_transaction_id, purchaser:purchaser_id(full_name, email)')
+      .eq('workshop_id', workshopId)
+      .order('created_at', { ascending: false }),
+    ggClient
+      .from('attendance')
+      .select('registration_id, status, participant:participant_id(full_name, email)')
+      .eq('workshop_id', workshopId)
+  ]);
+
+  if (error || !registrations || registrations.length === 0) {
+    container.innerHTML = '<p class="empty-hint">No registrations yet for this workshop.</p>';
+    return;
+  }
+
+  // Group attendance rows by registration_id
+  const attendeesByReg = {};
+  (attendanceRows || []).forEach(row => {
+    if (!attendeesByReg[row.registration_id]) attendeesByReg[row.registration_id] = [];
+    attendeesByReg[row.registration_id].push(row);
+  });
+
+  const totalSeats = registrations.reduce((sum, r) => sum + (r.seats_purchased || 0), 0);
+  const totalRevenue = registrations.reduce((sum, r) => sum + (r.total_paid || 0), 0);
+
+  container.innerHTML = `
+    <div class="reg-summary-bar">
+      <div class="reg-summary-stat"><span class="reg-summary-num">${registrations.length}</span><span class="reg-summary-label">Registrations</span></div>
+      <div class="reg-summary-stat"><span class="reg-summary-num">${totalSeats}</span><span class="reg-summary-label">Total Seats</span></div>
+      <div class="reg-summary-stat"><span class="reg-summary-num">${formatCurrency(totalRevenue)}</span><span class="reg-summary-label">Total Revenue</span></div>
+    </div>
+    <div class="reg-cards">
+      ${registrations.map((reg, i) => {
+        const attendees = attendeesByReg[reg.id] || [];
+        const typeLabel = { myself: 'Self', myself_and_others: 'Group', others_only: 'Others Only' }[reg.registration_type] || reg.registration_type;
+        return `
+          <div class="reg-card">
+            <div class="reg-card-header">
+              <div>
+                <div class="reg-card-name">${escHtml(reg.purchaser?.full_name || '—')}</div>
+                <div class="reg-card-email">${escHtml(reg.purchaser?.email || '—')}</div>
+              </div>
+              <div class="reg-card-meta-right">
+                <span class="wc-badge">${typeLabel}</span>
+                <span class="wc-badge">${reg.seats_purchased} seat${reg.seats_purchased !== 1 ? 's' : ''}</span>
+                <span class="wc-badge active-badge">${formatCurrency(reg.total_paid || 0)}</span>
+              </div>
+            </div>
+            ${attendees.length ? `
+              <div class="reg-card-attendees">
+                <div class="reg-card-attendees-label">Attendees</div>
+                ${attendees.map(a => `
+                  <div class="reg-card-attendee-row">
+                    <span>${escHtml(a.participant?.full_name || '—')}</span>
+                    <span class="reg-card-attendee-email">${escHtml(a.participant?.email || '—')}</span>
+                    <span class="reg-card-status-badge ${a.status}">${a.status}</span>
+                  </div>
+                `).join('')}
+              </div>` : ''}
+            <div class="reg-card-footer-meta">
+              Registered ${timeAgo(reg.created_at)}
+              ${reg.square_transaction_id ? ` · Txn: <code>${escHtml(reg.square_transaction_id)}</code>` : ''}
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0 }).format(amount || 0);
+}
+
 // ── UTILS ─────────────────────────────────────────────────────
+function buildScheduledAt(date, time) {
+  if (!date) return null;
+  return time ? new Date(`${date}T${time}`).toISOString() : null;
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');

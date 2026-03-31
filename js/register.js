@@ -12,8 +12,8 @@
 //      to production when you go live.
 // ============================================================
 
-const SQUARE_APP_ID      = 'sandbox-sq0idb-sQ9SUrQ4y7O3ivE9FEWFQA';       // e.g. sq0idp-xxxxx
-const SQUARE_LOCATION_ID = 'LZKX2ZGRJBQQ7';  // e.g. LXXXXXXXXX
+const SQUARE_APP_ID      = 'sq0idp-tAR9_FeiRoDkyj5mYdc2Ew';       // e.g. sq0idp-xxxxx
+const SQUARE_LOCATION_ID = '8TWRTV2G0F9Y1';  // e.g. LXXXXXXXXX
 
 // ── State ────────────────────────────────────────────────────
 let db            = null;

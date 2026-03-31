@@ -16,11 +16,11 @@
 
     <!-- HEADER -->
     <header class="site-header">
-      <div class="header-inner">
+      <div class="header-inner header-inner-wide">
         <div class="logo-mark">
           <img src="../assets/logo-white.png" alt="Guardian Group" class="logo-img"
-            onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'" />
-          <span id="logo-text" class="logo-text" style="display:none">GUARDIAN GROUP</span>
+            onerror="this.style.display='none'" />
+          <span class="logo-text">GUARDIAN GROUP</span>
         </div>
         <div class="header-tag">Beyond Compliance</div>
       </div>
@@ -30,8 +30,8 @@
     <section class="page-hero">
       <div class="hero-inner">
         <div class="pre-label">Guardian Group Safety &amp; Leadership Solutions</div>
-        <h1 class="workshop-title">Upcoming Workshops</h1>
-        <p class="workshop-subtitle">Practical safety leadership development — built for people who do the work.</p>
+        <h1 class="workshop-title">Upcoming Online Workshops</h1>
+        <p class="workshop-subtitle"> </p>
       </div>
     </section>
 
@@ -51,7 +51,7 @@
       <div class="empty-state-block" id="emptyState" style="display:none">
         <div class="empty-icon">◈</div>
         <h3>No upcoming workshops right now</h3>
-        <p>New sessions are added regularly. In the meantime, <a href="mailto:hello@guardiangroupsls.com">get in touch</a> to discuss a private or custom workshop for your team.</p>
+        <p>New sessions are added regularly. In the meantime, <a href="mailto:info@guardiangroupsls.com">get in touch</a> to discuss a private or custom workshop for your team.</p>
       </div>
 
     </main>
@@ -61,6 +61,26 @@
       <p>Guardian Group Safety &amp; Leadership Solutions &nbsp;·&nbsp; Beyond Compliance</p>
     </footer>
 
+  </div>
+
+  <!-- WORKSHOP DETAIL MODAL -->
+  <div class="ws-modal-overlay" id="wsModal" style="display:none" onclick="handleWsModalClick(event)">
+    <div class="ws-modal-card">
+      <button class="ws-modal-close" onclick="closeWsModal()">✕</button>
+      <div class="ws-modal-accent" id="wsModalAccent"></div>
+      <div class="ws-modal-body">
+        <div class="ws-modal-status" id="wsModalStatus"></div>
+        <h2 class="ws-modal-title" id="wsModalTitle"></h2>
+        <p class="ws-modal-subtitle" id="wsModalSubtitle"></p>
+        <p class="ws-modal-description" id="wsModalDescription"></p>
+        <div class="ws-modal-meta" id="wsModalMeta"></div>
+        <div class="ws-modal-price" id="wsModalPrice"></div>
+        <div class="ws-modal-actions">
+          <a class="btn btn-ghost ws-modal-contact" href="mailto:info@guardiangroupsls.com">Contact Us</a>
+          <a class="btn btn-primary ws-modal-register" id="wsModalRegister" href="#">Register Now</a>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

@@ -49,14 +49,17 @@
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item" data-view="workshops" onclick="setView('workshops', this)">
+        <button class="nav-item active" data-view="workshops" onclick="setView('workshops', this)">
           <span class="nav-icon">◫</span> Workshops
         </button>
-        <button class="nav-item active" data-view="overview" onclick="setView('overview', this)">
+        <button class="nav-item" data-view="overview" onclick="setView('overview', this)">
           <span class="nav-icon">◈</span> Survey Response Overview
         </button>
         <button class="nav-item" data-view="responses" onclick="setView('responses', this)">
           <span class="nav-icon">◧</span> Survey Responses
+        </button>
+        <button class="nav-item" data-view="registrants" onclick="setView('registrants', this)">
+          <span class="nav-icon">◉</span> Registrants
         </button>
         <button class="nav-item" data-view="survey-builder" onclick="setView('survey-builder', this)">
           <span class="nav-icon">▣</span> Survey Builder
@@ -86,7 +89,7 @@
       </div>
 
       <!-- VIEW: OVERVIEW ──────────────────────────────────── -->
-      <div class="view active" id="view-overview">
+      <div class="view" id="view-overview">
         <div class="view-header">
           <h1 class="view-title" id="overviewTitle">Select a Workshop</h1>
           <p class="view-sub" id="overviewSub">Choose a workshop above to see its response data</p>
@@ -181,7 +184,7 @@
       </div>
 
       <!-- VIEW: WORKSHOPS ─────────────────────────────────── -->
-      <div class="view" id="view-workshops">
+      <div class="view active" id="view-workshops">
         <div class="view-header">
           <h1 class="view-title">Workshops</h1>
           <button class="btn btn-primary" onclick="showCreateWorkshop()">+ New Workshop</button>
@@ -207,10 +210,30 @@
               <label class="field-label" for="newDate">Workshop Date</label>
               <input type="date" id="newDate" class="field-input" />
             </div>
+            <div class="field-group half">
+              <label class="field-label" for="newTime">Start Time</label>
+              <input type="time" id="newTime" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newDuration">Estimated Duration (hours)</label>
+              <input type="number" id="newDuration" class="field-input" placeholder="e.g. 3" min="0.5" step="0.5" />
+            </div>
             <div class="field-group full">
               <label class="field-label" for="newSlug">URL Slug <span class="required">*</span></label>
               <p class="field-hint">Lowercase, hyphens only — this becomes the survey link. e.g. safety-leadership-q1</p>
               <input type="text" id="newSlug" class="field-input" placeholder="safety-leadership-q1" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="newDescription">Workshop Description</label>
+              <textarea id="newDescription" class="field-input" rows="3" placeholder="A brief description of what attendees will learn and experience..."></textarea>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newCost">Cost per Seat (CAD)</label>
+              <input type="number" id="newCost" class="field-input" placeholder="e.g. 450" min="0" step="1" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newMaxSeats">Max Seats</label>
+              <input type="number" id="newMaxSeats" class="field-input" placeholder="e.g. 20" min="1" step="1" />
             </div>
             <div class="field-group full">
               <label class="field-label" for="newMeetingLink">Zoom Meeting Link</label>
@@ -226,6 +249,17 @@
 
 
         <div class="workshops-list" id="workshopsList"></div>
+      </div>
+
+      <!-- VIEW: REGISTRANTS ──────────────────────────────── -->
+      <div class="view" id="view-registrants">
+        <div class="view-header">
+          <h1 class="view-title">Registrants</h1>
+          <p class="view-sub">Select a workshop above to view its registrations and attendees.</p>
+        </div>
+        <div id="registrantsContent">
+          <p class="empty-hint">Select a workshop above to view its registrants.</p>
+        </div>
       </div>
 
       <!-- VIEW: SURVEY BUILDER -->
@@ -273,6 +307,7 @@
             </div>
           </div>
           <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="loadSurveyTemplate()">Load Default Template</button>
             <button class="btn btn-primary" onclick="addSurveyQuestion()">Add Question</button>
             <button class="btn btn-ghost" onclick="saveSurveyConfig()">Save Survey</button>
           </div>
@@ -308,6 +343,26 @@
         <div class="field-group half">
           <label class="field-label" for="editDate">Workshop Date</label>
           <input type="date" id="editDate" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="editTime">Start Time</label>
+          <input type="time" id="editTime" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="editDuration">Estimated Duration (hours)</label>
+          <input type="number" id="editDuration" class="field-input" placeholder="e.g. 3" min="0.5" step="0.5" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="editDescription">Workshop Description</label>
+          <textarea id="editDescription" class="field-input" rows="3" placeholder="A brief description of what attendees will learn and experience..."></textarea>
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="editCost">Cost per Seat (CAD)</label>
+          <input type="number" id="editCost" class="field-input" placeholder="e.g. 450" min="0" step="1" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="editMaxSeats">Max Seats</label>
+          <input type="number" id="editMaxSeats" class="field-input" placeholder="e.g. 20" min="1" step="1" />
         </div>
         <div class="field-group full">
           <label class="field-label" for="editMeetingLink">Zoom Meeting Link</label>

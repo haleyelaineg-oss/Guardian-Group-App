@@ -87,7 +87,7 @@ function buildAttendeeEmail({ attendee, workshop, dateStr, totalPaid }) {
 
     ${meetingSection}
 
-    <p style="font-size:14px;color:#64748b;margin-top:24px;">If you have any questions, reply to this email or reach us at <a href="mailto:hello@guardiangroupsls.com" style="color:#1a3a5c;">hello@guardiangroupsls.com</a>.</p>
+    <p style="font-size:14px;color:#64748b;margin-top:24px;">If you have any questions, reply to this email or reach us at <a href="mailto:info@guardiangroupsls.com" style="color:#1a3a5c;">hello@guardiangroupsls.com</a>.</p>
   `);
 }
 

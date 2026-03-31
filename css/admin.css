@@ -522,6 +522,126 @@
   justify-content: flex-end;
 }
 
+/* ── REGISTRANTS VIEW ────────────────────────────────────── */
+.empty-hint {
+  color: var(--gg-muted);
+  font-style: italic;
+  font-size: 14px;
+  padding: 8px 0;
+}
+.reg-summary-bar {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.reg-summary-stat {
+  background: white;
+  border-radius: 10px;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(22,67,91,0.06);
+  min-width: 140px;
+}
+.reg-summary-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gg-dark);
+  letter-spacing: -0.02em;
+}
+.reg-summary-label {
+  font-size: 12px;
+  color: var(--gg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.reg-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.reg-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(22,67,91,0.06);
+  overflow: hidden;
+}
+.reg-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.reg-card-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gg-dark);
+}
+.reg-card-email {
+  font-size: 13px;
+  color: var(--gg-muted);
+  margin-top: 2px;
+}
+.reg-card-meta-right {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.reg-card-attendees {
+  padding: 0 24px 16px;
+  border-top: 1px solid var(--gg-pale);
+  margin-top: 4px;
+}
+.reg-card-attendees-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gg-muted);
+  padding: 12px 0 8px;
+}
+.reg-card-attendee-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--gg-text);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--gg-pale);
+}
+.reg-card-attendee-row:last-child { border-bottom: none; }
+.reg-card-attendee-email { color: var(--gg-muted); font-size: 13px; }
+.reg-card-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(42,92,118,0.1);
+  color: var(--gg-mid);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: auto;
+}
+.reg-card-footer-meta {
+  padding: 10px 24px;
+  font-size: 12px;
+  color: var(--gg-muted);
+  background: var(--gg-off);
+  border-top: 1px solid var(--gg-pale);
+}
+.reg-card-footer-meta code {
+  font-family: monospace;
+  font-size: 11px;
+}
+
 /* ── EDIT MODAL ──────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
