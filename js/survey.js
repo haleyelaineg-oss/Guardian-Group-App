@@ -401,7 +401,7 @@ async function submitForm() {
   if (error) {
     btn.disabled = false;
     btn.textContent = 'Submit Survey →';
-    alert('Something went wrong submitting your response. Please try again or contact us at hello@guardiangroup.com');
+    alert('Something went wrong submitting your response. Please try again or contact us at info@guardiangroup.com');
     console.error(error);
     return;
   }

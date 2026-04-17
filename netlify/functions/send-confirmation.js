@@ -87,7 +87,7 @@ function buildAttendeeEmail({ attendee, workshop, dateStr, totalPaid }) {
 
     ${meetingSection}
 
-    <p style="font-size:14px;color:#64748b;margin-top:24px;">If you have any questions, reply to this email or reach us at <a href="mailto:info@guardiangroupsls.com" style="color:#1a3a5c;">hello@guardiangroupsls.com</a>.</p>
+    <p style="font-size:14px;color:#64748b;margin-top:24px;">If you have any questions, reply to this email or reach us at <a href="mailto:info@guardiangroupsls.com" style="color:#1a3a5c;">info@guardiangroupsls.com</a>.</p>
   `);
 }
 
@@ -115,7 +115,7 @@ function buildPurchaserEmail({ purchaser, attendees, workshop, dateStr, totalPai
       <p style="margin:12px 0 0;font-size:12px;color:#64748b;">Each attendee will receive their own confirmation email with the Zoom link.</p>
     </div>
 
-    <p style="font-size:14px;color:#64748b;margin-top:24px;">Questions? Reply to this email or contact us at <a href="mailto:hello@guardiangroupsls.com" style="color:#1a3a5c;">hello@guardiangroupsls.com</a>.</p>
+    <p style="font-size:14px;color:#64748b;margin-top:24px;">Questions? Reply to this email or contact us at <a href="mailto:info@guardiangroupsls.com" style="color:#1a3a5c;">info@guardiangroupsls.com</a>.</p>
   `);
 }
 

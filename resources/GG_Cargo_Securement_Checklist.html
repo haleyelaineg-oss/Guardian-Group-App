@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargo Securement Checklist — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:  #16435B;
+      --mid:   #2A5C76;
+      --steel: #52829C;
+      --light: #77A4BC;
+      --pale:  #C8DCE9;
+      --off:   #F6F6F6;
+      --gold:  #C88B00;
+      --text:  #1C3444;
+      --font-body: 'Barlow', sans-serif;
+      --font-display: 'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--off);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* ── PRINT BUTTON BAR (screen only) ─────────────────────── */
+    .print-bar {
+      background: var(--dark);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .print-bar-brand {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--pale);
+    }
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gold);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 20px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .print-btn:hover { background: #a87300; }
+
+    /* ── DOCUMENT WRAPPER ────────────────────────────────────── */
+    .doc-wrap {
+      max-width: 816px;
+      margin: 32px auto 48px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 28px rgba(22,67,91,0.12);
+    }
+
+    /* ── DOCUMENT HEADER ─────────────────────────────────────── */
+    .doc-header {
+      background: var(--dark);
+      padding: 28px 36px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .doc-header-left { flex: 1; }
+    .doc-eyebrow {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--pale);
+      opacity: 0.75;
+      margin-bottom: 6px;
+    }
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+    .doc-subtitle {
+      font-size: 14px;
+      color: var(--pale);
+      margin-top: 8px;
+      opacity: 0.85;
+    }
+    .doc-logo {
+      height: 44px;
+      width: auto;
+      opacity: 0.9;
+    }
+    .doc-logo-text {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    /* ── FILL-IN FIELDS ROW ──────────────────────────────────── */
+    .doc-fields {
+      background: var(--off);
+      border-bottom: 2px solid var(--pale);
+      padding: 16px 36px;
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 180px;
+      flex: 1;
+    }
+    .field-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--steel);
+    }
+    .field-input {
+      border: none;
+      border-bottom: 1.5px solid var(--steel);
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text);
+      padding: 4px 0;
+      outline: none;
+      width: 100%;
+    }
+    .field-input:focus { border-bottom-color: var(--dark); }
+
+    /* ── SECTIONS ────────────────────────────────────────────── */
+    .doc-body { padding: 24px 36px 32px; }
+
+    .section {
+      margin-bottom: 28px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--dark);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+    }
+    .section-num {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 2px 8px;
+      letter-spacing: 0.05em;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── CHECKLIST ITEMS ─────────────────────────────────────── */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      line-height: 1.45;
+      padding: 2px 0;
+    }
+    .box {
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      border: 1.5px solid var(--steel);
+      border-radius: 3px;
+      margin-top: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--dark);
+      transition: background 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .box.checked {
+      background: var(--dark);
+      border-color: var(--dark);
+      color: #fff;
+    }
+    .box.checked::after { content: '✓'; }
+
+    /* ── NOTES LINES ─────────────────────────────────────────── */
+    .notes-area {
+      margin-top: 12px;
+    }
+    .notes-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--steel);
+      margin-bottom: 6px;
+    }
+    .notes-line {
+      border: none;
+      border-bottom: 1px solid var(--pale);
+      display: block;
+      width: 100%;
+      margin-bottom: 6px;
+      height: 22px;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+    }
+    .notes-line:focus { border-bottom-color: var(--steel); }
+
+    /* ── DOCUMENT FOOTER ─────────────────────────────────────── */
+    .doc-footer {
+      background: var(--off);
+      border-top: 1.5px solid var(--pale);
+      padding: 14px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--steel);
+    }
+    .doc-footer strong { color: var(--dark); }
+
+    /* ── PRINT STYLES ────────────────────────────────────────── */
+    @media print {
+      body { background: #fff; }
+      .print-bar { display: none; }
+      .doc-wrap {
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-width: 100%;
+      }
+      .box.checked { background: var(--dark) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PRINT BAR (screen only) -->
+  <div class="print-bar">
+    <span class="print-bar-brand">Guardian Group — Loading &amp; Transport Resources</span>
+    <button class="print-btn" onclick="window.print()">
+      &#x2399; Print / Save as PDF
+    </button>
+  </div>
+
+  <!-- DOCUMENT -->
+  <div class="doc-wrap">
+
+    <!-- HEADER -->
+    <div class="doc-header">
+      <div class="doc-header-left">
+        <div class="doc-eyebrow">Guardian Group Safety &amp; Leadership Solutions</div>
+        <div class="doc-title">Cargo Securement Checklist</div>
+        <div class="doc-subtitle">Pre-Drive Inspection — Complete before every load</div>
+      </div>
+      <img src="../assets/logo-white.png" alt="Guardian Group" class="doc-logo"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='block'" />
+      <span class="doc-logo-text" style="display:none">GUARDIAN<br>GROUP</span>
+    </div>
+
+    <!-- FILL-IN FIELDS -->
+    <div class="doc-fields">
+      <div class="field-group">
+        <span class="field-label">Driver / Operator</span>
+        <input class="field-input" type="text" placeholder="Name" />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Date</span>
+        <input class="field-input" type="text" placeholder="MM / DD / YYYY" />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Unit / Trailer #</span>
+        <input class="field-input" type="text" placeholder="Unit number" />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Load / Job</span>
+        <input class="field-input" type="text" placeholder="Load description" />
+      </div>
+    </div>
+
+    <!-- DOCUMENT BODY -->
+    <div class="doc-body">
+
+      <!-- SECTION 1 -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-num">01</span>
+          <span class="section-title">Equipment &amp; Trailer Match</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="box" onclick="toggle(this)"></span> Trailer/vehicle is rated for the load weight and type</li>
+          <li><span class="box" onclick="toggle(this)"></span> Trailer floor and walls are in good condition — no cracks, holes, or weak points</li>
+          <li><span class="box" onclick="toggle(this)"></span> Tie-down anchors and D-rings are intact and free of damage</li>
+          <li><span class="box" onclick="toggle(this)"></span> Correct securement equipment is on hand (chains, straps, binders, blocks)</li>
+          <li><span class="box" onclick="toggle(this)"></span> Working Load Limit (WLL) of each device meets or exceeds requirements for load</li>
+        </ul>
+        <div class="notes-area">
+          <div class="notes-label">Notes</div>
+          <input class="notes-line" type="text" />
+          <input class="notes-line" type="text" />
+        </div>
+      </div>
+
+      <!-- SECTION 2 -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-num">02</span>
+          <span class="section-title">Loading Position &amp; Surface</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="box" onclick="toggle(this)"></span> Load is centered and distributed evenly across axles</li>
+          <li><span class="box" onclick="toggle(this)"></span> Heaviest items are placed lowest and toward the front of trailer</li>
+          <li><span class="box" onclick="toggle(this)"></span> No load overhangs beyond legal limits without proper flagging/lighting</li>
+          <li><span class="box" onclick="toggle(this)"></span> Load does not obstruct mirrors, lights, or license plate</li>
+          <li><span class="box" onclick="toggle(this)"></span> Trailer deck/bed is clean and free of grease, ice, or debris that could shift load</li>
+        </ul>
+        <div class="notes-area">
+          <div class="notes-label">Notes</div>
+          <input class="notes-line" type="text" />
+          <input class="notes-line" type="text" />
+        </div>
+      </div>
+
+      <!-- SECTION 3 -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-num">03</span>
+          <span class="section-title">Securement</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="box" onclick="toggle(this)"></span> Minimum number of tie-downs applied per FMCSA 49 CFR §393.106</li>
+          <li><span class="box" onclick="toggle(this)"></span> All straps and chains are properly seated with no twists or knots</li>
+          <li><span class="box" onclick="toggle(this)"></span> All binders are locked and will not release under vibration</li>
+          <li><span class="box" onclick="toggle(this)"></span> Edge protectors used where tie-downs contact sharp edges</li>
+          <li><span class="box" onclick="toggle(this)"></span> Blocking, bracing, or chocking used where required to prevent forward movement</li>
+          <li><span class="box" onclick="toggle(this)"></span> Loose items or dunnage secured separately — nothing left to shift freely</li>
+        </ul>
+        <div class="notes-area">
+          <div class="notes-label">Notes</div>
+          <input class="notes-line" type="text" />
+          <input class="notes-line" type="text" />
+        </div>
+      </div>
+
+      <!-- SECTION 4 -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-num">04</span>
+          <span class="section-title">In-Transit Responsibilities</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="box" onclick="toggle(this)"></span> Load will be re-inspected within 50 miles of departure (or as required)</li>
+          <li><span class="box" onclick="toggle(this)"></span> Load will be re-inspected after any change in load condition</li>
+          <li><span class="box" onclick="toggle(this)"></span> Crew knows route restrictions (height, weight, permit requirements)</li>
+          <li><span class="box" onclick="toggle(this)"></span> Escort vehicle arranged if required for oversized/overweight load</li>
+          <li><span class="box" onclick="toggle(this)"></span> Emergency equipment (flags, triangles, fire extinguisher) is accessible and serviceable</li>
+        </ul>
+        <div class="notes-area">
+          <div class="notes-label">Notes</div>
+          <input class="notes-line" type="text" />
+        </div>
+      </div>
+
+      <!-- SECTION 5 -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-num">05</span>
+          <span class="section-title">Before Unloading</span>
+        </div>
+        <ul class="checklist">
+          <li><span class="box" onclick="toggle(this)"></span> Delivery/unloading area is clear and stable</li>
+          <li><span class="box" onclick="toggle(this)"></span> Any load shift during transit is documented and communicated to receiver</li>
+          <li><span class="box" onclick="toggle(this)"></span> All tie-downs are released in safe sequence — no binders under tension released first</li>
+          <li><span class="box" onclick="toggle(this)"></span> Unloading equipment (forklift, crane, etc.) is rated and ready</li>
+          <li><span class="box" onclick="toggle(this)"></span> Personnel are clear of load path during unloading</li>
+        </ul>
+        <div class="notes-area">
+          <div class="notes-label">Notes</div>
+          <input class="notes-line" type="text" />
+          <input class="notes-line" type="text" />
+        </div>
+      </div>
+
+      <!-- SIGN-OFF -->
+      <div style="display:flex; gap: 32px; margin-top: 8px; flex-wrap: wrap;">
+        <div class="field-group">
+          <span class="field-label">Driver Signature</span>
+          <input class="field-input" type="text" placeholder="Sign or print name" />
+        </div>
+        <div class="field-group">
+          <span class="field-label">Supervisor / Spotter</span>
+          <input class="field-input" type="text" placeholder="Sign or print name" />
+        </div>
+        <div class="field-group">
+          <span class="field-label">Time Departed</span>
+          <input class="field-input" type="text" placeholder="HH:MM" />
+        </div>
+      </div>
+
+    </div><!-- /doc-body -->
+
+    <!-- FOOTER -->
+    <div class="doc-footer">
+      <span><strong>guardiangroupsls.com</strong> &nbsp;·&nbsp; Free resource — share with your crew.</span>
+      <span>Based on FMCSA 49 CFR Part 393 Subpart I</span>
+    </div>
+
+  </div><!-- /doc-wrap -->
+
+  <script>
+    function toggle(el) {
+      el.classList.toggle('checked');
+    }
+  </script>
+
+</body>
+</html>

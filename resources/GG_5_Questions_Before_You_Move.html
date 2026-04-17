@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5 Questions Before You Move — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:  #16435B;
+      --mid:   #2A5C76;
+      --steel: #52829C;
+      --light: #77A4BC;
+      --pale:  #C8DCE9;
+      --off:   #F6F6F6;
+      --gold:  #C88B00;
+      --text:  #1C3444;
+      --font-body: 'Barlow', sans-serif;
+      --font-display: 'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--off);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* ── PRINT BUTTON BAR (screen only) ─────────────────────── */
+    .print-bar {
+      background: var(--dark);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .print-bar-brand {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--pale);
+    }
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gold);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 20px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .print-btn:hover { background: #a87300; }
+
+    /* ── DOCUMENT WRAPPER ────────────────────────────────────── */
+    .doc-wrap {
+      max-width: 816px;
+      margin: 32px auto 48px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 28px rgba(22,67,91,0.12);
+    }
+
+    /* ── DOCUMENT HEADER ─────────────────────────────────────── */
+    .doc-header {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--mid) 100%);
+      padding: 32px 36px 28px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .doc-header-left { flex: 1; }
+    .doc-eyebrow {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--pale);
+      opacity: 0.8;
+      margin-bottom: 6px;
+    }
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+    }
+    .doc-subtitle {
+      font-size: 15px;
+      color: var(--pale);
+      margin-top: 10px;
+      opacity: 0.9;
+      max-width: 480px;
+    }
+    .doc-logo {
+      height: 44px;
+      width: auto;
+      opacity: 0.9;
+    }
+    .doc-logo-text {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    /* ── INTRO STRIP ─────────────────────────────────────────── */
+    .doc-intro {
+      background: var(--pale);
+      padding: 14px 36px;
+      font-size: 13px;
+      color: var(--dark);
+      border-bottom: 2px solid rgba(22,67,91,0.1);
+    }
+    .doc-intro strong { font-weight: 600; }
+
+    /* ── FILL-IN FIELDS ROW ──────────────────────────────────── */
+    .doc-fields {
+      background: var(--off);
+      border-bottom: 2px solid var(--pale);
+      padding: 16px 36px;
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 180px;
+      flex: 1;
+    }
+    .field-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--steel);
+    }
+    .field-input {
+      border: none;
+      border-bottom: 1.5px solid var(--steel);
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text);
+      padding: 4px 0;
+      outline: none;
+      width: 100%;
+    }
+    .field-input:focus { border-bottom-color: var(--dark); }
+
+    /* ── DOCUMENT BODY ───────────────────────────────────────── */
+    .doc-body { padding: 28px 36px 32px; }
+
+    /* ── QUESTION CARDS ──────────────────────────────────────── */
+    .question-card {
+      border: 1.5px solid var(--pale);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .q-header {
+      background: var(--dark);
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .q-number {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.3);
+      line-height: 1;
+      min-width: 28px;
+    }
+    .q-header-text { flex: 1; }
+    .q-tag {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--pale);
+      opacity: 0.7;
+      margin-bottom: 2px;
+    }
+    .q-question {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .q-body { padding: 16px 20px 18px; }
+
+    .q-context {
+      font-size: 13px;
+      color: var(--steel);
+      margin-bottom: 12px;
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .q-answer-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--steel);
+      margin-bottom: 6px;
+    }
+    .answer-input {
+      width: 100%;
+      border: 1.5px solid var(--pale);
+      border-radius: 6px;
+      background: var(--off);
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text);
+      padding: 8px 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 52px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .answer-input:focus { border-color: var(--steel); background: #fff; }
+
+    .q-checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+    .q-checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+    .box {
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      border: 1.5px solid var(--steel);
+      border-radius: 3px;
+      margin-top: 1px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--dark);
+      transition: background 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .box.checked {
+      background: var(--dark);
+      border-color: var(--dark);
+      color: #fff;
+    }
+    .box.checked::after { content: '✓'; }
+
+    /* ── CTA SECTION ─────────────────────────────────────────── */
+    .doc-cta {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--mid) 100%);
+      margin: 8px 0 0;
+      border-radius: 8px;
+      padding: 22px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .cta-text {}
+    .cta-eyebrow {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--pale);
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .cta-body {
+      font-size: 13px;
+      color: var(--pale);
+      opacity: 0.85;
+    }
+    .cta-link {
+      display: inline-block;
+      background: var(--gold);
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── DOCUMENT FOOTER ─────────────────────────────────────── */
+    .doc-footer {
+      background: var(--off);
+      border-top: 1.5px solid var(--pale);
+      padding: 14px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--steel);
+    }
+    .doc-footer strong { color: var(--dark); }
+
+    /* ── PRINT STYLES ────────────────────────────────────────── */
+    @media print {
+      body { background: #fff; }
+      .print-bar { display: none; }
+      .doc-wrap {
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-width: 100%;
+      }
+      .box.checked { background: var(--dark) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .q-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .doc-header, .doc-cta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .answer-input { border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PRINT BAR (screen only) -->
+  <div class="print-bar">
+    <span class="print-bar-brand">Guardian Group — Loading &amp; Transport Resources</span>
+    <button class="print-btn" onclick="window.print()">
+      &#x2399; Print / Save as PDF
+    </button>
+  </div>
+
+  <!-- DOCUMENT -->
+  <div class="doc-wrap">
+
+    <!-- HEADER -->
+    <div class="doc-header">
+      <div class="doc-header-left">
+        <div class="doc-eyebrow">Guardian Group Safety &amp; Leadership Solutions</div>
+        <div class="doc-title">5 Questions Every Crew Should Answer<br>Before Moving Equipment</div>
+        <div class="doc-subtitle">A quick crew alignment tool — fill in, discuss as a team, then move.</div>
+      </div>
+      <img src="../assets/logo-white.png" alt="Guardian Group" class="doc-logo"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='block'" />
+      <span class="doc-logo-text" style="display:none">GUARDIAN<br>GROUP</span>
+    </div>
+
+    <!-- INTRO STRIP -->
+    <div class="doc-intro">
+      <strong>How to use:</strong> Answer each question together as a crew before the move begins.
+      Write in the answer boxes or check the confirmation boxes. If your crew can't answer a question confidently, stop and resolve it first.
+    </div>
+
+    <!-- FILL-IN FIELDS -->
+    <div class="doc-fields">
+      <div class="field-group">
+        <span class="field-label">Date</span>
+        <input class="field-input" type="text" placeholder="MM / DD / YYYY" />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Job Site / Location</span>
+        <input class="field-input" type="text" placeholder="Site name or address" />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Equipment Being Moved</span>
+        <input class="field-input" type="text" placeholder="Description or unit #" />
+      </div>
+      <div class="field-group">
+        <span class="field-label">Crew Lead</span>
+        <input class="field-input" type="text" placeholder="Name" />
+      </div>
+    </div>
+
+    <!-- DOCUMENT BODY -->
+    <div class="doc-body">
+
+      <!-- Q1: POSITIONING -->
+      <div class="question-card">
+        <div class="q-header">
+          <div class="q-number">1</div>
+          <div class="q-header-text">
+            <div class="q-tag">Positioning</div>
+            <div class="q-question">Where exactly is this equipment going, and is that spot ready?</div>
+          </div>
+        </div>
+        <div class="q-body">
+          <p class="q-context">Unclear destinations cause last-minute re-routes, rushed decisions, and near-misses. Define the endpoint before you start.</p>
+          <ul class="q-checklist">
+            <li><span class="box" onclick="toggle(this)"></span> Final destination is confirmed and communicated to all crew members</li>
+            <li><span class="box" onclick="toggle(this)"></span> Landing zone is clear, level, and capable of supporting the load</li>
+            <li><span class="box" onclick="toggle(this)"></span> Path from here to there is free of obstructions (overhead lines, soft ground, tight turns)</li>
+          </ul>
+          <div class="q-answer-label">Additional notes / destination details</div>
+          <textarea class="answer-input" placeholder="e.g., North pad, far-left bay, staging area B..."></textarea>
+        </div>
+      </div>
+
+      <!-- Q2: ROLES -->
+      <div class="question-card">
+        <div class="q-header">
+          <div class="q-number">2</div>
+          <div class="q-header-text">
+            <div class="q-tag">Roles</div>
+            <div class="q-question">Does everyone know their specific job during this move?</div>
+          </div>
+        </div>
+        <div class="q-body">
+          <p class="q-context">Assumed roles lead to doubled-up or missing tasks. Name who is doing what — out loud — before the equipment moves.</p>
+          <ul class="q-checklist">
+            <li><span class="box" onclick="toggle(this)"></span> One person is designated as the signal person / spotter</li>
+            <li><span class="box" onclick="toggle(this)"></span> Driver/operator has acknowledged and accepted their role</li>
+            <li><span class="box" onclick="toggle(this)"></span> Ground crew knows where to stand and where NOT to stand</li>
+          </ul>
+          <div class="q-answer-label">Role assignments</div>
+          <textarea class="answer-input" placeholder="e.g., Spotter: Jamie | Driver: Marcus | Ground: Terrell..."></textarea>
+        </div>
+      </div>
+
+      <!-- Q3: SEQUENCE -->
+      <div class="question-card">
+        <div class="q-header">
+          <div class="q-number">3</div>
+          <div class="q-header-text">
+            <div class="q-tag">Sequence</div>
+            <div class="q-question">What is the step-by-step order of this move?</div>
+          </div>
+        </div>
+        <div class="q-body">
+          <p class="q-context">Complex moves have multiple stages. Identify the sequence before starting so no one improvises mid-move when stakes are highest.</p>
+          <ul class="q-checklist">
+            <li><span class="box" onclick="toggle(this)"></span> Load/attachment sequence is agreed on before lift or pull begins</li>
+            <li><span class="box" onclick="toggle(this)"></span> Any staging or hold points during the move are identified</li>
+            <li><span class="box" onclick="toggle(this)"></span> Crew knows the stop/abort signal if conditions change</li>
+          </ul>
+          <div class="q-answer-label">Move sequence / key steps</div>
+          <textarea class="answer-input" placeholder="e.g., 1) Chock wheels. 2) Attach rigging. 3) Signal lift. 4) Hold at 6 inches. 5) Confirm then continue..."></textarea>
+        </div>
+      </div>
+
+      <!-- Q4: COMMUNICATION -->
+      <div class="question-card">
+        <div class="q-header">
+          <div class="q-number">4</div>
+          <div class="q-header-text">
+            <div class="q-tag">Communication</div>
+            <div class="q-question">How will crew communicate during the move — and what does STOP mean?</div>
+          </div>
+        </div>
+        <div class="q-body">
+          <p class="q-context">In a loud, fast-moving environment, mixed signals are dangerous. Set the signals and the stop protocol before anything moves.</p>
+          <ul class="q-checklist">
+            <li><span class="box" onclick="toggle(this)"></span> Hand signals or radio channel confirmed with all crew</li>
+            <li><span class="box" onclick="toggle(this)"></span> Any crew member has authority to call a full stop</li>
+            <li><span class="box" onclick="toggle(this)"></span> Stop signal is clearly understood by operator and all spotters</li>
+          </ul>
+          <div class="q-answer-label">Signal method and STOP signal</div>
+          <textarea class="answer-input" placeholder="e.g., Radio ch. 3 | Thumbs down = STOP immediately | Fist up = hold..."></textarea>
+        </div>
+      </div>
+
+      <!-- Q5: HAZARDS -->
+      <div class="question-card">
+        <div class="q-header">
+          <div class="q-number">5</div>
+          <div class="q-header-text">
+            <div class="q-tag">Hazards</div>
+            <div class="q-question">What could go wrong on this specific move — and what's the plan?</div>
+          </div>
+        </div>
+        <div class="q-body">
+          <p class="q-context">Generic safety talks don't prevent specific accidents. Identify the one or two real risks on this move and name a concrete response.</p>
+          <ul class="q-checklist">
+            <li><span class="box" onclick="toggle(this)"></span> At least one specific hazard for this move has been named</li>
+            <li><span class="box" onclick="toggle(this)"></span> A response or mitigation for that hazard is agreed on</li>
+            <li><span class="box" onclick="toggle(this)"></span> Crew knows what to do if someone is struck or trapped</li>
+          </ul>
+          <div class="q-answer-label">Top hazard(s) and mitigation plan</div>
+          <textarea class="answer-input" placeholder="e.g., Hazard: overhead power lines at 18 ft. Plan: spotter stays on north side, operator stays inside cab boundary..."></textarea>
+        </div>
+      </div>
+
+      <!-- CTA SECTION -->
+      <div class="doc-cta">
+        <div class="cta-text">
+          <div class="cta-eyebrow">Guardian Group Workshop</div>
+          <div class="cta-title">Loaded With Risk</div>
+          <div class="cta-body">A hands-on workshop for supervisors and crew leads on managing load, lift, and transport hazards. Available online and on-site.</div>
+        </div>
+        <a class="cta-link" href="https://guardiangroupsls.com" target="_blank" rel="noopener">Learn More</a>
+      </div>
+
+    </div><!-- /doc-body -->
+
+    <!-- FOOTER -->
+    <div class="doc-footer">
+      <span><strong>guardiangroupsls.com</strong> &nbsp;·&nbsp; Free resource — share with your crew.</span>
+      <span>Guardian Group Safety &amp; Leadership Solutions</span>
+    </div>
+
+  </div><!-- /doc-wrap -->
+
+  <script>
+    function toggle(el) {
+      el.classList.toggle('checked');
+    }
+  </script>
+
+</body>
+</html>
