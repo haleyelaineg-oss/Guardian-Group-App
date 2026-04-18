@@ -16,7 +16,7 @@
       --light: #77A4BC;
       --pale:  #C8DCE9;
       --off:   #F6F6F6;
-      --gold:  #C88B00;
+      --gold:  #a9b0b1;
       --text:  #1C3444;
       --font-body: 'Barlow', sans-serif;
       --font-display: 'Barlow Condensed', sans-serif;
@@ -66,7 +66,7 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .print-btn:hover { background: #a87300; }
+    .print-btn:hover { background: #4a5357e2; }
 
     /* ── DOCUMENT WRAPPER ────────────────────────────────────── */
     .doc-wrap {
@@ -81,7 +81,7 @@
     /* ── DOCUMENT HEADER ─────────────────────────────────────── */
     .doc-header {
       background: var(--dark);
-      padding: 28px 36px 24px;
+      padding: 20px 36px 20px;
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
@@ -242,20 +242,22 @@
       color: var(--steel);
       margin-bottom: 6px;
     }
-    .notes-line {
-      border: none;
-      border-bottom: 1px solid var(--pale);
-      display: block;
+    .notes-box {
       width: 100%;
-      margin-bottom: 6px;
-      height: 22px;
-      background: transparent;
+      border: 1.5px solid var(--pale);
+      border-radius: 6px;
+      background: var(--off);
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--text);
+      padding: 8px 10px;
       outline: none;
+      resize: vertical;
+      min-height: 52px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
     }
-    .notes-line:focus { border-bottom-color: var(--steel); }
+    .notes-box:focus { border-color: var(--steel); background: #fff; }
 
     /* ── DOCUMENT FOOTER ─────────────────────────────────────── */
     .doc-footer {
@@ -270,19 +272,39 @@
     }
     .doc-footer strong { color: var(--dark); }
 
+
     /* ── PRINT STYLES ────────────────────────────────────────── */
     @media print {
       body { background: #fff; }
       .print-bar { display: none; }
-      .doc-wrap {
-        margin: 0;
-        border-radius: 0;
-        box-shadow: none;
-        max-width: 100%;
-      }
+      ::placeholder { color: transparent; }
+      .section { break-inside: avoid; }
+      .section-header { break-after: avoid; }
+      .doc-fields { break-inside: avoid; border-bottom: none; }
+      .doc-wrap { margin: 0; border-radius: 0; box-shadow: none; max-width: 100%; }
       .box.checked { background: var(--dark) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 28px 36px; }
+      .doc-body { padding: 14px 36px 16px; }
+      .doc-fields { padding: 12px 36px 18px; }
+      .section { margin-bottom: 18px; }
+      .section-header { padding: 7px 16px; margin-bottom: 10px; }
+      .checklist { gap: 4px; }
+      .checklist li { font-size: 12.5px; padding: 1px 0; }
+      .notes-box { min-height: 28px; padding: 4px 8px; font-size: 12px; }
+      .notes-area { margin-top: 8px; }
+      .notes-label { margin-bottom: 4px; }
+      .section:nth-child(1) .notes-box,
+      .section:nth-child(2) .notes-box { min-height: 80px; }
+      .section:nth-child(1),
+      .section:nth-child(2) { margin-bottom: 28px; }
+      .section:nth-child(3) .notes-box,
+      .section:nth-child(4) .notes-box,
+      .section:nth-child(5) .notes-box { min-height: 52px; }
+      .section:nth-child(3) { padding-top: 48px; margin-bottom: 20px; }
+      .sign-off { margin-bottom: 32px; }
+      .section:nth-child(4),
+      .section:nth-child(5) { margin-bottom: 20px; }
     }
   </style>
 </head>
@@ -349,8 +371,7 @@
         </ul>
         <div class="notes-area">
           <div class="notes-label">Notes</div>
-          <input class="notes-line" type="text" />
-          <input class="notes-line" type="text" />
+          <textarea class="notes-box"></textarea>
         </div>
       </div>
 
@@ -369,8 +390,7 @@
         </ul>
         <div class="notes-area">
           <div class="notes-label">Notes</div>
-          <input class="notes-line" type="text" />
-          <input class="notes-line" type="text" />
+          <textarea class="notes-box"></textarea>
         </div>
       </div>
 
@@ -390,8 +410,7 @@
         </ul>
         <div class="notes-area">
           <div class="notes-label">Notes</div>
-          <input class="notes-line" type="text" />
-          <input class="notes-line" type="text" />
+          <textarea class="notes-box"></textarea>
         </div>
       </div>
 
@@ -410,7 +429,7 @@
         </ul>
         <div class="notes-area">
           <div class="notes-label">Notes</div>
-          <input class="notes-line" type="text" />
+          <textarea class="notes-box"></textarea>
         </div>
       </div>
 
@@ -429,13 +448,12 @@
         </ul>
         <div class="notes-area">
           <div class="notes-label">Notes</div>
-          <input class="notes-line" type="text" />
-          <input class="notes-line" type="text" />
+          <textarea class="notes-box"></textarea>
         </div>
       </div>
 
       <!-- SIGN-OFF -->
-      <div style="display:flex; gap: 32px; margin-top: 8px; flex-wrap: wrap;">
+      <div class="sign-off" style="display:flex; gap: 32px; margin-top: 8px; flex-wrap: wrap;">
         <div class="field-group">
           <span class="field-label">Driver Signature</span>
           <input class="field-input" type="text" placeholder="Sign or print name" />
@@ -454,7 +472,7 @@
 
     <!-- FOOTER -->
     <div class="doc-footer">
-      <span><strong>guardiangroupsls.com</strong> &nbsp;·&nbsp; Free resource — share with your crew.</span>
+      <span><strong>guardiangroupsls.com</strong> &nbsp;·&nbsp; Tools & Resources | Share with your crew.</span>
       <span>Based on FMCSA 49 CFR Part 393 Subpart I</span>
     </div>
 

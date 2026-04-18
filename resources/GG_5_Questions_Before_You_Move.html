@@ -16,7 +16,7 @@
       --light: #77A4BC;
       --pale:  #C8DCE9;
       --off:   #F6F6F6;
-      --gold:  #C88B00;
+      --gold:  #a8b0bb;
       --text:  #1C3444;
       --font-body: 'Barlow', sans-serif;
       --font-display: 'Barlow Condensed', sans-serif;
@@ -66,7 +66,7 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .print-btn:hover { background: #a87300; }
+    .print-btn:hover { background: #bac5cd; }
 
     /* ── DOCUMENT WRAPPER ────────────────────────────────────── */
     .doc-wrap {
@@ -304,7 +304,7 @@
       justify-content: space-between;
       gap: 20px;
     }
-    .cta-text {}
+
     .cta-eyebrow {
       font-family: var(--font-display);
       font-size: 10px;
@@ -359,6 +359,21 @@
     @media print {
       body { background: #fff; }
       .print-bar { display: none; }
+      ::placeholder { color: transparent; }
+      .question-card { break-inside: avoid; }
+      .q-header { break-after: avoid; }
+      .doc-fields { break-inside: avoid; }
+      .doc-intro { break-inside: avoid; }
+      .question-card.break-before { break-before: page; margin-top: 32px; }
+      .doc-cta { display: none; }
+      .doc-header { padding: 18px 36px 14px; }
+      .doc-fields { padding: 10px 36px 20px; }
+      .doc-intro { padding: 10px 36px; }
+      .q-body { padding: 10px 20px 12px; }
+      .q-header { padding: 8px 20px; }
+      .q-context { margin-bottom: 10px; }
+      .answer-input { min-height: 36px; }
+      .question-card { margin-bottom: 15px; }
       .doc-wrap {
         margin: 0;
         border-radius: 0;
@@ -469,7 +484,7 @@
       </div>
 
       <!-- Q3: SEQUENCE -->
-      <div class="question-card">
+      <div class="question-card break-before">
         <div class="q-header">
           <div class="q-number">3</div>
           <div class="q-header-text">
@@ -545,7 +560,7 @@
 
     <!-- FOOTER -->
     <div class="doc-footer">
-      <span><strong>guardiangroupsls.com</strong> &nbsp;·&nbsp; Free resource — share with your crew.</span>
+      <span><strong>guardiangroupsls.com</strong> &nbsp;·&nbsp; Tools & Resources | Share with your crew.</span>
       <span>Guardian Group Safety &amp; Leadership Solutions</span>
     </div>
 

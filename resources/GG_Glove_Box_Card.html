@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vehicle Load &amp; Equipment Card — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:  #16435B;
+      --mid:   #2A5C76;
+      --steel: #52829C;
+      --light: #77A4BC;
+      --pale:  #C8DCE9;
+      --off:   #F6F6F6;
+      --text:  #1C3444;
+      --muted: #6B8FA3;
+      --font-body: 'Barlow', sans-serif;
+      --font-display: 'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--off);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── PRINT BAR ───────────────────────────────────────────── */
+    .print-bar {
+      background: var(--dark);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .print-bar-brand {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--pale);
+    }
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--steel);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 20px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .print-btn:hover { background: var(--mid); }
+
+    /* ── PAGE WRAPPER ────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 900px;
+      margin: 32px auto 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 0 24px;
+    }
+
+    /* ── CARD ────────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 28px rgba(22,67,91,0.12);
+    }
+
+    /* ── CARD HEADER ─────────────────────────────────────────── */
+    .card-header {
+      background: var(--dark);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .card-header h1 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .card-header .sub {
+      font-size: 11px;
+      color: var(--pale);
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+    .card-header-brand {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--pale);
+      text-align: right;
+      opacity: 0.75;
+      white-space: nowrap;
+    }
+
+    /* ── TRUCK ID STRIP ──────────────────────────────────────── */
+    .truck-id {
+      background: var(--mid);
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .truck-id-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 140px;
+    }
+    .truck-id-label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--pale);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+    }
+    .id-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid rgba(255,255,255,0.5);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 12px;
+      padding: 2px 0;
+      outline: none;
+      min-width: 60px;
+    }
+    .id-input::placeholder { color: rgba(255,255,255,0.3); }
+    .id-input:focus { border-bottom-color: rgba(255,255,255,0.9); }
+
+    /* ── CARD BODY ───────────────────────────────────────────── */
+    .card-body { padding: 14px 20px; }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--mid);
+      margin-bottom: 6px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid var(--pale);
+    }
+
+    /* ── FIELD GRID ──────────────────────────────────────────── */
+    .row-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+      margin-bottom: 12px;
+    }
+    .field { display: flex; flex-direction: column; gap: 2px; }
+    .field label {
+      font-family: var(--font-display);
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .field-input {
+      border: none;
+      border-bottom: 1px solid #ccc;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--text);
+      padding: 2px 0;
+      outline: none;
+      width: 100%;
+    }
+    .field-input:focus { border-bottom-color: var(--steel); }
+
+    /* ── NOTE BOX ────────────────────────────────────────────── */
+    .note-box {
+      background: var(--off);
+      border-left: 3px solid var(--mid);
+      padding: 7px 12px;
+      font-size: 10px;
+      line-height: 1.5;
+      color: var(--dark);
+      margin-bottom: 12px;
+      border-radius: 0 4px 4px 0;
+    }
+    .note-box .note-input {
+      display: inline;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--steel);
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--dark);
+      outline: none;
+      width: 80px;
+      padding: 0;
+    }
+
+    /* ── TABLES ──────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 10px;
+    }
+    table th {
+      background: var(--dark);
+      color: #fff;
+      padding: 5px 8px;
+      text-align: left;
+      font-family: var(--font-display);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #e8f0f6;
+      vertical-align: middle;
+    }
+    table tr:nth-child(even) td {
+      background: var(--off);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .cell-input {
+      border: none;
+      border-bottom: 1px solid #bbb;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      padding: 0;
+    }
+    .cell-input:focus { border-bottom-color: var(--steel); }
+
+    /* ── TWO COL ─────────────────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ── CARD FOOTER ─────────────────────────────────────────── */
+    .card-footer {
+      background: var(--dark);
+      padding: 7px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .card-footer span {
+      font-size: 9px;
+      color: var(--pale);
+      opacity: 0.8;
+    }
+
+    /* ── INSTRUCTIONS (screen only) ──────────────────────────── */
+    .instructions {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 12px rgba(22,67,91,0.08);
+    }
+    .instructions h2 {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dark);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+    .instructions p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .instructions p strong { color: var(--dark); }
+    .print-note {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* ── PRINT STYLES ────────────────────────────────────────── */
+    @media print {
+      @page { size: 8.5in 11in portrait; margin: 0.3in; }
+      body { background: #fff; font-size: 11px; }
+      .print-bar { display: none; }
+      .instructions { display: none; }
+      .print-note { display: none; }
+      ::placeholder { color: transparent; }
+      .page-wrap { margin: 0; padding: 0; max-width: 100%; gap: 0; }
+      .card { border-radius: 0; box-shadow: none; }
+      .card-header h1 { font-size: 14px; }
+      .card-body { padding: 8px 16px; }
+      .truck-id { padding: 6px 16px; }
+      .card-header { padding: 8px 16px; }
+      .note-box { padding: 5px 10px; font-size: 9px; margin-bottom: 8px; }
+      .row-grid { gap: 4px 16px; margin-bottom: 8px; }
+      table { margin-bottom: 8px; }
+      table th { padding: 3px 6px; }
+      table td { padding: 3px 6px; }
+      .two-col { gap: 12px; }
+      .section-title { margin-bottom: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PRINT BAR (screen only) -->
+  <div class="print-bar">
+    <span class="print-bar-brand">Guardian Group — Loading &amp; Transport Resources</span>
+    <button class="print-btn" onclick="window.print()">&#x2399; Print / Save as PDF</button>
+  </div>
+
+  <div class="page-wrap">
+
+    <p class="print-note">Fill in the fields below, then print. Cut to half-sheet (8.5" × 5.5"), laminate, and store in the glove box or sun visor slot.</p>
+
+    <!-- CARD -->
+    <div class="card">
+
+      <div class="card-header">
+        <div>
+          <h1>Vehicle Load &amp; Equipment Card</h1>
+          <div class="sub">Complete one card per truck — laminate and store in glove box</div>
+        </div>
+        <div class="card-header-brand">Guardian Group<br>Safety &amp; Leadership Solutions</div>
+      </div>
+
+      <div class="truck-id">
+        <div class="truck-id-group">
+          <span class="truck-id-label">Truck / Unit #</span>
+          <input class="id-input" type="text" placeholder="Unit #" />
+        </div>
+        <div class="truck-id-group">
+          <span class="truck-id-label">Year / Make / Model</span>
+          <input class="id-input" type="text" placeholder="e.g. 2021 Ford F-350" />
+        </div>
+        <div class="truck-id-group">
+          <span class="truck-id-label">Completed by</span>
+          <input class="id-input" type="text" placeholder="Name" />
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="section-title">This truck's weight ratings</div>
+        <div class="row-grid">
+          <div class="field">
+            <label>Truck GVWR (door placard)</label>
+            <input class="field-input" type="text" placeholder="lbs" />
+          </div>
+          <div class="field">
+            <label>Max towing capacity (owner's manual)</label>
+            <input class="field-input" type="text" placeholder="lbs" />
+          </div>
+          <div class="field">
+            <label>Assigned trailer #</label>
+            <input class="field-input" type="text" />
+          </div>
+          <div class="field">
+            <label>Trailer GVWR (tongue plate)</label>
+            <input class="field-input" type="text" placeholder="lbs" />
+          </div>
+          <div class="field">
+            <label>Trailer empty weight (tongue plate)</label>
+            <input class="field-input" type="text" placeholder="lbs" />
+          </div>
+          <div class="field">
+            <label>Combined GCWR (truck + trailer GVWR)</label>
+            <input class="field-input" type="text" placeholder="lbs" />
+          </div>
+        </div>
+
+        <div class="note-box">
+          <strong>Max equipment weight this rig can legally haul:</strong> Towing capacity minus trailer empty weight = <input class="note-input" type="text" placeholder="____" /> lbs &nbsp;|&nbsp; Do not exceed this number.
+        </div>
+
+        <div class="section-title">Equipment this truck regularly hauls</div>
+        <table>
+          <tr>
+            <th style="width:30%">Equipment name / ID</th>
+            <th style="width:18%">Actual weight (lbs)</th>
+            <th style="width:18%">Min. tiedowns req.</th>
+            <th style="width:18%">Min. WLL per tiedown</th>
+            <th style="width:16%">Verified by</th>
+          </tr>
+          <tr><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+          <tr><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+          <tr><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+          <tr><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+        </table>
+
+        <div class="two-col">
+          <div>
+            <div class="section-title">Securement kit on this trailer</div>
+            <table>
+              <tr><th>Item</th><th>Qty</th><th>WLL rating</th></tr>
+              <tr><td>Chains</td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+              <tr><td>Binders</td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+              <tr><td>Straps</td><td><input class="cell-input" type="text" /></td><td><input class="cell-input" type="text" /></td></tr>
+              <tr><td>Chocks</td><td><input class="cell-input" type="text" /></td><td>—</td></tr>
+            </table>
+          </div>
+          <div>
+            <div class="section-title">Safety equipment locations</div>
+            <table>
+              <tr><th>Item</th><th>Location</th></tr>
+              <tr><td>First aid kit</td><td><input class="cell-input" type="text" /></td></tr>
+              <tr><td>Fire extinguisher</td><td><input class="cell-input" type="text" /></td></tr>
+              <tr><td>Reflective triangles</td><td><input class="cell-input" type="text" /></td></tr>
+              <tr><td>Emergency contact #</td><td><input class="cell-input" type="text" /></td></tr>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card-footer">
+        <span>Driver is legally responsible for verifying securement before every departure — regardless of who loaded.</span>
+        <span>guardiangroupsls.com</span>
+      </div>
+
+    </div><!-- /card -->
+
+    <!-- INSTRUCTIONS (screen only) -->
+    <div class="instructions">
+      <h2>How to fill out this card</h2>
+      <p><strong>Truck GVWR &amp; towing capacity:</strong> Look inside the driver-side door jamb for the manufacturer's sticker. GVWR is listed there. Max towing capacity is in the owner's manual or on the same sticker.</p>
+      <p><strong>Trailer GVWR &amp; empty weight:</strong> Both are on a metal plate riveted to the trailer tongue or frame. GVWR is the max the trailer can hold. Empty weight is the trailer itself — these are two different numbers.</p>
+      <p><strong>Equipment actual weight:</strong> Check the manufacturer's data plate on the machine, or the operator's manual. If unknown, weigh it on a truck scale. Estimated ranges are not sufficient for compliance — get the actual number.</p>
+      <p><strong>Tiedown requirements:</strong> Under 10,000 lbs equipment = minimum 2 tiedowns. Over 10,000 lbs = minimum 4 tiedowns, each rated at 5,000 lb WLL minimum (49 CFR §393.130).</p>
+      <p><strong>Laminate this card</strong> and keep it in the glove box or sun visor slot. Update it when equipment or trailer assignments change.</p>
+    </div>
+
+  </div><!-- /page-wrap -->
+
+</body>
+</html>

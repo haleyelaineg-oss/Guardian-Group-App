@@ -16,7 +16,7 @@
       --light:   #77A4BC;
       --pale:    #C8DCE9;
       --off:     #F6F6F6;
-      --gold:    #C88B00;
+      --gold:    #77A4BC;
       --text:    #1C3444;
       --muted:   #6B8FA3;
       --radius:  8px;
@@ -85,14 +85,14 @@
       position: relative;
       overflow: hidden;
     }
-    .page-hero::before {
-      content: '';
+    .hero-logo-watermark {
       position: absolute;
-      top: -60px; right: -60px;
-      width: 320px; height: 320px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.04);
+      top: -170px; right: -100px;
+      height: 600px;
+      width: auto;
+      opacity: 0.07;
       pointer-events: none;
+      user-select: none;
     }
     .hero-inner {
       max-width: 1080px;
@@ -102,7 +102,7 @@
     }
     .pre-label {
       font-family: var(--font-display);
-      font-size: 12px;
+      font-size: 18px;
       font-weight: 600;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -148,11 +148,11 @@
       border-radius: 2px;
       flex-shrink: 0;
     }
-    .section-heading-text {}
     .section-heading h2 {
       font-family: var(--font-display);
       font-size: 26px;
       font-weight: 700;
+      margin-bottom: px;
       color: var(--dark);
       letter-spacing: 0.02em;
       line-height: 1;
@@ -221,7 +221,7 @@
       color: var(--dark);
     }
     .badge-tool {
-      background: rgba(200,139,0,0.12);
+      background: rgba(146, 186, 226, 0.12);
       color: var(--gold);
     }
     .badge-pdf::before {
@@ -336,8 +336,9 @@
 
   <!-- PAGE HERO -->
   <section class="page-hero">
+    <img src="../assets/logo-white.png" alt="" class="hero-logo-watermark" aria-hidden="true" />
     <div class="hero-inner">
-      <div class="pre-label">Guardian Group — Free Resources</div>
+      <div class="pre-label">Guardian Group | Resources</div>
       <h1 class="page-title">Loading &amp; Transport</h1>
       <p class="page-subtitle">Regulatory references, fillable field tools, and crew-ready checklists for loading, securement, and transportation operations.</p>
     </div>
@@ -350,8 +351,8 @@
     <div class="section-heading">
       <div class="section-heading-bar"></div>
       <div class="section-heading-text">
-        <h2>Fillable Tools</h2>
-        <p>Open in your browser, fill in the fields, then print or save as a PDF.</p>
+        <h2>Tools & Templates</h2>
+        <p>These tools can be printed or filled out online. Open in your browser, fill in the fields with your information, and print or save as a PDF.</p>
       </div>
     </div>
 
@@ -370,12 +371,25 @@
         </div>
       </a>
 
+      <a class="resource-card" href="GG_Glove_Box_Card.html" target="_blank" rel="noopener">
+        <div class="card-accent gold"></div>
+        <div class="card-body">
+          <span class="card-type-badge badge-tool">Fillable Card</span>
+          <div class="card-title">Glove Box Load Card</div>
+          <div class="card-desc">Per-truck reference card covering weight ratings, regularly hauled equipment, securement kit inventory, and safety equipment locations. Fill in online, print to a half sheet, laminate, and store in the glove box.</div>
+          <div class="card-meta">Half sheet · Fill, print, laminate</div>
+        </div>
+        <div class="card-footer">
+          <span class="card-action gold-action">Open &amp; Fill</span>
+        </div>
+      </a>
+
       <a class="resource-card" href="GG_5_Questions_Before_You_Move.html" target="_blank" rel="noopener">
         <div class="card-accent gold"></div>
         <div class="card-body">
           <span class="card-type-badge badge-tool">Fillable Reference Card</span>
           <div class="card-title">5 Questions Before You Move</div>
-          <div class="card-desc">A crew alignment tool for supervisors and operators. Answer five key questions — positioning, roles, sequence, communication, and hazards — before any move begins.</div>
+          <div class="card-desc">A crew alignment tool for supervisors and operators. Answer five key questions — positioning, roles, sequence, communication, and hazards before any move begins.</div>
           <div class="card-meta">5 questions · Answer as a crew · Print</div>
         </div>
         <div class="card-footer">
@@ -390,12 +404,12 @@
       <div class="section-heading-bar"></div>
       <div class="section-heading-text">
         <h2>Regulatory Reference Documents</h2>
-        <p>Official FMCSA and DOT publications — some available as PDFs, others link to the live government webpage.</p>
+        <p>As mentioned in the ISA Article, drivers hauling equipment are subject to federal cargo securement standards under 49 CFR Part 393. These regulations establish minimum requirements for tie-down working load limits, the minimum number of tie-downs based on cargo weight and dimensions, and en-route inspection requirements. For heavy vehicles and machinery specifically, requirements are outlined in § 393.130. Requirements vary based on what is being hauled. Knowing which standards apply to your specific equipment is part of operating responsibly and legally. Listed below are official FMCSA and DOT publications. Some available as PDFs, others link to the live government webpage.</p>
       </div>
     </div>
 
     <div class="regulatory-note">
-      <strong>These are official government publications.</strong> Guardian Group does not author or modify these documents. Links marked "View Online" open the live government webpage — always the most current version.
+      <strong>These are official government publications.</strong> <br>Guardian Group does not author or modify or update these documents. Always verify you are viewing the most current version.
     </div>
 
     <div class="resource-grid">
