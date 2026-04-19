@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<title>Cargo Securement Standards Handout — Guardian Group</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--dark:#063249;--mid:#4983a4;--light:#63a8d1;--pale:#EFF5FA;--gray:#7b8c96;--gold:#F0A500;--goldbg:#FFF8E1;--white:#fff}
+  body{font-family:'Inter',Arial,sans-serif;background:var(--white);color:var(--dark);width:816px;margin:0 auto}
+  .header{background:var(--dark);padding:20px 36px 16px;text-align:center}
+  .header h1{font-size:20px;font-weight:800;color:var(--white);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+  .header p{font-size:11px;color:var(--pale)}
+  .intro{padding:12px 36px 0;font-size:11px;line-height:1.6;color:var(--dark);text-align:center}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 36px 0}
+  .panel{border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(6,50,73,.07)}
+  .panel-head{padding:8px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--white)}
+  .panel-head.dark{background:var(--dark)}
+  .panel-head.mid{background:var(--mid)}
+  .panel-head.teal{background:#1D9E75}
+  .panel-head.amber{background:#BA7517}
+  .panel-body{background:var(--white);padding:10px 14px}
+  .panel-body p{font-size:11px;line-height:1.55;color:var(--dark);margin-bottom:6px}
+  .panel-body p:last-child{margin-bottom:0}
+  .panel-body strong{font-weight:700}
+  .standard{background:var(--pale);border-left:3px solid var(--mid);padding:7px 10px;border-radius:0 4px 4px 0;margin-bottom:7px;font-size:11px;line-height:1.5;color:var(--dark)}
+  .standard:last-child{margin-bottom:0}
+  .standard strong{font-weight:700;display:block;margin-bottom:2px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;margin-right:4px;vertical-align:middle}
+  .tag.do{background:#e6f4ec;color:#0f6e56; transform: translateX(-5px); margin-right:-5px;font-size:12px}
+  .tag.dont{background:#fde8e8;color:#a32d2d; font-size:12px}
+  .tag.system{background:#63a9d168;color:#0d4360; transform: translateX(-5px); font-size:12px; margin-top:5px;}
+  .full{padding:12px 36px 0}
+  .full .panel{display:block}
+  ul{padding-left:14px;margin-top:4px}
+  ul li{font-size:10.5px;line-height:1.6;color:var(--dark);margin-bottom:2px}
+  .example-box{background:var(--goldbg);border:1.5px solid var(--gold);border-radius:5px;padding:10px 14px;margin:0 36px;margin-top:10px}
+  .example-box h3{font-size:10.5px;font-weight:700;color:var(--dark);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+  .example-box .ex{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ex-col h4{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+  .ex-item{font-size:10px;line-height:1.5;color:var(--dark);padding:4px 8px;border-radius:3px;margin-bottom:3px}
+  .ex-item.bad{background:#fde8e8;border-left:2px solid #e24b4a}
+  .ex-item.good{background:#e6f4ec;border-left:2px solid #1D9E75}
+  .footer{margin-top:12px;background:var(--dark);padding:8px 36px;display:flex;justify-content:space-between}
+  .footer span{font-size:9.5px;color:var(--pale)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Cargo Securement Standards &amp; Systems</h1>
+  <p>Example standards for building an intentional securement practice. Adapt these to fit your operation</p>
+</div>
+
+<div class="intro">
+
+</div>
+
+<div class="grid">
+
+  <div class="panel">
+    <div class="panel-head dark">Standard 1: Equipment identification system</div>
+    <div class="panel-body">
+      <p>All chains, binders, and straps must be clearly identifiable by their <strong>Working Load Limit (WLL)</strong> before use. Equipment with ratings that have worn off or become illegible are tagged as out of service until replaced or re-labeled.</p>
+      <div class="standard">
+        <strong><span class="tag system">system: Color-coding by WLL</span></strong>
+        Mark all binder handles and strap ratchet handles with colored tape or zip ties by rating:<br>
+        <span style="display:inline-block;margin-top:4px"><strong>Yellow: </strong> 
+        <p> 5,000 lb WLL </p>
+        <strong>Red: </strong>
+        <p>10,000 lb WLL</p> 
+        <strong>Blue:</strong> 
+        <p>20,000 lb WLL</p>
+      </span>
+        <span style="font-size:10px;color:var(--gray);margin-top:10px;margin-bottom:5px;display:block">Choose your colors and post the key on all trailer tongue boxes.</span>
+      </div>
+      <div class="standard">
+        <strong><span class="tag system">system: Dedicated rated kits - No mixing</span></strong>
+        Each trailer carries a pre-assembled securement kit with matched components (chain + binder rated to the same WLL). Mixing ratings from different kits is not permitted without confirming the assembly WLL is appropriate for the load.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head mid">Standard 2: Pre-departure verification</div>
+    <div class="panel-body">
+      <p>The driver completes final verification. The driver may delegate securement tasks to crew members, but verification before departure belongs to the driver and should not be delegated.</p>
+      <div class="standard" style="margin-top: 22px; padding: 14px 14px;">
+        <strong><span class="tag do">do: Assign crew roles</span></strong>
+        <p></p>Before every load, assign by name: who secures driver side, who secures passenger side, and who performs the final check. "You get driver side, you get passenger side, I'll walk it before we go."</span>
+      </div>
+      <div class="standard" style="padding: 18px 10px 18px 10px;">
+        <strong><span class="tag do">do: Touch-and-pull final check</span></strong>
+        <p></p>Before departing, driver physically pulls each tiedown. Any slack = tighten before moving. 
+      </div>
+      <div class="standard" style="padding: 18px 10px 18px 10px;">
+        <strong><span class="tag dont">don't: Rely on assumed responsibility</span></strong>
+        <p></p>"Someone else loaded it" is not a valid defense. The driver is responsible for verifying securement before departure, even if they didn't load the cargo. </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head teal">Standard 3: In-transit re-securement</div>
+    <div class="panel-body">
+      <p>Re-securement checks are scheduled events, not reactive ones. Waiting until something looks wrong is not a system. These intervals are federal requirements (49 CFR §392.9) — build them into the route.</p>
+      <div class="standard" style="padding: 15px 10px 15px 10px; ">
+        <strong><span class="tag do">do: First stop rule</span> </strong>
+        All crews stop and re-check securement within the first 50 miles of every trip. Loads settle and tension drops up to 30% as the rig moves. This stop is non-negotiable.</span>
+      </div>
+      <div class="standard">
+        <strong><span class="tag do">do: Re-check at every fuel or meal stop</span></strong>
+        Any time the driver exits the cab for more than a brief stretch, tiedowns are checked before continuing. On long hauls, actively plan a stop every 150 miles or 3 hours.
+      </div> 
+      <div class="standard">
+        <strong><span class="tag do"> do: Unusual event trigger</span></strong>
+        Any hard brake, swerve, rough road, or near-miss triggers an immediate pull-over and check before continuing — no exceptions.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head amber">Standard 4: Equipment and tool maintenance</div>
+    <div class="panel-body">
+      <p>Worn, damaged, or unlabeled securement equipment is removed from service immediately. A crew making do with marginal equipment is a predictable failure waiting to happen. Build regular inspection into your maintenance calendar.</p>
+      <div class="standard">
+        <strong><span class="tag do">do: Out-of-service criteria</span></strong>
+        Any chain, strap, or binder is pulled from service if: the WLL label is missing or illegible; any link is bent, cracked, or has more than 10% wear; a strap has cuts, fraying, or heat damage; a ratchet does not lock positively.
+      </div>
+      <div class="standard">
+        <strong><span class="tag system">system: Trailer box standard</span></strong>
+        Each trailer has a designated securement storage box. The kit contains only rated, labeled, serviceable equipment. Box is restocked after any job where equipment was used. Drivers sign off that the kit is complete at start of shift.
+      </div>
+      <div class="standard">
+        <strong><span class="tag system">system: Edge protection kit</span></strong>
+        Keep rubber edge protectors in every trailer box. Required by FMCSA when a strap contacts a sharp edge. Cheap to stock, expensive to skip.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="example-box">
+  <h3>What an intentional system vs. a habitual system looks like on the same crew</h3>
+  <div class="ex">
+    <div class="ex-col">
+      <h4>Habitual — how it often goes</h4>
+      <div class="ex-item bad">"Whoever finishes first grabs the chains."</div>
+      <div class="ex-item bad">"I can't see the WLL on this one — should be fine, we've used it before."</div>
+      <div class="ex-item bad">Chains tightened once, never re-checked on the road.</div>
+      <div class="ex-item bad">"The loader always rides fine, we've done it a hundred times."</div>
+      <div class="ex-item bad">Nobody knows where the first aid kit is until it's needed.</div>
+    </div>
+    <div class="ex-col">
+      <h4>Intentional — what the standard looks like</h4>
+      <div class="ex-item good">"Jake, you take driver side. Maria, passenger side. I'll walk it before we roll."</div>
+      <div class="ex-item good">Strap is tagged yellow — 5K WLL. Loader is 8,400 lbs. Pull two more from the box.</div>
+      <div class="ex-item good">Crew knows: first stop is within 50 miles. Pulls over, checks every tiedown.</div>
+      <div class="ex-item good">Trailer is parked on level ground. Ramp angle checked before unloading.</div>
+      <div class="ex-item good">Glove box card shows: first aid kit, driver side cab, behind the seat.</div>
+    </div>
+  </div>
+</div>
+
+<div class="full" style="margin-top:10px">
+  <div class="panel">
+    <div class="panel-head dark">Implementing these standards on your crew — a practical starting point</div>
+    <div class="panel-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div>
+          <p style="font-weight:700;margin-bottom:4px">Week 1: Inventory and label</p>
+          <ul>
+            <li>Pull every chain, strap, and binder from every trailer</li>
+            <li>Remove anything without a readable WLL rating</li>
+            <li>Apply color code to all keepers by WLL</li>
+            <li>Post the color key inside each trailer tongue box</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-weight:700;margin-bottom:4px">Week 2: Assign and communicate</p>
+          <ul>
+            <li>Introduce the role assignment standard to all crews</li>
+            <li>Practice the 30-second role-assignment exchange</li>
+            <li>Fill out Vehicle Load Cards for each truck</li>
+            <li>Review first stop rule with every driver</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-weight:700;margin-bottom:4px">Week 3+: Normalize and reinforce</p>
+          <ul>
+            <li>Leaders do random walk-arounds before crews depart</li>
+            <li>Debrief any securement near-miss within 24 hours</li>
+            <li>Add securement kit check to vehicle pre-trip</li>
+            <li>Celebrate when the system works — not just when something goes wrong</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>guardiangroupsls.com</span>
+  <span>Loaded With Risk workshop handout — example standards only, adapt for your operation</span>
+  <span>© Guardian Group Safety and Leadership Solutions</span>
+</div>
+
+</body>
+</html>
