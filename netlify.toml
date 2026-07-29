@@ -1,3 +1,9 @@
+[build.environment]
+  # The Supabase project URL isn't a secret — it's already public in every
+  # page's source via js/config.js. Only SUPABASE_SERVICE_ROLE_KEY is
+  # sensitive, and it correctly never appears in any committed file.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL"
+
 [[redirects]]
   from = "/"
   to = "/workshops/"
