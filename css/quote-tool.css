@@ -101,28 +101,6 @@
 }
 .qt-field-area:hover, .qt-field-area:focus { background: var(--gg-off); outline: none; }
 
-/* ── Gate ─────────────────────────────────────────────────── */
-.qt-gate-wrap { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
-.qt-gate-card {
-  background: var(--gg-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 40px;
-  width: 340px;
-  text-align: center;
-  box-sizing: border-box;
-}
-.qt-gate-input {
-  width: 100%; box-sizing: border-box;
-  border: var(--border-field) solid var(--gg-pale);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  font: inherit; font-size: 15px;
-  margin-bottom: 10px;
-  outline: none;
-}
-.qt-gate-error { color: var(--gg-danger); font-size: 12px; margin-bottom: 10px; }
-
 /* ── Buttons ──────────────────────────────────────────────── */
 .qt-btn {
   font-family: var(--font-display);

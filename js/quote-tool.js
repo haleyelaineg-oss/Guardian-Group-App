@@ -1,9 +1,8 @@
 // ============================================================
 // GUARDIAN GROUP — quote-tool.js
-// Quote / Invoice / Receipt tool. Gated by a team passphrase
-// checked against its own Supabase project (separate from the
-// main survey/workshops backend). Vanilla JS port of the
-// approved Claude Design build.
+// Quote / Invoice / Receipt tool. Talks to its own Supabase
+// project (separate from the main survey/workshops backend).
+// Vanilla JS port of the approved Claude Design build.
 // ============================================================
 
 const QT_SUPABASE_URL = 'https://gymrzsyrrjuyfnbnhzsk.supabase.co';
@@ -61,11 +60,6 @@ function paymentMethodLabel(s) {
 }
 
 let state = {
-  checkingGate: true,
-  unlocked: false,
-  gatePasswordInput: '',
-  gateError: '',
-
   view: 'editor',
 
   currentDocId: null,
@@ -214,52 +208,14 @@ function qtRemoveItem(id) {
   render();
 }
 
-// ── Gate / auth ──────────────────────────────────────────────
+// ── Supabase client ──────────────────────────────────────────
 
-function buildClient(pw) {
-  sb = window.supabase.createClient(QT_SUPABASE_URL, QT_SUPABASE_KEY, {
-    global: { headers: { 'x-app-key': pw } }
-  });
-}
-
-async function verifyAndUnlock(pw, fromStored) {
-  buildClient(pw);
-  state.checkingGate = true;
-  state.gateError = '';
-  render();
-  try {
-    const { data, error } = await sb.rpc('has_app_key');
-    if (error) throw error;
-    if (data === true) {
-      try { localStorage.setItem('gg_qt_app_pw_v1', pw); } catch (e) {}
-      state.unlocked = true;
-      state.checkingGate = false;
-      state.gateError = '';
-      render();
-      loadClients();
-      loadCatalog();
-      resetToBlank('quote');
-    } else {
-      try { localStorage.removeItem('gg_qt_app_pw_v1'); } catch (e) {}
-      state.unlocked = false;
-      state.checkingGate = false;
-      state.gateError = fromStored ? '' : 'Incorrect passphrase.';
-      render();
-    }
-  } catch (e) {
-    state.unlocked = false;
-    state.checkingGate = false;
-    state.gateError = 'Connection error — try again.';
-    render();
-  }
-}
-
-function qtSubmitGate(e) {
-  if (e && e.preventDefault) e.preventDefault();
-  verifyAndUnlock(state.gatePasswordInput, false);
+function buildClient() {
+  sb = window.supabase.createClient(QT_SUPABASE_URL, QT_SUPABASE_KEY);
 }
 
 function init() {
+  buildClient();
   render();
   let biz = {};
   try { biz = JSON.parse(localStorage.getItem('gg_qt_business_info_v1') || '{}'); } catch (e) {}
@@ -267,14 +223,9 @@ function init() {
   if (biz.businessPhone) state.businessPhone = biz.businessPhone;
   if (biz.businessEmail) state.businessEmail = biz.businessEmail;
 
-  let pw = '';
-  try { pw = localStorage.getItem('gg_qt_app_pw_v1') || ''; } catch (e) {}
-  if (pw) {
-    verifyAndUnlock(pw, true);
-  } else {
-    state.checkingGate = false;
-    render();
-  }
+  loadClients();
+  loadCatalog();
+  resetToBlank('quote');
 }
 
 // ── Data loading ─────────────────────────────────────────────
@@ -679,29 +630,7 @@ function render() {
 }
 
 function renderApp() {
-  const s = state;
-  if (s.checkingGate) return renderChecking();
-  if (!s.unlocked) return renderGate();
   return renderUnlocked();
-}
-
-function renderChecking() {
-  return `<div class="qt-gate-wrap" style="color:var(--gg-muted);font-size:14px;">Loading…</div>`;
-}
-
-function renderGate() {
-  const s = state;
-  return `
-    <div class="qt-gate-wrap">
-      <form class="qt-gate-card" onsubmit="qtSubmitGate(event)">
-        <img src="../assets/gg-shield.png" alt="" style="width:48px;height:48px;margin:0 auto 16px;display:block;">
-        <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--gg-dark);text-transform:uppercase;margin-bottom:4px;">Guardian Group</div>
-        <div style="font-size:13px;color:var(--gg-muted);margin-bottom:20px;line-height:1.5;">Enter the team passphrase to open the quote, invoice &amp; receipt tool.</div>
-        <input type="password" class="qt-gate-input" value="${escAttr(s.gatePasswordInput)}" oninput="qtSetField('gatePasswordInput', this.value)" placeholder="Passphrase">
-        ${s.gateError ? `<div class="qt-gate-error">${esc(s.gateError)}</div>` : ''}
-        <button type="submit" class="qt-btn qt-btn-primary" style="width:100%;padding:12px;">Unlock</button>
-      </form>
-    </div>`;
 }
 
 function renderUnlocked() {
