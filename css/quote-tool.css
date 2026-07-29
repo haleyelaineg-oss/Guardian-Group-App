@@ -1,0 +1,280 @@
+/* ============================================================
+   GUARDIAN GROUP — quote-tool.css
+   Quote / Invoice / Receipt tool. Extends the shared tokens in
+   survey.css with a few extra ones used only here, plus the
+   inline-edit field treatment and print rules.
+   ============================================================ */
+
+:root {
+  --border-field: 1.5px;
+  --radius-sm: 4px;
+  --radius-pill: 20px;
+  --shadow-cta: 0 4px 16px rgba(42,92,118,0.30);
+  --fs-2xs: 13px;
+  --gg-success: #165B3C;
+  --gg-success-bg: rgba(22,91,60,0.10);
+  --gg-danger: #C0392B;
+  --gg-danger-bg: #FDF0EF;
+  --gg-danger-bd: #F5C6C2;
+  --gg-tint-mid: rgba(42,92,118,0.05);
+  --gg-tint-hover: rgba(42,92,118,0.03);
+}
+
+.qt-body {
+  margin: 0;
+  background: var(--gg-off);
+  font-family: var(--font-body);
+  color: var(--gg-text);
+}
+
+#app {
+  min-height: 100vh;
+  padding: 32px 16px 80px;
+  box-sizing: border-box;
+}
+
+@page { size: letter; margin: 0.45in; }
+@media print {
+  [data-noprint] { display: none !important; }
+  [data-printonly] { display: inline !important; }
+  body { background: #fff !important; }
+  #docPage { box-shadow: none !important; margin: 0 !important; max-width: none !important; width: auto !important; border-radius: 0 !important; }
+  #app { padding: 0 !important; background: #fff !important; }
+}
+
+/* ── Eyebrow / status pill (mirrors the brand design system) ── */
+.qt-eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gg-steel);
+}
+
+.qt-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+.qt-status-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.qt-status-pill.tone-open { background: var(--gg-success-bg); color: var(--gg-success); }
+.qt-status-pill.tone-info { background: var(--gg-tint-mid); color: var(--gg-mid); }
+.qt-status-pill.tone-steel { background: rgba(82,130,156,0.12); color: var(--gg-steel); }
+.qt-status-pill.tone-danger { background: var(--gg-danger-bg); color: var(--gg-danger); border: 1px solid var(--gg-danger-bd); }
+.qt-status-pill.tone-neutral { background: var(--gg-off); color: var(--gg-muted); border: 1px solid var(--gg-pale); }
+
+/* ── Inline-edit fields ───────────────────────────────────── */
+.qt-field-line {
+  border: none;
+  border-bottom: 1px dotted transparent;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  padding: 1px 2px;
+}
+.qt-field-line:hover { border-bottom-color: var(--gg-pale); }
+.qt-field-line:focus { border-bottom-color: var(--gg-steel); outline: none; }
+
+.qt-field-area {
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--gg-text);
+  resize: vertical;
+  padding: 0;
+  line-height: 1.6;
+}
+.qt-field-area:hover, .qt-field-area:focus { background: var(--gg-off); outline: none; }
+
+/* ── Gate ─────────────────────────────────────────────────── */
+.qt-gate-wrap { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+.qt-gate-card {
+  background: var(--gg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  width: 340px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.qt-gate-input {
+  width: 100%; box-sizing: border-box;
+  border: var(--border-field) solid var(--gg-pale);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font: inherit; font-size: 15px;
+  margin-bottom: 10px;
+  outline: none;
+}
+.qt-gate-error { color: var(--gg-danger); font-size: 12px; margin-bottom: 10px; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.qt-btn {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+}
+.qt-btn-ghost {
+  border: var(--border-field) solid var(--gg-pale);
+  background: var(--gg-white);
+  color: var(--gg-steel);
+  padding: 9px 16px;
+}
+.qt-btn-dark { background: var(--gg-dark); color: #fff; padding: 9px 18px; }
+.qt-btn-primary { background: var(--gg-mid); color: #fff; padding: 10px 20px; box-shadow: var(--shadow-cta); }
+.qt-btn-muted { border: var(--border-field) solid var(--gg-pale); background: var(--gg-white); color: var(--gg-muted); padding: 9px 16px; }
+.qt-btn-text { border: none; background: transparent; color: var(--gg-steel); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 0; font-family: inherit; }
+.qt-btn-dashed { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; border: 1px dashed var(--gg-pale); background: transparent; color: var(--gg-steel); font-size: 12px; padding: 8px 14px; border-radius: var(--radius); cursor: pointer; }
+.qt-btn-cta-block { display: block; width: 100%; margin-top: 14px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; background: var(--gg-mid); color: #fff; border: none; border-radius: var(--radius); padding: 11px; font-size: 12px; cursor: pointer; box-shadow: var(--shadow-cta); }
+
+select.qt-select {
+  border: var(--border-field) solid var(--gg-pale);
+  border-radius: var(--radius-sm);
+  background: var(--gg-white);
+  font: inherit; font-size: 12px;
+  color: var(--gg-text);
+  padding: 8px 10px;
+}
+
+/* ── Top bar ──────────────────────────────────────────────── */
+.qt-topbar { max-width: 8.5in; margin: 0 auto 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.qt-topbar-left { display: flex; align-items: center; gap: 8px; }
+.qt-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qt-mode-tabs { display: flex; background: var(--gg-off); border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius); padding: 3px; }
+.qt-mode-tab { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; border: none; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: var(--gg-muted); }
+.qt-mode-tab.active { background: var(--gg-dark); color: #fff; }
+
+.qt-subbar { max-width: 8.5in; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.qt-helper-text { font-size: var(--fs-2xs); color: var(--gg-muted); }
+
+/* ── List view ────────────────────────────────────────────── */
+.qt-list-page { max-width: 8.5in; margin: 0 auto; background: var(--gg-white); box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); padding: 32px; box-sizing: border-box; }
+.qt-list-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.qt-list-title { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--gg-dark); text-transform: uppercase; }
+.qt-list-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.qt-list-search { border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius); padding: 8px 12px; font: inherit; font-size: 13px; width: 200px; outline: none; }
+.qt-list-empty { padding: 40px; text-align: center; color: var(--gg-muted); }
+.qt-doc-rows { display: flex; flex-direction: column; }
+.qt-doc-row-head, .qt-doc-row {
+  display: grid;
+  grid-template-columns: 120px 80px 1fr 120px 90px 100px;
+  gap: 12px;
+}
+.qt-doc-row-head {
+  padding: 10px 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--gg-muted);
+  text-transform: uppercase;
+  border-bottom: var(--border-field) solid var(--gg-pale);
+}
+.qt-doc-row {
+  padding: 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--gg-off);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gg-text);
+}
+.qt-doc-row:hover { background: var(--gg-tint-hover); }
+.qt-doc-row .num { font-weight: 600; color: var(--gg-dark); }
+.qt-doc-row .type { text-transform: capitalize; }
+
+/* ── Editor / document page ──────────────────────────────── */
+.qt-doc-page { max-width: 8.5in; margin: 0 auto; background: var(--gg-white); box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); padding: 0.6in 0.65in; box-sizing: border-box; }
+.qt-doc-head { display: flex; justify-content: space-between; align-items: center; gap: 24px; border-bottom: 3px solid var(--gg-mid); padding-bottom: 24px; }
+.qt-doc-brand { display: flex; align-items: center; gap: 14px; }
+.qt-doc-brand img { height: 60px; width: 60px; object-fit: contain; }
+.qt-doc-brand-name { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; color: var(--gg-dark); text-transform: uppercase; line-height: 1.1; }
+.qt-doc-meta { text-align: right; }
+.qt-doc-title { font-family: var(--font-display); font-size: 38px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; color: var(--gg-dark); text-transform: uppercase; }
+.qt-doc-meta-rows { margin-top: 10px; font-size: var(--fs-2xs); color: var(--gg-muted); display: grid; grid-template-columns: auto 130px; column-gap: 8px; row-gap: 4px; justify-content: end; align-items: baseline; }
+.qt-doc-meta-row { display: contents; }
+.qt-doc-meta-row span { white-space: nowrap; }
+.qt-doc-meta-row input.qt-field-line { font-family: var(--font-body); color: var(--gg-dark); font-weight: 600; width: 100%; box-sizing: border-box; text-align: right; }
+.qt-doc-meta-row select.qt-status-select { width: 100%; box-sizing: border-box; border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius-sm); background: var(--gg-white); font: inherit; font-size: 12px; color: var(--gg-dark); font-weight: 600; padding: 3px 6px; }
+.qt-parent-note { padding-top: 10px; font-size: 12px; color: var(--gg-muted); }
+
+.qt-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 24px 0; border-bottom: 1px solid var(--gg-pale); }
+.qt-party-name { font-size: 16px; font-weight: 700; color: var(--gg-dark); margin-top: 8px; }
+.qt-party input.qt-field-line { display: block; margin-top: 3px; font-size: 13px; color: var(--gg-text); width: 100%; box-sizing: border-box; }
+.qt-party input.qt-field-line.first { margin-top: 6px; }
+.qt-party input.qt-field-line.company { margin-top: 8px; font-size: 16px; font-weight: 700; color: var(--gg-dark); }
+
+.qt-items-wrap { padding-top: 20px; overflow-x: auto; }
+.qt-item-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--gg-off); min-width: 560px; }
+.qt-item-col-date { width: 68px; flex-shrink: 0; display: flex; flex-direction: column; }
+.qt-item-col-desc { flex: 1; min-width: 220px; display: flex; flex-direction: column; }
+.qt-item-col-qty { width: 50px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+.qt-item-col-rate { width: 76px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; }
+.qt-item-col-amount { width: 76px; flex-shrink: 0; text-align: right; font-weight: 700; font-size: 14px; color: var(--gg-dark); margin-top: 14px; }
+.qt-item-label { font-family: var(--font-display); font-size: 10px; color: var(--gg-muted); letter-spacing: 0.1em; }
+.qt-item-row input.qt-field-line { width: 100%; font-size: 13px; color: var(--gg-text); box-sizing: border-box; }
+.qt-item-row textarea.qt-field-line.desc {
+  display: block;
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--gg-dark);
+  font-family: inherit;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.qt-item-row select.qt-item-type { width: 104px; flex-shrink: 0; border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius-sm); background: var(--gg-white); font: inherit; font-size: 12px; color: var(--gg-text); padding: 6px 4px; margin-top: 14px; }
+.qt-item-remove { width: 20px; flex-shrink: 0; height: 20px; margin-top: 14px; border: none; background: transparent; color: var(--gg-pale); font-size: 16px; cursor: pointer; line-height: 1; }
+.qt-item-save-cta { margin-top: 3px; align-self: flex-start; border: none; background: transparent; color: var(--gg-steel); font-size: 10px; text-decoration: underline; cursor: pointer; padding: 0; font-family: inherit; }
+.qt-items-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+
+.qt-hide-totals-row { display: flex; justify-content: flex-end; margin-top: 28px; }
+.qt-hide-totals-label { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--gg-muted); cursor: pointer; }
+.qt-hide-totals-label input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--gg-mid); cursor: pointer; }
+
+.qt-totals-wrap { display: flex; justify-content: flex-end; }
+.qt-totals-box { width: 290px; }
+.qt-totals-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: var(--gg-text); }
+.qt-totals-line.with-border { align-items: center; border-top: 1px solid var(--gg-pale); }
+.qt-totals-line input.qt-field-line { width: 70px; text-align: right; font-size: 14px; color: var(--gg-text); }
+.qt-totals-line input.qt-field-line.paid { width: 80px; }
+.qt-discount-select { border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius-sm); font-size: 11px; padding: 2px 4px; background: var(--gg-white); color: var(--gg-text); }
+.qt-mark-paid-row { text-align: right; margin: 2px 0 4px; }
+.qt-total-box { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 14px 16px; border-radius: var(--radius); }
+.qt-total-box .label { color: var(--gg-pale); font-family: var(--font-display); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 13px; }
+.qt-total-box .value { color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 22px; }
+.qt-paid-badge-row { text-align: right; margin-top: 10px; }
+.qt-balance-note { text-align: right; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--gg-danger); }
+.qt-paidvia-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0 0; font-size: 14px; color: var(--gg-text); }
+.qt-paidvia-right { display: flex; align-items: baseline; gap: 8px; }
+.qt-paidvia-right select.qt-select { font-size: 13px; color: var(--gg-dark); font-weight: 600; padding: 5px 6px; }
+.qt-paidvia-right input.qt-field-line { font-family: inherit; color: var(--gg-dark); font-weight: 600; width: 110px; }
+.qt-save-first-note { margin-top: 10px; font-size: 11px; color: var(--gg-muted); text-align: right; }
+
+.qt-notes-block { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--gg-pale); }
+.qt-notes-block textarea { width: 100%; margin-top: 8px; font-size: 13px; }
+.qt-thankyou { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--gg-pale); text-align: center; }
+
+@media (max-width: 720px) {
+  .qt-parties { grid-template-columns: 1fr; }
+  .qt-doc-page { padding: 0.4in 0.35in; }
+}
