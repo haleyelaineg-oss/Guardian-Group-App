@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Portal — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/survey.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+  <link rel="stylesheet" href="../css/portal.css" />
+</head>
+<body class="admin-body">
+
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="../assets/logo-color.png" alt="Guardian Group" class="login-logo-img" onerror="this.style.display='none'" />
+        <div class="login-wordmark">GUARDIAN GROUP</div>
+        <div class="login-sub">Client Portal</div>
+      </div>
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="field-group full">
+          <label class="field-label" for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" class="field-input" placeholder="you@example.com" required />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="field-input" placeholder="••••••••" required />
+        </div>
+        <div class="login-error" id="loginError" style="display:none"></div>
+        <div class="login-success" id="loginSuccess" style="display:none"></div>
+        <button type="submit" class="btn btn-primary login-btn" id="loginBtn">Sign In →</button>
+        <button type="button" class="portal-link-btn" id="forgotBtn">Forgot your password?</button>
+      </form>
+      <p class="portal-login-hint">Your login is created automatically the first time you register for a Guardian Group workshop — check your confirmation email for a "Set Your Password" link.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/portal.js"></script>
+</body>
+</html>

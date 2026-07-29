@@ -61,6 +61,9 @@
         <button class="nav-item" data-view="registrants" onclick="setView('registrants', this)">
           <span class="nav-icon">◉</span> Registrants
         </button>
+        <button class="nav-item" data-view="companies" onclick="setView('companies', this)">
+          <span class="nav-icon">⬒</span> Companies
+        </button>
         <button class="nav-item" data-view="survey-builder" onclick="setView('survey-builder', this)">
           <span class="nav-icon">▣</span> Survey Builder
         </button>
@@ -265,6 +268,17 @@
         </div>
         <div id="registrantsContent">
           <p class="empty-hint">Select a workshop above to view its registrants.</p>
+        </div>
+      </div>
+
+      <!-- VIEW: COMPANIES ─────────────────────────────────── -->
+      <div class="view" id="view-companies">
+        <div class="view-header">
+          <h1 class="view-title">Companies</h1>
+          <p class="view-sub">Assign which participant is the client portal admin for each company.</p>
+        </div>
+        <div id="companiesContent">
+          <p class="empty-hint">Loading...</p>
         </div>
       </div>
 

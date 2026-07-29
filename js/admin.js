@@ -56,6 +56,7 @@ function setView(viewName, btn) {
 
   if (viewName === 'survey-builder') loadSurveyBuilder();
   if (viewName === 'registrants') loadRegistrants();
+  if (viewName === 'companies') loadCompanies();
 }
 
 // ── WORKSHOPS ─────────────────────────────────────────────────
@@ -700,7 +701,7 @@ async function loadRegistrants() {
       .order('created_at', { ascending: false }),
     ggClient
       .from('attendance')
-      .select('registration_id, status, participant:participant_id(full_name, email)')
+      .select('id, registration_id, status, participant_id, certificate_issued, certificate_number, participant:participant_id(full_name, email)')
       .eq('workshop_id', workshopId)
   ]);
 
@@ -749,7 +750,16 @@ async function loadRegistrants() {
                   <div class="reg-card-attendee-row">
                     <span>${escHtml(a.participant?.full_name || '—')}</span>
                     <span class="reg-card-attendee-email">${escHtml(a.participant?.email || '—')}</span>
-                    <span class="reg-card-status-badge ${a.status}">${a.status}</span>
+                    <select class="attendance-status-select" onchange="updateAttendanceStatus('${a.id}', this.value)">
+                      ${['registered', 'attended', 'no_show', 'completed'].map(s =>
+                        `<option value="${s}" ${a.status === s ? 'selected' : ''}>${s.replace('_', ' ')}</option>`
+                      ).join('')}
+                    </select>
+                    ${a.status === 'completed'
+                      ? (a.certificate_issued
+                          ? `<span class="wc-badge active-badge">✓ Certified (${escHtml(a.certificate_number || '')})</span>`
+                          : `<button class="btn-sm btn-sm-ghost" onclick="issueCertificate('${a.id}')">Issue Certificate</button>`)
+                      : ''}
                   </div>
                 `).join('')}
               </div>` : ''}
@@ -763,8 +773,85 @@ async function loadRegistrants() {
   `;
 }
 
+async function updateAttendanceStatus(attendanceId, newStatus) {
+  const { error } = await ggClient.from('attendance').update({ status: newStatus }).eq('id', attendanceId);
+  if (error) { alert('Could not update attendance: ' + error.message); return; }
+  loadRegistrants();
+}
+
+async function issueCertificate(attendanceId) {
+  const { error } = await ggClient
+    .from('attendance')
+    .update({ certificate_issued: true })
+    .eq('id', attendanceId);
+  if (error) { alert('Could not issue certificate: ' + error.message); return; }
+  loadRegistrants();
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount || 0);
+}
+
+// ── COMPANIES (org admin assignment) ────────────────────────
+async function loadCompanies() {
+  const container = document.getElementById('companiesContent');
+  container.innerHTML = '<p class="empty-hint">Loading...</p>';
+
+  const { data: companies, error } = await ggClient
+    .from('companies')
+    .select('id, name, contact_name, contact_email, org_admin_participant_id')
+    .order('name', { ascending: true });
+
+  if (error || !companies || companies.length === 0) {
+    container.innerHTML = '<p class="empty-hint">No companies yet.</p>';
+    return;
+  }
+
+  const { data: allParticipants } = await ggClient
+    .from('participants')
+    .select('id, full_name, email, company_id')
+    .in('company_id', companies.map(c => c.id));
+
+  const participantsByCompany = {};
+  (allParticipants || []).forEach(p => {
+    if (!participantsByCompany[p.company_id]) participantsByCompany[p.company_id] = [];
+    participantsByCompany[p.company_id].push(p);
+  });
+
+  container.innerHTML = `
+    <div class="reg-cards">
+      ${companies.map(c => {
+        const members = participantsByCompany[c.id] || [];
+        return `
+          <div class="reg-card">
+            <div class="reg-card-header">
+              <div>
+                <div class="reg-card-name">${escHtml(c.name)}</div>
+                <div class="reg-card-email">${escHtml(c.contact_name || '—')} · ${escHtml(c.contact_email || '—')}</div>
+              </div>
+              <div class="reg-card-meta-right">
+                <label class="field-label" style="margin:0;">Org Admin</label>
+                <select class="attendance-status-select" onchange="setCompanyOrgAdmin('${c.id}', this.value)" ${members.length === 0 ? 'disabled' : ''}>
+                  <option value="">— None —</option>
+                  ${members.map(m => `<option value="${m.id}" ${c.org_admin_participant_id === m.id ? 'selected' : ''}>${escHtml(m.full_name)} (${escHtml(m.email)})</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="reg-card-footer-meta">${members.length} participant${members.length !== 1 ? 's' : ''} on file</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function setCompanyOrgAdmin(companyId, participantId) {
+  const { error } = await ggClient
+    .from('companies')
+    .update({ org_admin_participant_id: participantId || null })
+    .eq('id', companyId);
+  if (error) { alert('Could not update org admin: ' + error.message); return; }
+  loadCompanies();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────

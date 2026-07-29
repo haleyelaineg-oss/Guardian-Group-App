@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Portal — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/survey.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+  <link rel="stylesheet" href="../css/portal.css" />
+</head>
+<body class="admin-body">
+
+  <div class="dashboard" id="dashboard">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img src="../assets/logo-white.png" alt="" class="sidebar-logo-img" onerror="this.style.display='none'" />
+        <div>
+          <div class="sidebar-brand">GUARDIAN GROUP</div>
+          <div class="sidebar-tag">Client Portal</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="registrations" onclick="setView('registrations', this)">
+          <span class="nav-icon">◫</span> My Registrations
+        </button>
+        <button class="nav-item" data-view="certificates" onclick="setView('certificates', this)">
+          <span class="nav-icon">◆</span> My Certificates
+        </button>
+        <button class="nav-item" data-view="company" id="companyNavItem" onclick="setView('company', this)" style="display:none">
+          <span class="nav-icon">◉</span> Company
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="portal-user-tag" id="portalUserTag"></div>
+        <button class="btn-signout" onclick="portalSignOut()">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="dash-main">
+
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <span class="top-bar-label" id="welcomeLabel">Welcome</span>
+        </div>
+      </div>
+
+      <!-- VIEW: MY REGISTRATIONS -->
+      <div class="view active" id="view-registrations">
+        <div class="view-header">
+          <h1 class="view-title">My Registrations</h1>
+          <p class="view-sub">Workshops you've registered for.</p>
+        </div>
+        <div id="registrationsContent">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
+      <!-- VIEW: MY CERTIFICATES -->
+      <div class="view" id="view-certificates">
+        <div class="view-header">
+          <h1 class="view-title">My Certificates</h1>
+          <p class="view-sub">Certificates are issued once a workshop is marked complete.</p>
+        </div>
+        <div id="certificatesContent">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
+      <!-- VIEW: COMPANY (org admins only) -->
+      <div class="view" id="view-company">
+        <div class="view-header">
+          <h1 class="view-title">Company</h1>
+          <p class="view-sub" id="companySub">Training status for everyone at your organization.</p>
+        </div>
+        <div id="companyContent">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/portal.js"></script>
+</body>
+</html>

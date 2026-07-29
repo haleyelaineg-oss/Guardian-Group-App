@@ -438,24 +438,48 @@ async function handlePayment() {
     const { transactionId = null, orderId = null } = await resp.json();
 
     // 3. Write to Supabase
-    await writeToSupabase(transactionId, orderId, attendees);
+    const { companyId, purchaserId, participants: writtenParticipants } = await writeToSupabase(transactionId, orderId, attendees);
 
-    // 4. Send confirmation emails (non-blocking — don't fail registration if email fails)
+    // 4. Provision portal accounts, then send confirmation emails
+    //    (both non-blocking — don't fail registration if either fails)
     const purchaser = {
       name:  document.getElementById('purchaserName').value.trim(),
       email: document.getElementById('purchaserEmail').value.trim()
     };
-    fetch('/.netlify/functions/send-confirmation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        workshop,
-        attendees,
-        purchaser,
-        registrationType,
-        totalPaid: (workshop.price_per_seat || 0) * attendees.length
-      })
-    }).catch(err => console.error('Confirmation email failed:', err));
+    (async () => {
+      let portalAccounts = [];
+      try {
+        // The purchaser always needs a portal account, even if they didn't
+        // register themselves as an attendee (e.g. "others_only") — they're
+        // the default org admin and need to be able to log in to see the
+        // company roster.
+        const accountParticipants = writtenParticipants.some(p => p.id === purchaserId)
+          ? writtenParticipants
+          : [...writtenParticipants, { id: purchaserId, name: purchaser.name, email: purchaser.email }];
+
+        const portalResp = await fetch('/.netlify/functions/create-portal-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ participants: accountParticipants, companyId, purchaserId, registrationType })
+        });
+        portalAccounts = portalResp.ok ? (await portalResp.json()).accounts || [] : [];
+      } catch (err) {
+        console.error('Portal account provisioning failed:', err);
+      }
+
+      fetch('/.netlify/functions/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workshop,
+          attendees,
+          purchaser,
+          registrationType,
+          totalPaid: (workshop.price_per_seat || 0) * attendees.length,
+          portalAccounts
+        })
+      }).catch(err => console.error('Confirmation email failed:', err));
+    })();
 
     // 5. Show confirmation
     showSuccess(attendees);
@@ -496,11 +520,13 @@ async function writeToSupabase(transactionId, orderId, attendees) {
     }
   }
 
-  // 2. Insert purchaser as participant
+  // 2. Upsert purchaser as participant (RPC dedupes by email — see
+  //    supabase/portal-migration-a.sql — so repeat registrants keep one
+  //    stable identity to attach a portal login to)
   const { data: purchaserRecord } = await db
-    .from('participants')
-    .insert({ full_name: purchaserName, email: purchaserEmail, company_id: companyId })
-    .select('id')
+    .rpc('upsert_participant_for_registration', {
+      p_full_name: purchaserName, p_email: purchaserEmail, p_company_id: companyId
+    })
     .single();
   const purchaserId = purchaserRecord?.id ?? null;
 
@@ -521,6 +547,7 @@ async function writeToSupabase(transactionId, orderId, attendees) {
   const registrationId = registration?.id ?? null;
 
   // 4. Insert attendees + attendance rows
+  const writtenParticipants = [];
   for (const attendee of attendees) {
     let participantId;
 
@@ -529,9 +556,9 @@ async function writeToSupabase(transactionId, orderId, attendees) {
       participantId = purchaserId;
     } else {
       const { data: p } = await db
-        .from('participants')
-        .insert({ full_name: attendee.name, email: attendee.email, company_id: companyId })
-        .select('id')
+        .rpc('upsert_participant_for_registration', {
+          p_full_name: attendee.name, p_email: attendee.email, p_company_id: companyId
+        })
         .single();
       participantId = p?.id ?? null;
     }
@@ -542,7 +569,13 @@ async function writeToSupabase(transactionId, orderId, attendees) {
       participant_id:  participantId,
       status:          'registered'
     });
+
+    if (participantId) {
+      writtenParticipants.push({ id: participantId, name: attendee.name, email: attendee.email });
+    }
   }
+
+  return { companyId, purchaserId, participants: writtenParticipants };
 }
 
 // ── Success screen ────────────────────────────────────────────

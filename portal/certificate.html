@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificate — Guardian Group</title>
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/survey.css" />
+  <link rel="stylesheet" href="../css/portal.css" />
+</head>
+<body>
+
+  <div class="certificate-page" id="certificatePage">
+    <p class="empty-hint" id="certLoading">Loading certificate...</p>
+
+    <div class="certificate-toolbar no-print" id="certToolbar" style="display:none">
+      <a class="btn btn-ghost" href="/portal/dashboard.html">← Back to Portal</a>
+      <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+
+    <div class="certificate-card" id="certificateCard" style="display:none">
+      <div class="certificate-border">
+        <img src="../assets/logo-color.png" alt="Guardian Group" class="certificate-logo" onerror="this.style.display='none'" />
+        <div class="certificate-eyebrow">Certificate of Completion</div>
+        <div class="certificate-name" id="certName">—</div>
+        <div class="certificate-line">has successfully completed</div>
+        <div class="certificate-workshop" id="certWorkshop">—</div>
+        <div class="certificate-meta">
+          <div>
+            <div class="certificate-meta-label">Date Issued</div>
+            <div class="certificate-meta-value" id="certDate">—</div>
+          </div>
+          <div>
+            <div class="certificate-meta-label">Certificate No.</div>
+            <div class="certificate-meta-value" id="certNumber">—</div>
+          </div>
+        </div>
+        <div class="certificate-tag">Guardian Group Safety &amp; Leadership Solutions</div>
+      </div>
+    </div>
+
+    <div class="certificate-error no-print" id="certError" style="display:none">
+      <p>This certificate couldn't be found, or you don't have access to view it.</p>
+      <a class="btn btn-primary" href="/portal/dashboard.html">← Back to Portal</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/portal.js"></script>
+</body>
+</html>

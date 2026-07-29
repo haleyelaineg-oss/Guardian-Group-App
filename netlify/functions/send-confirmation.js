@@ -8,7 +8,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { workshop, attendees, purchaser, registrationType, totalPaid } = JSON.parse(event.body);
+    const { workshop, attendees, purchaser, registrationType, totalPaid, portalAccounts } = JSON.parse(event.body);
 
     const dateStr = workshop.scheduled_at
       ? formatDateTime(workshop.scheduled_at)
@@ -16,13 +16,23 @@ exports.handler = async (event) => {
 
     const totalFormatted = formatCurrency(totalPaid);
 
+    // portalAccounts is [{ email, setPasswordLink }] from create-portal-account.js —
+    // setPasswordLink is null for repeat registrants who already have an account
+    const portalLinkByEmail = {};
+    (portalAccounts || []).forEach(a => {
+      if (a?.email) portalLinkByEmail[a.email.toLowerCase()] = a.setPasswordLink;
+    });
+
     // Send to each attendee
     const attendeeEmails = attendees.map(attendee =>
       resend.emails.send({
         from: 'Guardian Group <info@guardiangroupsls.com>',
         to: attendee.email,
         subject: `You're registered: ${workshop.title}`,
-        html: buildAttendeeEmail({ attendee, workshop, dateStr, totalPaid: totalFormatted })
+        html: buildAttendeeEmail({
+          attendee, workshop, dateStr, totalPaid: totalFormatted,
+          setPasswordLink: portalLinkByEmail[attendee.email.toLowerCase()]
+        })
       })
     );
 
@@ -39,7 +49,10 @@ exports.handler = async (event) => {
           from: 'Guardian Group <info@guardiangroupsls.com>',
           to: purchaser.email,
           subject: `Registration confirmed: ${workshop.title}`,
-          html: buildPurchaserEmail({ purchaser, attendees, workshop, dateStr, totalPaid: totalFormatted })
+          html: buildPurchaserEmail({
+            purchaser, attendees, workshop, dateStr, totalPaid: totalFormatted,
+            setPasswordLink: portalLinkByEmail[purchaser.email.toLowerCase()]
+          })
         })
       );
     }
@@ -64,7 +77,7 @@ exports.handler = async (event) => {
 
 // ── Email templates ───────────────────────────────────────────
 
-function buildAttendeeEmail({ attendee, workshop, dateStr, totalPaid }) {
+function buildAttendeeEmail({ attendee, workshop, dateStr, totalPaid, setPasswordLink }) {
   const meetingSection = workshop.meeting_link
     ? `<div style="margin:28px 0;padding:20px 24px;background:#f0f4f8;border-radius:8px;border-left:4px solid #1a3a5c;">
         <p style="margin:0 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#4a6080;">Zoom Meeting Link</p>
@@ -86,12 +99,13 @@ function buildAttendeeEmail({ attendee, workshop, dateStr, totalPaid }) {
     </table>
 
     ${meetingSection}
+    ${buildPortalSection(setPasswordLink)}
 
     <p style="font-size:14px;color:#64748b;margin-top:24px;">If you have any questions, reply to this email or reach us at <a href="mailto:info@guardiangroupsls.com" style="color:#1a3a5c;">info@guardiangroupsls.com</a>.</p>
   `);
 }
 
-function buildPurchaserEmail({ purchaser, attendees, workshop, dateStr, totalPaid }) {
+function buildPurchaserEmail({ purchaser, attendees, workshop, dateStr, totalPaid, setPasswordLink }) {
   const attendeeList = attendees
     .map(a => `<li style="margin-bottom:4px;">${escHtml(a.name)} — ${escHtml(a.email)}</li>`)
     .join('');
@@ -114,9 +128,19 @@ function buildPurchaserEmail({ purchaser, attendees, workshop, dateStr, totalPai
       </ul>
       <p style="margin:12px 0 0;font-size:12px;color:#64748b;">Each attendee will receive their own confirmation email with the Zoom link.</p>
     </div>
+    ${buildPortalSection(setPasswordLink)}
 
     <p style="font-size:14px;color:#64748b;margin-top:24px;">Questions? Reply to this email or contact us at <a href="mailto:info@guardiangroupsls.com" style="color:#1a3a5c;">info@guardiangroupsls.com</a>.</p>
   `);
+}
+
+function buildPortalSection(link) {
+  if (!link) return '';
+  return `<div style="margin:28px 0;padding:20px 24px;background:#eef6f0;border-radius:8px;border-left:4px solid #2e7d4f;">
+    <p style="margin:0 0 10px;font-size:14px;font-weight:600;color:#1a3a5c;">Set up your Guardian Group portal account</p>
+    <p style="margin:0 0 14px;font-size:13px;color:#4a6080;">View your registrations, attendance, and certificates any time.</p>
+    <a href="${escHtml(link)}" style="display:inline-block;background:#1a3a5c;color:#fff;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;">Set Your Password →</a>
+  </div>`;
 }
 
 function baseTemplate(content) {

@@ -631,6 +631,21 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   letter-spacing: 0.04em;
   margin-left: auto;
 }
+.reg-card-status-badge.attended { background: rgba(82,130,156,0.15); color: var(--gg-steel); }
+.reg-card-status-badge.completed { background: rgba(46,125,79,0.12); color: #2e7d4f; }
+.reg-card-status-badge.no_show { background: rgba(192,57,43,0.1); color: #c0392b; }
+.attendance-status-select {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gg-dark);
+  background: white;
+  border: 1px solid var(--gg-pale);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
 .reg-card-footer-meta {
   padding: 10px 24px;
   font-size: 12px;
