@@ -5,11 +5,6 @@
   SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL"
 
 [[redirects]]
-  from = "/"
-  to = "/workshops/"
-  status = 302
-
-[[redirects]]
   from = "/resources/loading-and-transport"
   to = "/resources/"
   status = 301

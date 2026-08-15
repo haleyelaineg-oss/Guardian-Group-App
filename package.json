@@ -1,9 +1,15 @@
 {
   "name": "guardian-group-app",
   "version": "1.0.0",
+  "scripts": {
+    "dev": "live-server --port=3000 --ignore=node_modules/**,netlify/**,supabase/**"
+  },
   "dependencies": {
     "resend": "^6.10.0",
     "square": "^28.0.0",
     "@supabase/supabase-js": "^2"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
   }
 }
