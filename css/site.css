@@ -35,6 +35,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: var(--nav-height); }
 
 body {
   font-family: var(--font-body);
@@ -146,10 +147,19 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   gap: 4px;
-  position: absolute;
-  left: max(24px, calc(100vw - 972px));
-  top: 50%;
-  transform: translateY(-50%);
+  flex: 1;
+  justify-content: center;
+}
+/* Above this width there's guaranteed clearance past the logo for the
+   links to align with the hero text's left edge instead of centering. */
+@media (min-width: 1320px) {
+  .nav-links {
+    flex: none;
+    position: absolute;
+    left: max(24px, calc(100vw - 972px));
+    top: 50%;
+    transform: translateY(-50%);
+  }
 }
 .nav-link {
   font-family: var(--font-display);
@@ -401,6 +411,24 @@ img { max-width: 100%; display: block; }
 }
 .section-inner.narrow { max-width: 780px; }
 
+.story-layout {
+  display: flex;
+  gap: 56px;
+  align-items: center;
+}
+.story-photo {
+  width: 44%;
+  max-width: 460px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: 25% 50%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  margin-left: -80px;
+}
+.story-content { flex: 1; }
+
 .section-eyebrow {
   font-family: var(--font-display);
   font-size: 16px;
@@ -511,6 +539,131 @@ img { max-width: 100%; display: block; }
   margin-top: 4px;
 }
 .info-card:hover .info-card-link { color: var(--gg-dark); }
+
+/* ── GUARDIAN GROUP WAY ──────────────────────────────────── */
+.way-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 48px;
+}
+.way-item {
+  display: flex;
+  gap: 48px;
+  padding: 40px 0;
+  border-top: 1.5px solid var(--gg-pale);
+}
+.way-item:first-child { border-top: none; padding-top: 0; }
+.way-item:last-child { padding-bottom: 0; }
+.way-title {
+  flex: 0 0 240px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gg-dark);
+  line-height: 1.2;
+}
+.way-body { flex: 1; }
+.way-body p {
+  font-size: 15.5px;
+  color: var(--gg-text);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.way-body p:last-child { margin-bottom: 0; }
+.values-list {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 40px;
+}
+.values-list li {
+  font-size: 15.5px;
+  color: var(--gg-text);
+  line-height: 1.6;
+}
+.values-list li strong { color: var(--gg-dark); }
+
+/* ── TEAM ────────────────────────────────────────────────── */
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+  margin-top: 48px;
+}
+.team-member {
+  display: flex;
+  gap: 48px;
+  align-items: flex-start;
+}
+.team-member.reverse { flex-direction: row-reverse; }
+.team-photo {
+  width: 280px;
+  height: 280px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.team-content { flex: 1; }
+.team-name {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gg-dark);
+  line-height: 1.2;
+}
+.team-role {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gg-steel);
+  margin-top: 4px;
+  margin-bottom: 16px;
+}
+.team-content p {
+  font-size: 15.5px;
+  color: var(--gg-text);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.team-certs {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1.5px solid var(--gg-pale);
+}
+.team-certs-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gg-mid);
+  margin-bottom: 10px;
+}
+.team-certs ul {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 24px;
+}
+.team-certs li {
+  font-size: 14px;
+  color: var(--gg-muted);
+  line-height: 1.5;
+  padding-left: 16px;
+  position: relative;
+}
+.team-certs li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gg-steel);
+}
 
 /* ── CTA BAND ────────────────────────────────────────────── */
 .cta-band {
@@ -651,6 +804,17 @@ textarea.field-input { resize: vertical; min-height: 110px; }
   .card-grid { grid-template-columns: repeat(2, 1fr); }
   .contact-grid { grid-template-columns: 1fr; gap: 40px; }
   .footer-inner { grid-template-columns: 1fr; gap: 32px; }
+  .team-member,
+  .team-member.reverse { flex-direction: column; }
+  .team-photo { margin: 0 auto; }
+  .team-name,
+  .team-role { text-align: center; }
+  .team-certs ul { grid-template-columns: 1fr; }
+  .story-layout { flex-direction: column; }
+  .story-photo { width: 100%; max-width: 100%; aspect-ratio: auto; margin-left: 0; }
+  .way-item { flex-direction: column; gap: 16px; }
+  .way-title { flex: none; }
+  .values-list { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
   .card-grid,
@@ -660,4 +824,5 @@ textarea.field-input { resize: vertical; min-height: 110px; }
   .hero::before { width: 320px; height: 320px; left: -80px; }
   .section { padding: 64px 20px; }
   .cta-band { padding: 56px 20px; }
+  .team-photo { width: 200px; height: 200px; }
 }

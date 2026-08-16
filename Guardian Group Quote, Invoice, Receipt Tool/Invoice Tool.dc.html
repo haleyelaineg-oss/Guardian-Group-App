@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #f1f1ee; }
+    @page { size: letter; margin: 0.45in; }
+    @media print {
+      [data-noprint] { display: none !important; }
+      [data-printonly] { display: inline !important; }
+      body { background: #fff !important; }
+      #invoicePage { box-shadow: none !important; margin: 0 !important; max-width: none !important; width: auto !important; }
+      #pageWrap { padding: 0 !important; background: #fff !important; }
+    }
+  </style>
+</helmet>
+
+<div id="pageWrap" style="min-height:100vh;background:#f1f1ee;font-family:Inter,system-ui,sans-serif;color:#161616;padding:32px 16px 80px;box-sizing:border-box;">
+
+  <div data-noprint style="max-width:8.5in;margin:0 auto 8px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="assets/hdpt-icon.png" alt="HD Parachute Team" style="width:30px;height:30px;object-fit:contain;">
+      <div style="font-weight:800;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;color:#161616;">Invoice &amp; Receipt Tool</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="display:flex;background:#fff;border:1px solid #e2e2dd;border-radius:8px;padding:3px;">
+        <button onClick="{{ setInvoiceMode }}" style="{{ invoiceTabStyle }}">Invoice</button>
+        <button onClick="{{ setReceiptMode }}" style="{{ receiptTabStyle }}">Receipt</button>
+      </div>
+      <button onClick="{{ newDocument }}" style="border:1px solid #e2e2dd;background:#fff;color:#444;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">New</button>
+      <button onClick="{{ printDoc }}" style="{{ printBtnStyle }}">Print / Save PDF</button>
+    </div>
+  </div>
+  <div data-noprint style="max-width:8.5in;margin:0 auto 20px;font-size:12px;color:#9a9a94;">Click any field below to edit it directly, then print to save a PDF.</div>
+
+  <div id="invoicePage" style="max-width:8.5in;margin:0 auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 12px 32px rgba(0,0,0,0.08);padding:0.6in 0.65in;box-sizing:border-box;">
+
+    <div style="{{ headerRuleStyle }}">
+      <img src="assets/hdpt-logo-lockup.png" alt="HD Parachute Team" style="height:92px;width:auto;object-fit:contain;">
+      <div style="text-align:right;">
+        <div style="font-size:30px;font-weight:900;letter-spacing:0.02em;line-height:1;">{{ docTitle }}</div>
+        <div style="margin-top:10px;font-size:13px;color:#7a7a7a;display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+          <div style="display:flex;gap:6px;align-items:baseline;">
+            <span>No.</span>
+            <input value="{{ docNumber }}" onChange="{{ setDocNumber }}" style="border:none;background:transparent;font:inherit;color:#161616;font-weight:600;width:70px;text-align:right;padding:1px 2px;"
+              style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+          </div>
+          <div style="display:flex;gap:6px;align-items:baseline;">
+            <span>Date</span>
+            <input value="{{ docDate }}" onChange="{{ setDocDate }}" style="border:none;background:transparent;font:inherit;color:#161616;font-weight:600;width:110px;text-align:right;padding:1px 2px;"
+              style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+          </div>
+          <sc-if value="{{ isInvoice }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:6px;align-items:baseline;">
+              <span>Terms</span>
+              <input value="{{ dueTerms }}" onChange="{{ setDueTerms }}" placeholder="e.g. Net 14" style="border:none;background:transparent;font:inherit;color:#161616;font-weight:600;width:110px;text-align:right;padding:1px 2px;"
+                style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:24px 0;border-bottom:1px solid #ececea;">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#9a9a94;text-transform:uppercase;margin-bottom:8px;">From</div>
+        <div style="font-size:16px;font-weight:800;">HD Parachute Team</div>
+        <input value="{{ businessPhone }}" placeholder="Phone number" onChange="{{ setBusinessPhone }}" style="display:block;margin-top:6px;border:none;background:transparent;font:inherit;font-size:13px;color:#444;padding:1px 0;width:100%;"
+          style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+        <input value="{{ businessEmail }}" placeholder="Email address" onChange="{{ setBusinessEmail }}" style="display:block;margin-top:3px;border:none;background:transparent;font:inherit;font-size:13px;color:#444;padding:1px 0;width:100%;"
+          style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#9a9a94;text-transform:uppercase;margin-bottom:8px;">{{ billToLabel }}</div>
+        <input value="{{ clientName }}" placeholder="Client name" onChange="{{ setClientName }}" style="display:block;border:none;background:transparent;font:inherit;font-size:16px;font-weight:700;color:#161616;padding:1px 0;width:100%;"
+          style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+        <input value="{{ clientContact }}" placeholder="Email or phone" onChange="{{ setClientContact }}" style="display:block;margin-top:6px;border:none;background:transparent;font:inherit;font-size:13px;color:#444;padding:1px 0;width:100%;"
+          style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+      </div>
+    </div>
+
+    <div style="padding-top:20px;overflow-x:auto;">
+      <sc-for list="{{ itemsView }}" as="item" hint-placeholder-count="1">
+        <div style="display:flex;gap:10px;align-items:flex-end;padding:10px 0;border-top:1px solid #f1f1ee;min-width:560px;">
+          <sc-if value="{{ showDates }}" hint-placeholder-val="{{ true }}">
+            <div style="width:84px;display:flex;flex-direction:column;">
+              <span style="font-size:9px;color:#b5b5ad;letter-spacing:0.05em;">DATE</span>
+              <input value="{{ item.date }}" onChange="{{ item.onDateChange }}" placeholder="—" style="width:100%;border:none;background:transparent;font:inherit;font-size:13px;color:#444;padding:1px 0;"
+                style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+            </div>
+          </sc-if>
+          <div style="flex:1;display:flex;flex-direction:column;">
+            <span style="font-size:9px;color:#b5b5ad;letter-spacing:0.05em;">DESCRIPTION</span>
+            <input value="{{ item.description }}" onChange="{{ item.onDescChange }}" placeholder="Service description" style="width:100%;border:none;background:transparent;font:inherit;font-size:14px;color:#161616;padding:1px 0;"
+              style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+          </div>
+          <select value="{{ item.type }}" onChange="{{ item.onTypeChange }}" data-noprint style="width:120px;border:1px solid #e2e2dd;border-radius:6px;background:#fff;font:inherit;font-size:12px;color:#444;padding:6px 4px;align-self:flex-end;">
+            <option value="flat">Flat price</option>
+            <option value="qty">Qty × price</option>
+            <option value="hours">Hours × rate</option>
+          </select>
+          <sc-if value="{{ item.notFlat }}" hint-placeholder-val="{{ true }}">
+            <div style="width:60px;display:flex;flex-direction:column;align-items:center;">
+              <span style="font-size:9px;color:#b5b5ad;letter-spacing:0.05em;">{{ item.qtyLabel }}</span>
+              <input value="{{ item.qty }}" onChange="{{ item.onQtyChange }}" style="width:100%;text-align:center;border:none;background:transparent;font:inherit;font-size:13px;color:#444;padding:1px 0;"
+                style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+            </div>
+          </sc-if>
+          <sc-if value="{{ item.isFlat }}" hint-placeholder-val="{{ false }}">
+            <div style="width:60px;"></div>
+          </sc-if>
+          <div style="width:88px;display:flex;flex-direction:column;align-items:flex-end;">
+            <span style="font-size:9px;color:#b5b5ad;letter-spacing:0.05em;">{{ item.rateLabel }}</span>
+            <input value="{{ item.rate }}" onChange="{{ item.onRateChange }}" style="width:100%;text-align:right;border:none;background:transparent;font:inherit;font-size:13px;color:#444;padding:1px 0;"
+              style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+          </div>
+          <div style="width:84px;text-align:right;font-weight:700;font-size:14px;">{{ item.amountFormatted }}</div>
+          <button onClick="{{ item.onRemove }}" data-noprint style="width:22px;height:30px;border:none;background:transparent;color:#b5b5ad;font-size:16px;cursor:pointer;line-height:1;">×</button>
+        </div>
+      </sc-for>
+
+      <button onClick="{{ addItem }}" data-noprint style="margin-top:14px;border:1px dashed #d8d8d2;background:transparent;color:#666;font:inherit;font-size:13px;padding:8px 14px;border-radius:8px;cursor:pointer;">+ Add line item</button>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:28px;">
+      <div style="width:280px;">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;color:#444;">
+          <span>Subtotal</span><span>{{ subtotalFormatted }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px;color:#444;">
+          <span style="display:flex;align-items:center;gap:6px;">Discount
+            <select value="{{ discountType }}" onChange="{{ setDiscountType }}" data-noprint style="border:1px solid #e2e2dd;border-radius:6px;font-size:11px;padding:2px 4px;background:#fff;">
+              <option value="$">$</option>
+              <option value="%">%</option>
+            </select>
+          </span>
+          <input value="{{ discountValue }}" onChange="{{ setDiscountValue }}" style="width:70px;text-align:right;border:none;background:transparent;font:inherit;font-size:14px;color:#444;padding:1px 0;"
+            style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px;color:#444;border-top:1px solid #ececea;">
+          <span>{{ paidFieldLabel }}</span>
+          <input value="{{ amountPaid }}" onChange="{{ setAmountPaid }}" style="width:80px;text-align:right;border:none;background:transparent;font:inherit;font-size:14px;color:#444;padding:1px 0;"
+            style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+        </div>
+        <sc-if value="{{ showMarkPaid }}" hint-placeholder-val="{{ false }}">
+          <div data-noprint style="text-align:right;margin:2px 0 4px;">
+            <button onClick="{{ markPaidInFull }}" style="border:none;background:transparent;color:#7a7a7a;font-size:12px;text-decoration:underline;cursor:pointer;padding:0;font-family:inherit;">Mark as paid in full</button>
+          </div>
+        </sc-if>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:14px 14px;background:#161616;border-radius:8px;">
+          <span style="color:#fff;font-weight:700;font-size:14px;">{{ totalLineLabel }}</span>
+          <span style="{{ totalBoxValueStyle }}">{{ totalLineValue }}</span>
+        </div>
+        <sc-if value="{{ isPaidInFull }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:right;margin-top:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;color:#5f8a00;">✓ PAID IN FULL</div>
+        </sc-if>
+        <sc-if value="{{ showRemainingNote }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:right;margin-top:8px;font-size:12px;font-weight:600;color:#b5402a;">Balance remaining: {{ balanceFormatted }}</div>
+        </sc-if>
+        <sc-if value="{{ isReceipt }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 0;font-size:14px;color:#444;">
+            <span>Paid via</span>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <select value="{{ paymentMethod }}" onChange="{{ setPaymentMethod }}" data-noprint style="border:1px solid #e2e2dd;border-radius:6px;background:#fff;font:inherit;font-size:13px;color:#161616;font-weight:600;padding:5px 6px;">
+                <option value="">Select method</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="venmo">Venmo</option>
+                <option value="zelle">Zelle</option>
+                <option value="cashapp">Cash App</option>
+                <option value="check">Check</option>
+                <option value="transfer">Bank Transfer</option>
+                <option value="other">Other</option>
+              </select>
+              <sc-if value="{{ isPaymentOther }}" hint-placeholder-val="{{ false }}">
+                <input value="{{ paymentMethodOther }}" onChange="{{ setPaymentMethodOther }}" placeholder="Specify" data-noprint style="border:none;background:transparent;font:inherit;color:#161616;font-weight:600;width:110px;padding:1px 2px;"
+                  style-hover="border-bottom:1px dotted #ccc;" style-focus="border-bottom:1px dotted #999;outline:none;">
+              </sc-if>
+              <span data-printonly style="display:none;font-weight:600;color:#161616;">{{ paymentMethodLabel }}</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #ececea;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#9a9a94;text-transform:uppercase;margin-bottom:6px;">Notes</div>
+      <textarea value="{{ notes }}" onChange="{{ setNotes }}" rows="2" style="width:100%;border:none;background:transparent;font:inherit;font-size:13px;color:#444;resize:vertical;padding:0;line-height:1.5;"
+        style-hover="background:#fafaf8;" style-focus="background:#fafaf8;outline:none;"></textarea>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;accentColor&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#D4FF00&quot;, &quot;options&quot;: [&quot;#D4FF00&quot;, &quot;#2A6FDB&quot;, &quot;#FF5A36&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Style&quot;},
+  &quot;showItemDates&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Line items&quot;}
+}">
+class Component extends DCLogic {
+  state = {
+    mode: 'receipt',
+    docNumber: '0001',
+    docDate: Component.formatToday(),
+    dueTerms: 'Net 14',
+    paymentMethod: '',
+    paymentMethodOther: '',
+    businessPhone: '',
+    businessEmail: '',
+    clientName: '',
+    clientContact: '',
+    items: [
+      { id: 1, date: Component.formatToday(), description: 'B-License Canopy Course', type: 'flat', qty: '1', rate: '0' }
+    ],
+    discountType: '$',
+    discountValue: '0',
+    amountPaid: '0',
+    notesInvoice: 'Payment due within 14 days. Thank you for training with HD Parachute Team!',
+    notesReceipt: 'Thank you for your payment \u2014 see you in the air!'
+  };
+
+  static formatToday() {
+    return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  componentDidMount() {
+    this._itemId = this.state.items.length ? Math.max.apply(null, this.state.items.map(i => i.id)) : 1;
+    try {
+      const saved = JSON.parse(localStorage.getItem('hdpt_invoice_tool_v1') || '{}');
+      this._seq = saved.seq || 1;
+      const patch = {};
+      if (saved.businessPhone) patch.businessPhone = saved.businessPhone;
+      if (saved.businessEmail) patch.businessEmail = saved.businessEmail;
+      if (saved.lastDocNumber) patch.docNumber = saved.lastDocNumber;
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (e) {
+      this._seq = 1;
+    }
+  }
+
+  persist() {
+    try {
+      localStorage.setItem('hdpt_invoice_tool_v1', JSON.stringify({
+        seq: this._seq || 1,
+        businessPhone: this.state.businessPhone,
+        businessEmail: this.state.businessEmail,
+        lastDocNumber: this.state.docNumber
+      }));
+    } catch (e) {}
+  }
+
+  fmt(n) {
+    const v = Math.abs(n).toFixed(2);
+    return (n < 0 ? '-$' : '$') + v;
+  }
+
+  computeTotals(state) {
+    const s = state || this.state;
+    const subtotal = s.items.reduce((sum, it) => {
+      const qty = parseFloat(it.qty) || 0;
+      const rate = parseFloat(it.rate) || 0;
+      const amount = it.type === 'flat' ? rate : qty * rate;
+      return sum + amount;
+    }, 0);
+    const discountValueNum = parseFloat(s.discountValue) || 0;
+    const discountAmount = s.discountType === '%' ? (subtotal * discountValueNum / 100) : discountValueNum;
+    const afterDiscount = Math.max(0, subtotal - discountAmount);
+    return { subtotal, discountAmount, afterDiscount };
+  }
+
+  updateItem(id, field, value) {
+    this.setState(s => ({ items: s.items.map(it => it.id === id ? { ...it, [field]: value } : it) }));
+  }
+
+  addItem() {
+    this._itemId = (this._itemId || 1) + 1;
+    const newId = this._itemId;
+    this.setState(s => ({ items: [...s.items, { id: newId, date: '', description: '', type: 'flat', qty: '1', rate: '0' }] }));
+  }
+
+  removeItem(id) {
+    this.setState(s => ({ items: s.items.filter(it => it.id !== id) }));
+  }
+
+  newDocument() {
+    this._seq = (this._seq || 1) + 1;
+    const nextNum = String(this._seq).padStart(4, '0');
+    this._itemId = 1;
+    this.setState({
+      docNumber: nextNum,
+      docDate: Component.formatToday(),
+      dueTerms: 'Net 14',
+      paymentMethod: '',
+      paymentMethodOther: '',
+      clientName: '',
+      clientContact: '',
+      items: [{ id: 1, date: Component.formatToday(), description: '', type: 'flat', qty: '1', rate: '0' }],
+      discountType: '$',
+      discountValue: '0',
+      amountPaid: '0'
+    }, () => this.persist());
+  }
+
+  markPaidInFull() {
+    const { afterDiscount } = this.computeTotals();
+    this.setState({ amountPaid: afterDiscount.toFixed(2) });
+  }
+
+  printDoc() {
+    window.print();
+  }
+
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accentColor || '#D4FF00';
+    const showDates = this.props.showItemDates !== false;
+    const isInvoice = s.mode === 'invoice';
+    const isReceipt = !isInvoice;
+    const totals = this.computeTotals(s);
+    const subtotal = totals.subtotal;
+    const afterDiscount = totals.afterDiscount;
+    const amountPaidNum = parseFloat(s.amountPaid) || 0;
+    const balance = afterDiscount - amountPaidNum;
+    const isPaidInFull = balance <= 0.005;
+
+    const itemsView = s.items.map(it => {
+      const isFlat = it.type === 'flat';
+      const isHours = it.type === 'hours';
+      const qty = parseFloat(it.qty) || 0;
+      const rate = parseFloat(it.rate) || 0;
+      const amount = isFlat ? rate : qty * rate;
+      return Object.assign({}, it, {
+        isFlat: isFlat,
+        notFlat: !isFlat,
+        qtyLabel: isHours ? 'HRS' : 'QTY',
+        rateLabel: isFlat ? 'PRICE' : (isHours ? 'RATE/HR' : 'UNIT PRICE'),
+        amountFormatted: this.fmt(amount),
+        onDateChange: e => this.updateItem(it.id, 'date', e.target.value),
+        onDescChange: e => this.updateItem(it.id, 'description', e.target.value),
+        onTypeChange: e => this.updateItem(it.id, 'type', e.target.value),
+        onQtyChange: e => this.updateItem(it.id, 'qty', e.target.value),
+        onRateChange: e => this.updateItem(it.id, 'rate', e.target.value),
+        onRemove: () => this.removeItem(it.id)
+      });
+    });
+
+    const tabBase = { border: 'none', borderRadius: '6px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+
+    return {
+      isInvoice: isInvoice,
+      isReceipt: isReceipt,
+      showDates: showDates,
+      docTitle: isInvoice ? 'INVOICE' : 'RECEIPT',
+      docNumber: s.docNumber,
+      setDocNumber: e => this.setState({ docNumber: e.target.value }),
+      docDate: s.docDate,
+      setDocDate: e => this.setState({ docDate: e.target.value }),
+      dueTerms: s.dueTerms,
+      setDueTerms: e => this.setState({ dueTerms: e.target.value }),
+      paymentMethod: s.paymentMethod,
+      setPaymentMethod: e => this.setState({ paymentMethod: e.target.value }),
+      paymentMethodOther: s.paymentMethodOther,
+      setPaymentMethodOther: e => this.setState({ paymentMethodOther: e.target.value }),
+      isPaymentOther: s.paymentMethod === 'other',
+      paymentMethodLabel: (() => {
+        const labels = { cash: 'Cash', card: 'Card', venmo: 'Venmo', zelle: 'Zelle', cashapp: 'Cash App', check: 'Check', transfer: 'Bank Transfer' };
+        if (s.paymentMethod === 'other') return s.paymentMethodOther || 'Other';
+        return labels[s.paymentMethod] || '\u2014';
+      })(),
+      billToLabel: isInvoice ? 'Bill To' : 'Received From',
+      businessPhone: s.businessPhone,
+      setBusinessPhone: e => this.setState({ businessPhone: e.target.value }, () => this.persist()),
+      businessEmail: s.businessEmail,
+      setBusinessEmail: e => this.setState({ businessEmail: e.target.value }, () => this.persist()),
+      clientName: s.clientName,
+      setClientName: e => this.setState({ clientName: e.target.value }),
+      clientContact: s.clientContact,
+      setClientContact: e => this.setState({ clientContact: e.target.value }),
+      itemsView: itemsView,
+      addItem: () => this.addItem(),
+      discountType: s.discountType,
+      setDiscountType: e => this.setState({ discountType: e.target.value }),
+      discountValue: s.discountValue,
+      setDiscountValue: e => this.setState({ discountValue: e.target.value }),
+      subtotalFormatted: this.fmt(subtotal),
+      amountPaid: s.amountPaid,
+      setAmountPaid: e => this.setState({ amountPaid: e.target.value }),
+      paidFieldLabel: 'Total',
+      showMarkPaid: !isPaidInFull && afterDiscount > 0,
+      markPaidInFull: () => this.markPaidInFull(),
+      totalLineLabel: isInvoice ? 'Balance Due' : 'Amount Received',
+      totalLineValue: isInvoice ? this.fmt(balance) : this.fmt(amountPaidNum),
+      isPaidInFull: isPaidInFull,
+      showRemainingNote: isReceipt && !isPaidInFull,
+      balanceFormatted: this.fmt(balance),
+      notes: isInvoice ? s.notesInvoice : s.notesReceipt,
+      setNotes: e => this.setState(isInvoice ? { notesInvoice: e.target.value } : { notesReceipt: e.target.value }),
+      setInvoiceMode: () => this.setState({ mode: 'invoice' }),
+      setReceiptMode: () => this.setState({ mode: 'receipt' }),
+      invoiceTabStyle: Object.assign({}, tabBase, { background: isInvoice ? '#161616' : 'transparent', color: isInvoice ? accent : '#666' }),
+      receiptTabStyle: Object.assign({}, tabBase, { background: isReceipt ? '#161616' : 'transparent', color: isReceipt ? accent : '#666' }),
+      newDocument: () => this.newDocument(),
+      printDoc: () => this.printDoc(),
+      printBtnStyle: { background: '#161616', color: accent, border: 'none', borderRadius: '8px', padding: '10px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+      headerRuleStyle: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px', borderBottom: '3px solid ' + accent, paddingBottom: '24px', width: '100%' },
+      totalBoxValueStyle: { color: accent, fontWeight: 800, fontSize: '20px' }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

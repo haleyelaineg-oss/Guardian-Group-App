@@ -1,0 +1,41 @@
+/* ============================================================
+   GUARDIAN GROUP — spacing.css
+   Container widths, radii and a soft spacing scale.
+   The app uses an 8px-ish rhythm with a few intentional
+   off-grid values (1.5px borders, 14px insets) — preserved here.
+   ============================================================ */
+
+:root {
+  /* Spacing scale */
+  --space-1:   4px;
+  --space-2:   6px;
+  --space-3:   8px;
+  --space-4:   12px;
+  --space-5:   16px;
+  --space-6:   20px;
+  --space-7:   24px;
+  --space-8:   28px;
+  --space-9:   32px;
+  --space-10:  48px;
+  --space-11:  56px;
+  --space-12:  80px;
+
+  /* Container widths used across the product */
+  --container-form:  860px;   /* survey / hero column */
+  --container-page:  1080px;  /* workshops listing */
+  --container-reg:   720px;   /* registration flow */
+  --sidebar-w:       220px;   /* admin sidebar */
+
+  /* Radii */
+  --radius-sm:  4px;   /* checkbox, small chips */
+  --radius:     8px;   /* inputs, buttons, cards */
+  --radius-md:  12px;  /* dashboard cards */
+  --radius-lg:  16px;  /* hero cards, modals */
+  --radius-pill: 20px; /* status pills */
+  --radius-full: 999px;
+
+  /* Border widths — note the brand's signature 1.5px field border */
+  --border-hair: 1px;
+  --border-field: 1.5px;
+  --border-strong: 2px;
+}

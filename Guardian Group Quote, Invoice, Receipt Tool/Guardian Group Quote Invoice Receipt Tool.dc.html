@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/styles.css">
+  <script src="_ds/guardian-group-design-system-efce02b3-dba2-4526-858b-473ef5acb256/_ds_bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    body { margin: 0; background: var(--gg-off); }
+    @page { size: letter; margin: 0.45in; }
+    @media print {
+      [data-noprint] { display: none !important; }
+      [data-printonly] { display: inline !important; }
+      body { background: #fff !important; }
+      #docPage { box-shadow: none !important; margin: 0 !important; max-width: none !important; width: auto !important; border-radius: 0 !important; }
+      #pageWrap { padding: 0 !important; background: #fff !important; }
+    }
+  </style>
+</helmet>
+
+<div id="pageWrap" style="min-height:100vh;background:var(--gg-off);font-family:var(--font-body);color:var(--gg-text);padding:32px 16px 80px;box-sizing:border-box;">
+
+  <sc-if value="{{ showChecking }}" hint-placeholder-val="{{ true }}">
+    <div style="min-height:60vh;display:flex;align-items:center;justify-content:center;color:var(--gg-muted);font-size:14px;">Loading…</div>
+  </sc-if>
+
+  <sc-if value="{{ showGate }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:60vh;display:flex;align-items:center;justify-content:center;">
+      <form onSubmit="{{ submitGate }}" style="background:var(--gg-white);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:40px;width:340px;text-align:center;box-sizing:border-box;">
+        <img src="assets/gg-shield.png" alt="" style="width:48px;height:48px;margin:0 auto 16px;display:block;">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--gg-dark);text-transform:uppercase;margin-bottom:4px;">Guardian Group</div>
+        <div style="font-size:13px;color:var(--gg-muted);margin-bottom:20px;line-height:1.5;">Enter the team passphrase to open the quote, invoice &amp; receipt tool.</div>
+        <input type="password" value="{{ gatePasswordInput }}" onChange="{{ setGatePasswordInput }}" placeholder="Passphrase" style="width:100%;box-sizing:border-box;border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius);padding:12px 14px;font:inherit;font-size:15px;margin-bottom:10px;outline:none;">
+        <sc-if value="{{ gateError }}" hint-placeholder-val="{{ false }}">
+          <div style="color:var(--gg-danger);font-size:12px;margin-bottom:10px;">{{ gateError }}</div>
+        </sc-if>
+        <button type="submit" style="width:100%;background:var(--gg-mid);color:#fff;border:none;border-radius:var(--radius);padding:12px;font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;font-size:13px;cursor:pointer;">Unlock</button>
+      </form>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ unlocked }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div data-noprint style="max-width:8.5in;margin:0 auto 8px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <img src="assets/gg-shield.png" alt="" style="width:22px;height:22px;object-fit:contain;">
+          <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.Eyebrow" hint-size="auto,16px">Quote · Invoice · Receipt Tool</x-import>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button onClick="{{ navToggleHandler }}" style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;border:var(--border-field) solid var(--gg-pale);background:var(--gg-white);color:var(--gg-steel);border-radius:var(--radius);padding:9px 16px;font-size:12px;cursor:pointer;">{{ navToggleLabel }}</button>
+          <sc-if value="{{ isEditorView }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;background:var(--gg-off);border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius);padding:3px;">
+              <button onClick="{{ setQuoteMode }}" style="{{ quoteTabStyle }}">Quote</button>
+              <button onClick="{{ setInvoiceMode }}" style="{{ invoiceTabStyle }}">Invoice</button>
+              <button onClick="{{ setReceiptMode }}" style="{{ receiptTabStyle }}">Receipt</button>
+            </div>
+            <button onClick="{{ newDocument }}" style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;border:var(--border-field) solid var(--gg-pale);background:var(--gg-white);color:var(--gg-muted);border-radius:var(--radius);padding:9px 16px;font-size:12px;cursor:pointer;">New</button>
+            <button onClick="{{ printDoc }}" style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;background:var(--gg-mid);color:#fff;border:none;border-radius:var(--radius);padding:10px 20px;font-size:12px;cursor:pointer;box-shadow:var(--shadow-cta);">Print / Save PDF</button>
+          </sc-if>
+        </div>
+      </div>
+
+      <div data-noprint style="max-width:8.5in;margin:0 auto 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:var(--fs-2xs);color:var(--gg-muted);">{{ helperText }}</div>
+        <sc-if value="{{ isEditorView }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ saveDocument }}" style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;background:var(--gg-dark);color:#fff;border:none;border-radius:var(--radius);padding:9px 18px;font-size:12px;cursor:pointer;">{{ saveButtonLabel }}</button>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ isListView }}" hint-placeholder-val="{{ false }}">
+        <div id="listPage" style="max-width:8.5in;margin:0 auto;background:var(--gg-white);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:32px;box-sizing:border-box;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+            <div style="font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--gg-dark);text-transform:uppercase;">All Documents</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input value="{{ listSearch }}" onChange="{{ setListSearch }}" placeholder="Search client or number…" style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius);padding:8px 12px;font:inherit;font-size:13px;width:200px;outline:none;">
+              <select value="{{ listTypeFilter }}" onChange="{{ setListTypeFilter }}" style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:13px;background:var(--gg-white);">
+                <option value="all">All types</option>
+                <option value="quote">Quotes</option>
+                <option value="invoice">Invoices</option>
+                <option value="receipt">Receipts</option>
+              </select>
+              <select value="{{ listStatusFilter }}" onChange="{{ setListStatusFilter }}" style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:13px;background:var(--gg-white);">
+                <option value="all">All statuses</option>
+                <sc-for list="{{ allStatusOptions }}" as="opt" hint-placeholder-count="0">
+                  <option value="{{ opt.value }}">{{ opt.label }}</option>
+                </sc-for>
+              </select>
+            </div>
+          </div>
+          <sc-if value="{{ listLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:40px;text-align:center;color:var(--gg-muted);">Loading…</div>
+          </sc-if>
+          <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:40px;text-align:center;color:var(--gg-muted);">No documents yet — save one from the editor.</div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;">
+            <div style="display:grid;grid-template-columns:120px 80px 1fr 120px 90px 100px;gap:12px;padding:10px 12px;font-family:var(--font-display);font-size:11px;letter-spacing:0.08em;color:var(--gg-muted);text-transform:uppercase;border-bottom:var(--border-field) solid var(--gg-pale);">
+              <div>Number</div><div>Type</div><div>Client</div><div>Status</div><div>Total</div><div>Date</div>
+            </div>
+            <sc-for list="{{ filteredDocumentsView }}" as="doc" hint-placeholder-count="3">
+              <div onClick="{{ doc.onOpen }}" data-noprint style="display:grid;grid-template-columns:120px 80px 1fr 120px 90px 100px;gap:12px;padding:12px;align-items:center;border-bottom:1px solid var(--gg-off);cursor:pointer;font-size:13px;color:var(--gg-text);"
+                style-hover="background:var(--gg-tint-hover);">
+                <div style="font-weight:600;color:var(--gg-dark);">{{ doc.doc_number }}</div>
+                <div style="text-transform:capitalize;">{{ doc.doc_type }}</div>
+                <div>{{ doc.client_name }}</div>
+                <div>
+                  <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.StatusPill" tone="{{ doc.tone }}" hint-size="auto,20px">{{ doc.statusLabel }}</x-import>
+                </div>
+                <div>{{ doc.totalFormatted }}</div>
+                <div>{{ doc.dateShort }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEditorView }}" hint-placeholder-val="{{ true }}">
+      <div id="docPage" style="max-width:8.5in;margin:0 auto;background:var(--gg-white);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:0.6in 0.65in;box-sizing:border-box;">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:24px;border-bottom:3px solid var(--gg-mid);padding-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <img src="assets/gg-shield.png" alt="Guardian Group" style="height:60px;width:60px;object-fit:contain;">
+            <div>
+              <div style="font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-0.01em;color:var(--gg-dark);text-transform:uppercase;line-height:1.1;">Guardian Group</div>
+              <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.Eyebrow" hint-size="auto,14px" style="margin-top:2px;">Safety &amp; Leadership Solutions</x-import>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-display);font-size:38px;font-weight:700;letter-spacing:-0.01em;line-height:1;color:var(--gg-dark);text-transform:uppercase;">{{ docTitle }}</div>
+            <div style="margin-top:10px;font-size:var(--fs-2xs);color:var(--gg-muted);display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+              <div style="display:flex;gap:6px;align-items:baseline;">
+                <span>No.</span>
+                <input value="{{ docNumberDisplay }}" onChange="{{ setDocNumber }}" style="border:none;background:transparent;font:inherit;font-family:var(--font-body);color:var(--gg-dark);font-weight:600;width:130px;text-align:right;padding:1px 2px;"
+                  style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+              </div>
+              <div style="display:flex;gap:6px;align-items:baseline;">
+                <span>Date</span>
+                <input value="{{ docDate }}" onChange="{{ setDocDate }}" style="border:none;background:transparent;font:inherit;font-family:var(--font-body);color:var(--gg-dark);font-weight:600;width:110px;text-align:right;padding:1px 2px;"
+                  style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+              </div>
+              <sc-if value="{{ isQuote }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;gap:6px;align-items:baseline;">
+                  <span>Valid for</span>
+                  <input value="{{ validFor }}" onChange="{{ setValidFor }}" placeholder="e.g. 14 days" style="border:none;background:transparent;font:inherit;font-family:var(--font-body);color:var(--gg-dark);font-weight:600;width:110px;text-align:right;padding:1px 2px;"
+                    style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+                </div>
+              </sc-if>
+              <sc-if value="{{ isInvoice }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:6px;align-items:baseline;">
+                  <span>Terms</span>
+                  <input value="{{ dueTerms }}" onChange="{{ setDueTerms }}" placeholder="e.g. Net 14" style="border:none;background:transparent;font:inherit;font-family:var(--font-body);color:var(--gg-dark);font-weight:600;width:110px;text-align:right;padding:1px 2px;"
+                    style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+                </div>
+              </sc-if>
+              <div style="display:flex;gap:6px;align-items:baseline;">
+                <span>Status</span>
+                <select value="{{ status }}" onChange="{{ setStatus }}" data-noprint style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius-sm);background:var(--gg-white);font:inherit;font-size:12px;color:var(--gg-dark);font-weight:600;padding:3px 6px;">
+                  <sc-for list="{{ statusOptionsView }}" as="opt" hint-placeholder-count="0">
+                    <option value="{{ opt.value }}">{{ opt.label }}</option>
+                  </sc-for>
+                </select>
+                <span data-printonly style="display:none;font-weight:600;color:var(--gg-dark);">{{ statusLabelPrint }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasParent }}" hint-placeholder-val="{{ false }}">
+          <div style="padding-top:10px;font-size:12px;color:var(--gg-muted);">Converted from {{ parentDocNumber }}</div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:24px 0;border-bottom:1px solid var(--gg-pale);">
+          <div>
+            <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.Eyebrow" hint-size="auto,16px">From</x-import>
+            <div style="font-size:16px;font-weight:700;color:var(--gg-dark);margin-top:8px;">Guardian Group</div>
+            <input value="{{ businessContactName }}" placeholder="Your name" onChange="{{ setBusinessContactName }}" style="display:block;margin-top:6px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+            <input value="{{ businessPhone }}" placeholder="Phone number" onChange="{{ setBusinessPhone }}" style="display:block;margin-top:3px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+            <input value="{{ businessEmail }}" placeholder="Email address" onChange="{{ setBusinessEmail }}" style="display:block;margin-top:3px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+          </div>
+          <div>
+            <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.Eyebrow" hint-size="auto,16px">{{ billToLabel }}</x-import>
+            <input list="clientNamesList" value="{{ clientCompany }}" placeholder="Company name" onChange="{{ onClientCompanyChange }}" style="display:block;margin-top:8px;border:none;background:transparent;font:inherit;font-size:16px;font-weight:700;color:var(--gg-dark);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+            <datalist id="clientNamesList">
+              <sc-for list="{{ clientNameOptions }}" as="cn" hint-placeholder-count="0">
+                <option value="{{ cn }}"></option>
+              </sc-for>
+            </datalist>
+            <input value="{{ clientPersonName }}" placeholder="Contact name" onChange="{{ setClientPersonName }}" style="display:block;margin-top:6px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+            <input value="{{ clientPhone }}" placeholder="Phone" onChange="{{ setClientPhone }}" style="display:block;margin-top:3px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+            <input value="{{ clientEmail }}" placeholder="Email" onChange="{{ setClientEmail }}" style="display:block;margin-top:3px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;width:100%;"
+              style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+          </div>
+        </div>
+
+        <div style="padding-top:20px;overflow-x:auto;">
+          <sc-for list="{{ itemsView }}" as="item" hint-placeholder-count="1">
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--gg-off);min-width:560px;">
+              <sc-if value="{{ showDates }}" hint-placeholder-val="{{ true }}">
+                <div style="width:68px;flex-shrink:0;display:flex;flex-direction:column;">
+                  <span style="font-family:var(--font-display);font-size:10px;color:var(--gg-muted);letter-spacing:0.1em;">DATE</span>
+                  <input value="{{ item.date }}" onChange="{{ item.onDateChange }}" placeholder="—" style="width:100%;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;"
+                    style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+                </div>
+              </sc-if>
+              <div style="flex:1;min-width:220px;display:flex;flex-direction:column;">
+                <span style="font-family:var(--font-display);font-size:10px;color:var(--gg-muted);letter-spacing:0.1em;">DESCRIPTION</span>
+                <input value="{{ item.description }}" onChange="{{ item.onDescChange }}" placeholder="Service description" style="width:100%;border:none;background:transparent;font:inherit;font-size:14px;color:var(--gg-dark);padding:1px 0;"
+                  style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+                <button onClick="{{ item.onSaveToCatalog }}" data-noprint title="Save as a reusable item" style="margin-top:3px;align-self:flex-start;border:none;background:transparent;color:var(--gg-steel);font-size:10px;text-decoration:underline;cursor:pointer;padding:0;font-family:inherit;">+ Save as reusable item</button>
+              </div>
+              <select value="{{ item.type }}" onChange="{{ item.onTypeChange }}" data-noprint style="width:104px;flex-shrink:0;border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius-sm);background:var(--gg-white);font:inherit;font-size:12px;color:var(--gg-text);padding:6px 4px;margin-top:14px;">
+                <option value="flat">Flat price</option>
+                <option value="qty">Qty × price</option>
+                <option value="hours">Hours × rate</option>
+              </select>
+              <sc-if value="{{ item.notFlat }}" hint-placeholder-val="{{ true }}">
+                <div style="width:50px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+                  <span style="font-family:var(--font-display);font-size:10px;color:var(--gg-muted);letter-spacing:0.1em;">{{ item.qtyLabel }}</span>
+                  <input value="{{ item.qty }}" onChange="{{ item.onQtyChange }}" style="width:100%;text-align:center;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;"
+                    style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+                </div>
+              </sc-if>
+              <sc-if value="{{ item.isFlat }}" hint-placeholder-val="{{ false }}">
+                <div style="width:50px;flex-shrink:0;"></div>
+              </sc-if>
+              <div style="width:76px;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;">
+                <span style="font-family:var(--font-display);font-size:10px;color:var(--gg-muted);letter-spacing:0.1em;">{{ item.rateLabel }}</span>
+                <input value="{{ item.rate }}" onChange="{{ item.onRateChange }}" style="width:100%;text-align:right;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);padding:1px 0;"
+                  style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+              </div>
+              <div style="width:76px;flex-shrink:0;text-align:right;font-weight:700;font-size:14px;color:var(--gg-dark);margin-top:14px;">{{ item.amountFormatted }}</div>
+              <button onClick="{{ item.onRemove }}" data-noprint style="width:20px;flex-shrink:0;height:20px;margin-top:14px;border:none;background:transparent;color:var(--gg-pale);font-size:16px;cursor:pointer;line-height:1;">×</button>
+            </div>
+          </sc-for>
+
+          <div data-noprint style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;">
+            <button onClick="{{ addItem }}" style="font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.04em;font-weight:600;border:1px dashed var(--gg-pale);background:transparent;color:var(--gg-steel);font-size:12px;padding:8px 14px;border-radius:var(--radius);cursor:pointer;">+ Add line item</button>
+            <select value="{{ catalogPick }}" onChange="{{ onPickCatalogItem }}" style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius-sm);background:var(--gg-white);font:inherit;font-size:12px;color:var(--gg-text);padding:8px 10px;">
+              <option value="">+ Add from saved items…</option>
+              <sc-for list="{{ catalogOptionsView }}" as="ci" hint-placeholder-count="0">
+                <option value="{{ ci.id }}">{{ ci.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:28px;">
+          <div style="width:290px;">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;color:var(--gg-text);">
+              <span>Subtotal</span><span>{{ subtotalFormatted }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px;color:var(--gg-text);">
+              <span style="display:flex;align-items:center;gap:6px;">Discount
+                <select value="{{ discountType }}" onChange="{{ setDiscountType }}" data-noprint style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius-sm);font-size:11px;padding:2px 4px;background:var(--gg-white);color:var(--gg-text);">
+                  <option value="$">$</option>
+                  <option value="%">%</option>
+                </select>
+              </span>
+              <input value="{{ discountValue }}" onChange="{{ setDiscountValue }}" style="width:70px;text-align:right;border:none;background:transparent;font:inherit;font-size:14px;color:var(--gg-text);padding:1px 0;"
+                style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+            </div>
+            <sc-if value="{{ showAmountPaidRow }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px;color:var(--gg-text);border-top:1px solid var(--gg-pale);">
+                <span>{{ paidFieldLabel }}</span>
+                <input value="{{ amountPaid }}" onChange="{{ setAmountPaid }}" style="width:80px;text-align:right;border:none;background:transparent;font:inherit;font-size:14px;color:var(--gg-text);padding:1px 0;"
+                  style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+              </div>
+            </sc-if>
+            <sc-if value="{{ showMarkPaid }}" hint-placeholder-val="{{ false }}">
+              <div data-noprint style="text-align:right;margin:2px 0 4px;">
+                <button onClick="{{ markPaidInFull }}" style="border:none;background:transparent;color:var(--gg-steel);font-size:12px;text-decoration:underline;cursor:pointer;padding:0;font-family:inherit;">Mark deposit as paid in full</button>
+              </div>
+            </sc-if>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:14px 16px;background:{{ totalBoxBg }};border-radius:var(--radius);">
+              <span style="color:var(--gg-pale);font-family:var(--font-display);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">{{ totalLineLabel }}</span>
+              <span style="color:#fff;font-family:var(--font-display);font-weight:700;font-size:22px;">{{ totalLineValue }}</span>
+            </div>
+            <sc-if value="{{ isPaidInFull }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align:right;margin-top:10px;">
+                <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.StatusPill" tone="open" hint-size="auto,24px">Paid in full</x-import>
+              </div>
+            </sc-if>
+            <sc-if value="{{ showRemainingNote }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align:right;margin-top:10px;font-size:12px;font-weight:600;color:var(--gg-danger);">Balance remaining: {{ balanceFormatted }}</div>
+            </sc-if>
+            <sc-if value="{{ isReceipt }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 0;font-size:14px;color:var(--gg-text);">
+                <span>Paid via</span>
+                <div style="display:flex;align-items:baseline;gap:8px;">
+                  <select value="{{ paymentMethod }}" onChange="{{ setPaymentMethod }}" data-noprint style="border:var(--border-field) solid var(--gg-pale);border-radius:var(--radius-sm);background:var(--gg-white);font:inherit;font-size:13px;color:var(--gg-dark);font-weight:600;padding:5px 6px;">
+                    <option value="">Select method</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="cashapp">Cash App</option>
+                    <option value="check">Check</option>
+                    <option value="transfer">Bank Transfer</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <sc-if value="{{ isPaymentOther }}" hint-placeholder-val="{{ false }}">
+                    <input value="{{ paymentMethodOther }}" onChange="{{ setPaymentMethodOther }}" placeholder="Specify" data-noprint style="border:none;background:transparent;font:inherit;color:var(--gg-dark);font-weight:600;width:110px;padding:1px 2px;"
+                      style-hover="border-bottom:1px dotted var(--gg-pale);" style-focus="border-bottom:1px dotted var(--gg-steel);outline:none;">
+                  </sc-if>
+                  <span data-printonly style="display:none;font-weight:600;color:var(--gg-dark);">{{ paymentMethodLabel }}</span>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ canConvertToInvoice }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ convertToInvoice }}" data-noprint style="margin-top:14px;width:100%;font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;background:var(--gg-mid);color:#fff;border:none;border-radius:var(--radius);padding:11px;font-size:12px;cursor:pointer;box-shadow:var(--shadow-cta);">Convert to Invoice →</button>
+            </sc-if>
+            <sc-if value="{{ canMarkPaidReceipt }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ markPaidCreateReceipt }}" data-noprint style="margin-top:14px;width:100%;font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;background:var(--gg-mid);color:#fff;border:none;border-radius:var(--radius);padding:11px;font-size:12px;cursor:pointer;box-shadow:var(--shadow-cta);">Mark Paid &amp; Create Receipt →</button>
+            </sc-if>
+            <sc-if value="{{ needsSaveFirst }}" hint-placeholder-val="{{ false }}">
+              <div data-noprint style="margin-top:10px;font-size:11px;color:var(--gg-muted);text-align:right;">Save this document to convert it or record payment.</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="margin-top:32px;padding-top:16px;border-top:1px solid var(--gg-pale);">
+          <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.Eyebrow" hint-size="auto,16px">Payment Options &amp; Instructions</x-import>
+          <textarea value="{{ notes }}" onChange="{{ setNotes }}" rows="2" style="width:100%;margin-top:8px;border:none;background:transparent;font:inherit;font-size:13px;color:var(--gg-text);resize:vertical;padding:0;line-height:1.6;"
+            style-hover="background:var(--gg-off);" style-focus="background:var(--gg-off);outline:none;"></textarea>
+        </div>
+
+        <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--gg-pale);text-align:center;">
+          <x-import component-from-global-scope="GuardianGroupDesignSystem_efce02.Eyebrow" hint-size="auto,16px">Thank you for being a part of Guardian Group</x-import>
+        </div>
+
+      </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;showItemDates&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Line items&quot;},
+  &quot;totalBoxTone&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;var(--gg-mid)&quot;, &quot;options&quot;: [&quot;var(--gg-dark)&quot;, &quot;var(--gg-mid)&quot;, &quot;var(--gg-steel)&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Style&quot;}
+}">
+class Component extends DCLogic {
+  static SUPABASE_URL = 'https://gymrzsyrrjuyfnbnhzsk.supabase.co';
+  static SUPABASE_KEY = 'sb_publishable_8n3FBcV6i-0w3NnES4_TpQ_SEHNwKo_';
+
+  state = {
+    checkingGate: true,
+    unlocked: false,
+    gatePasswordInput: '',
+    gateError: '',
+
+    view: 'editor',
+
+    currentDocId: null,
+    parentDocId: null,
+    parentDocNumber: null,
+    mode: 'quote',
+    status: 'draft',
+    docNumber: '',
+    docDate: Component.formatToday(),
+    validFor: '14 days',
+    dueTerms: 'Net 14',
+    paymentMethod: '',
+    paymentMethodOther: '',
+    businessContactName: '',
+    businessPhone: '',
+    businessEmail: '',
+    clientId: null,
+    clientCompany: '',
+    clientPersonName: '',
+    clientEmail: '',
+    clientPhone: '',
+    items: [
+      { id: 1, date: '', description: 'Safety & Leadership Workshop (full day)', type: 'flat', qty: '1', rate: '0' }
+    ],
+    discountType: '$',
+    discountValue: '0',
+    amountPaid: '0',
+    notesQuote: 'We accept cash, check, Venmo, Zelle, or card. A deposit may be required to reserve your training date.',
+    notesInvoice: 'Payment due within the terms above. We accept cash, check, Venmo, Zelle, or card \u2014 contact us with any questions about this invoice.',
+    notesReceipt: 'Payment received in full. Keep this receipt for your records.',
+
+    saving: false,
+    saveMessage: '',
+
+    catalogPick: '',
+    clients: [],
+    catalogItems: [],
+
+    documentsList: [],
+    listLoading: false,
+    listSearch: '',
+    listTypeFilter: 'all',
+    listStatusFilter: 'all'
+  };
+
+  static formatToday() {
+    return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  static statusListFor(mode) {
+    if (mode === 'quote') return ['draft', 'sent', 'accepted', 'declined', 'expired'];
+    if (mode === 'invoice') return ['draft', 'sent', 'partially_paid', 'paid', 'overdue'];
+    return ['issued'];
+  }
+
+  static labelize(s) {
+    return String(s).split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+
+  static statusTone(s) {
+    if (s === 'accepted' || s === 'paid' || s === 'issued') return 'open';
+    if (s === 'declined' || s === 'overdue') return 'danger';
+    if (s === 'sent') return 'info';
+    if (s === 'partially_paid') return 'steel';
+    return 'neutral';
+  }
+
+  componentDidMount() {
+    this._itemId = 1;
+    this.waitForLib(() => {
+      let biz = {};
+      try { biz = JSON.parse(localStorage.getItem('gg_business_info_v1') || '{}'); } catch (e) {}
+      const patch = {};
+      if (biz.businessContactName) patch.businessContactName = biz.businessContactName;
+      if (biz.businessPhone) patch.businessPhone = biz.businessPhone;
+      if (biz.businessEmail) patch.businessEmail = biz.businessEmail;
+      if (Object.keys(patch).length) this.setState(patch);
+
+      let pw = '';
+      try { pw = localStorage.getItem('gg_app_pw_v1') || ''; } catch (e) {}
+      if (pw) {
+        this.verifyAndUnlock(pw, true);
+      } else {
+        this.setState({ checkingGate: false });
+      }
+    });
+  }
+
+  waitForLib(cb, attempts) {
+    attempts = attempts || 0;
+    if (window.supabase && window.supabase.createClient) { cb(); return; }
+    if (attempts > 60) { this.setState({ checkingGate: false, gateError: 'Could not load the database library.' }); return; }
+    setTimeout(() => this.waitForLib(cb, attempts + 1), 100);
+  }
+
+  buildClient(pw) {
+    this._sb = window.supabase.createClient(Component.SUPABASE_URL, Component.SUPABASE_KEY, {
+      global: { headers: { 'x-app-key': pw } }
+    });
+  }
+
+  async verifyAndUnlock(pw, fromStored) {
+    this.buildClient(pw);
+    this.setState({ checkingGate: true, gateError: '' });
+    try {
+      const { data, error } = await this._sb.rpc('has_app_key');
+      if (error) throw error;
+      if (data === true) {
+        try { localStorage.setItem('gg_app_pw_v1', pw); } catch (e) {}
+        this.setState({ unlocked: true, checkingGate: false, gateError: '' });
+        this.loadClients();
+        this.loadCatalog();
+        this.resetToBlank('quote');
+      } else {
+        try { localStorage.removeItem('gg_app_pw_v1'); } catch (e) {}
+        this.setState({ unlocked: false, checkingGate: false, gateError: fromStored ? '' : 'Incorrect passphrase.' });
+      }
+    } catch (e) {
+      this.setState({ unlocked: false, checkingGate: false, gateError: 'Connection error \u2014 try again.' });
+    }
+  }
+
+  submitGate(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    this.verifyAndUnlock(this.state.gatePasswordInput, false);
+  }
+
+  persist() {
+    try {
+      localStorage.setItem('gg_business_info_v1', JSON.stringify({
+        businessContactName: this.state.businessContactName,
+        businessPhone: this.state.businessPhone,
+        businessEmail: this.state.businessEmail
+      }));
+    } catch (e) {}
+  }
+
+  fmt(n) {
+    const v = Math.abs(n).toFixed(2);
+    return (n < 0 ? '-$' : '$') + v;
+  }
+
+  computeTotals(state) {
+    const s = state || this.state;
+    const subtotal = s.items.reduce((sum, it) => {
+      const qty = parseFloat(it.qty) || 0;
+      const rate = parseFloat(it.rate) || 0;
+      const amount = it.type === 'flat' ? rate : qty * rate;
+      return sum + amount;
+    }, 0);
+    const discountValueNum = parseFloat(s.discountValue) || 0;
+    const discountAmount = s.discountType === '%' ? (subtotal * discountValueNum / 100) : discountValueNum;
+    const afterDiscount = Math.max(0, subtotal - discountAmount);
+    return { subtotal, discountAmount, afterDiscount };
+  }
+
+  updateItem(id, field, value) {
+    this.setState(s => ({ items: s.items.map(it => it.id === id ? { ...it, [field]: value } : it) }));
+  }
+
+  addItem() {
+    this._itemId = (this._itemId || 1) + 1;
+    const newId = this._itemId;
+    this.setState(s => ({ items: [...s.items, { id: newId, date: '', description: '', type: 'flat', qty: '1', rate: '0' }] }));
+  }
+
+  removeItem(id) {
+    this.setState(s => ({ items: s.items.filter(it => it.id !== id) }));
+  }
+
+  resetToBlank(mode) {
+    this._itemId = 1;
+    this.setState({
+      currentDocId: null,
+      parentDocId: null,
+      parentDocNumber: null,
+      mode: mode,
+      status: 'draft',
+      docNumber: '',
+      docDate: Component.formatToday(),
+      validFor: '14 days',
+      dueTerms: 'Net 14',
+      paymentMethod: '',
+      paymentMethodOther: '',
+      clientId: null,
+      clientCompany: '',
+      clientPersonName: '',
+      clientEmail: '',
+      clientPhone: '',
+      items: [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }],
+      discountType: '$',
+      discountValue: '0',
+      amountPaid: '0',
+      saveMessage: ''
+    });
+    this.fetchPreviewNumber(mode);
+  }
+
+  async fetchPreviewNumber(mode) {
+    if (!this._sb) return;
+    try {
+      const { data, error } = await this._sb.rpc('next_doc_number', { p_type: mode });
+      if (!error && data) this.setState({ docNumber: data });
+    } catch (e) {}
+  }
+
+  setMode(mode) {
+    if (mode !== this.state.mode) this.resetToBlank(mode);
+  }
+
+  newDocument() {
+    this.resetToBlank(this.state.mode);
+  }
+
+  printDoc() {
+    window.print();
+  }
+
+  markPaidInFull() {
+    const { afterDiscount } = this.computeTotals();
+    this.setState({ amountPaid: afterDiscount.toFixed(2) });
+  }
+
+  async loadClients() {
+    if (!this._sb) return;
+    const { data } = await this._sb.from('clients').select('id,name,contact_name,phone,email,notes').order('name');
+    if (data) this.setState({ clients: data });
+  }
+
+  async loadCatalog() {
+    if (!this._sb) return;
+    const { data } = await this._sb.from('service_items').select('*').order('description');
+    if (data) this.setState({ catalogItems: data });
+  }
+
+  async loadDocumentsList() {
+    if (!this._sb) return;
+    this.setState({ listLoading: true });
+    const { data } = await this._sb
+      .from('documents')
+      .select('id,doc_type,doc_number,status,client_name,total,doc_date,created_at')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    this.setState({ listLoading: false, documentsList: data || [] });
+  }
+
+  openDocumentsList() {
+    this.setState({ view: 'list' });
+    this.loadDocumentsList();
+  }
+
+  backToEditor() {
+    this.setState({ view: 'editor' });
+  }
+
+  onClientCompanyChange(e) {
+    const name = e.target.value;
+    this.setState(s => {
+      const match = s.clients.find(c => c.name.toLowerCase() === name.trim().toLowerCase());
+      return {
+        clientCompany: name,
+        clientId: match ? match.id : null,
+        clientPersonName: (!s.clientPersonName && match) ? (match.contact_name || '') : s.clientPersonName,
+        clientPhone: (!s.clientPhone && match) ? (match.phone || '') : s.clientPhone,
+        clientEmail: (!s.clientEmail && match) ? (match.email || '') : s.clientEmail
+      };
+    });
+  }
+
+  pickCatalogItem(e) {
+    const id = e.target.value;
+    if (!id) return;
+    const item = this.state.catalogItems.find(ci => String(ci.id) === String(id));
+    if (!item) return;
+    this._itemId = (this._itemId || 1) + 1;
+    const newId = this._itemId;
+    this.setState(s => ({
+      items: [...s.items, { id: newId, date: '', description: item.description, type: item.type, qty: '1', rate: String(item.rate) }],
+      catalogPick: ''
+    }));
+  }
+
+  async saveItemToCatalog(item) {
+    const desc = (item.description || '').trim();
+    if (!desc || !this._sb) return;
+    const exists = this.state.catalogItems.find(ci => ci.description.toLowerCase() === desc.toLowerCase());
+    if (exists) {
+      this.flashMessage('Already saved as a reusable item');
+      return;
+    }
+    const { data, error } = await this._sb.from('service_items').insert({
+      description: desc, type: item.type, rate: parseFloat(item.rate) || 0
+    }).select().single();
+    if (!error && data) {
+      this.setState(s => ({ catalogItems: [...s.catalogItems, data] }));
+      this.flashMessage('Saved to catalog \u2713');
+    }
+  }
+
+  flashMessage(msg) {
+    this.setState({ saveMessage: msg });
+    setTimeout(() => this.setState(s => (s.saveMessage === msg ? { saveMessage: '' } : null)), 3500);
+  }
+
+  async upsertClient() {
+    const name = (this.state.clientCompany || '').trim();
+    if (!name || !this._sb) return this.state.clientId || null;
+    const existing = this.state.clients.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      const patch = {};
+      if (this.state.clientPersonName && !existing.contact_name) patch.contact_name = this.state.clientPersonName;
+      if (this.state.clientPhone && !existing.phone) patch.phone = this.state.clientPhone;
+      if (this.state.clientEmail && !existing.email) patch.email = this.state.clientEmail;
+      if (Object.keys(patch).length) {
+        await this._sb.from('clients').update(patch).eq('id', existing.id);
+        this.setState(s => ({ clients: s.clients.map(c => c.id === existing.id ? Object.assign({}, c, patch) : c) }));
+      }
+      return existing.id;
+    }
+    const { data, error } = await this._sb.from('clients').insert({
+      name: name, contact_name: this.state.clientPersonName || '', phone: this.state.clientPhone || '', email: this.state.clientEmail || ''
+    }).select('id,name,contact_name,phone,email,notes').single();
+    if (!error && data) {
+      this.setState(s => ({ clients: [...s.clients, data] }));
+      return data.id;
+    }
+    return null;
+  }
+
+  buildDocPayload(totals) {
+    const s = this.state;
+    const amountPaidNum = parseFloat(s.amountPaid) || 0;
+    const balance = totals.afterDiscount - amountPaidNum;
+    return {
+      doc_type: s.mode,
+      doc_number: s.docNumber,
+      status: s.status,
+      client_name: s.clientCompany,
+      client_person_name: s.clientPersonName,
+      client_email: s.clientEmail,
+      client_phone: s.clientPhone,
+      business_contact_name: s.businessContactName,
+      business_phone: s.businessPhone,
+      business_email: s.businessEmail,
+      doc_date: s.docDate,
+      valid_for: s.mode === 'quote' ? s.validFor : null,
+      due_terms: s.mode === 'invoice' ? s.dueTerms : null,
+      payment_method: s.mode === 'receipt' ? s.paymentMethod : null,
+      payment_method_other: s.mode === 'receipt' ? s.paymentMethodOther : null,
+      items: s.items,
+      discount_type: s.discountType,
+      discount_value: parseFloat(s.discountValue) || 0,
+      subtotal: totals.subtotal,
+      discount_amount: totals.discountAmount,
+      total: totals.afterDiscount,
+      amount_paid: amountPaidNum,
+      balance: balance,
+      notes: s.mode === 'quote' ? s.notesQuote : (s.mode === 'invoice' ? s.notesInvoice : s.notesReceipt),
+      parent_doc_id: s.parentDocId || null
+    };
+  }
+
+  async saveDocument() {
+    if (this.state.saving || !this._sb) return;
+    this.setState({ saving: true, saveMessage: '' });
+    try {
+      let docNumber = this.state.docNumber;
+      if (!docNumber) {
+        const { data } = await this._sb.rpc('next_doc_number', { p_type: this.state.mode });
+        docNumber = data;
+        this.setState({ docNumber: docNumber });
+      }
+      const totals = this.computeTotals();
+      const clientId = await this.upsertClient();
+      const payload = Object.assign({}, this.buildDocPayload(totals), { doc_number: docNumber, client_id: clientId });
+      let result;
+      if (this.state.currentDocId) {
+        result = await this._sb.from('documents').update(payload).eq('id', this.state.currentDocId).select().single();
+      } else {
+        result = await this._sb.from('documents').insert(payload).select().single();
+      }
+      if (result.error) throw result.error;
+      this.setState({ currentDocId: result.data.id, clientId: clientId, saving: false });
+      this.flashMessage('Saved \u2713');
+    } catch (e) {
+      this.setState({ saving: false });
+      this.flashMessage('Save failed \u2014 check your connection and try again.');
+    }
+  }
+
+  async openDocument(id) {
+    if (!this._sb) return;
+    this.setState({ view: 'editor' });
+    const { data, error } = await this._sb.from('documents').select('*').eq('id', id).single();
+    if (error || !data) return;
+    let parentNumber = null;
+    if (data.parent_doc_id) {
+      const p = await this._sb.from('documents').select('doc_number').eq('id', data.parent_doc_id).single();
+      if (p.data) parentNumber = p.data.doc_number;
+    }
+    const items = (data.items && data.items.length) ? data.items : [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }];
+    this._itemId = Math.max.apply(null, items.map(i => i.id || 1));
+    this.setState({
+      currentDocId: data.id,
+      parentDocId: data.parent_doc_id,
+      parentDocNumber: parentNumber,
+      mode: data.doc_type,
+      status: data.status,
+      docNumber: data.doc_number,
+      docDate: data.doc_date || '',
+      validFor: data.valid_for || '14 days',
+      dueTerms: data.due_terms || 'Net 14',
+      paymentMethod: data.payment_method || '',
+      paymentMethodOther: data.payment_method_other || '',
+      businessContactName: data.business_contact_name || this.state.businessContactName,
+      businessPhone: data.business_phone || this.state.businessPhone,
+      businessEmail: data.business_email || this.state.businessEmail,
+      clientId: data.client_id,
+      clientCompany: data.client_name || '',
+      clientPersonName: data.client_person_name || '',
+      clientEmail: data.client_email || '',
+      clientPhone: data.client_phone || '',
+      items: items,
+      discountType: data.discount_type || '$',
+      discountValue: String(data.discount_value != null ? data.discount_value : 0),
+      amountPaid: String(data.amount_paid != null ? data.amount_paid : 0),
+      notesQuote: data.doc_type === 'quote' ? (data.notes || this.state.notesQuote) : this.state.notesQuote,
+      notesInvoice: data.doc_type === 'invoice' ? (data.notes || this.state.notesInvoice) : this.state.notesInvoice,
+      notesReceipt: data.doc_type === 'receipt' ? (data.notes || this.state.notesReceipt) : this.state.notesReceipt,
+      saveMessage: ''
+    });
+  }
+
+  async convertToInvoice() {
+    if (this.state.mode !== 'quote' || !this.state.currentDocId || !this._sb) return;
+    this.setState({ saving: true });
+    try {
+      const { data: numData, error: numErr } = await this._sb.rpc('next_doc_number', { p_type: 'invoice' });
+      if (numErr) throw numErr;
+      const totals = this.computeTotals();
+      const payload = Object.assign({}, this.buildDocPayload(totals), {
+        doc_type: 'invoice',
+        doc_number: numData,
+        status: 'draft',
+        due_terms: 'Net 14',
+        valid_for: null,
+        payment_method: null,
+        payment_method_other: null,
+        doc_date: Component.formatToday(),
+        amount_paid: 0,
+        balance: totals.afterDiscount,
+        notes: this.state.notesInvoice,
+        parent_doc_id: this.state.currentDocId,
+        client_id: this.state.clientId
+      });
+      const ins = await this._sb.from('documents').insert(payload).select().single();
+      if (ins.error) throw ins.error;
+      await this._sb.from('documents').update({ status: 'accepted' }).eq('id', this.state.currentDocId);
+      this.setState({
+        currentDocId: ins.data.id,
+        parentDocId: this.state.currentDocId,
+        parentDocNumber: this.state.docNumber,
+        mode: 'invoice',
+        status: 'draft',
+        docNumber: numData,
+        docDate: Component.formatToday(),
+        dueTerms: 'Net 14',
+        amountPaid: '0',
+        saving: false
+      });
+      this.flashMessage('Invoice created \u2713');
+    } catch (e) {
+      this.setState({ saving: false });
+      this.flashMessage('Could not convert \u2014 try again.');
+    }
+  }
+
+  async markPaidCreateReceipt() {
+    if (this.state.mode !== 'invoice' || !this.state.currentDocId || !this._sb) return;
+    this.setState({ saving: true });
+    try {
+      const totals = this.computeTotals();
+      const fullAmount = totals.afterDiscount;
+      await this._sb.from('documents').update({ status: 'paid', amount_paid: fullAmount, balance: 0 }).eq('id', this.state.currentDocId);
+      const { data: numData, error: numErr } = await this._sb.rpc('next_doc_number', { p_type: 'receipt' });
+      if (numErr) throw numErr;
+      const payload = Object.assign({}, this.buildDocPayload(totals), {
+        doc_type: 'receipt',
+        doc_number: numData,
+        status: 'issued',
+        due_terms: null,
+        valid_for: null,
+        payment_method: '',
+        payment_method_other: '',
+        doc_date: Component.formatToday(),
+        amount_paid: fullAmount,
+        balance: 0,
+        notes: this.state.notesReceipt,
+        parent_doc_id: this.state.currentDocId,
+        client_id: this.state.clientId
+      });
+      const ins = await this._sb.from('documents').insert(payload).select().single();
+      if (ins.error) throw ins.error;
+      this.setState({
+        currentDocId: ins.data.id,
+        parentDocId: this.state.currentDocId,
+        parentDocNumber: this.state.docNumber,
+        mode: 'receipt',
+        status: 'issued',
+        docNumber: numData,
+        docDate: Component.formatToday(),
+        paymentMethod: '',
+        amountPaid: fullAmount.toFixed(2),
+        saving: false
+      });
+      this.flashMessage('Receipt created \u2713');
+    } catch (e) {
+      this.setState({ saving: false });
+      this.flashMessage('Could not create receipt \u2014 try again.');
+    }
+  }
+
+  renderVals() {
+    const s = this.state;
+    const showDates = this.props.showItemDates !== false;
+    const totalBoxBg = this.props.totalBoxTone || 'var(--gg-dark)';
+    const isQuote = s.mode === 'quote';
+    const isInvoice = s.mode === 'invoice';
+    const isReceipt = s.mode === 'receipt';
+    const totals = this.computeTotals(s);
+    const subtotal = totals.subtotal;
+    const afterDiscount = totals.afterDiscount;
+    const amountPaidNum = parseFloat(s.amountPaid) || 0;
+    const balance = afterDiscount - amountPaidNum;
+    const isPaidInFull = !isQuote && balance <= 0.005;
+    const isSaved = !!s.currentDocId;
+
+    const itemsView = s.items.map(it => {
+      const isFlat = it.type === 'flat';
+      const isHours = it.type === 'hours';
+      const qty = parseFloat(it.qty) || 0;
+      const rate = parseFloat(it.rate) || 0;
+      const amount = isFlat ? rate : qty * rate;
+      return Object.assign({}, it, {
+        isFlat: isFlat,
+        notFlat: !isFlat,
+        qtyLabel: isHours ? 'HRS' : 'QTY',
+        rateLabel: isFlat ? 'PRICE' : (isHours ? 'RATE/HR' : 'UNIT PRICE'),
+        amountFormatted: this.fmt(amount),
+        onDateChange: e => this.updateItem(it.id, 'date', e.target.value),
+        onDescChange: e => this.updateItem(it.id, 'description', e.target.value),
+        onTypeChange: e => this.updateItem(it.id, 'type', e.target.value),
+        onQtyChange: e => this.updateItem(it.id, 'qty', e.target.value),
+        onRateChange: e => this.updateItem(it.id, 'rate', e.target.value),
+        onRemove: () => this.removeItem(it.id),
+        onSaveToCatalog: () => this.saveItemToCatalog(it)
+      });
+    });
+
+    const tabBase = { fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.05em', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' };
+    const activeTab = { background: 'var(--gg-dark)', color: '#fff' };
+    const inactiveTab = { background: 'transparent', color: 'var(--gg-muted)' };
+
+    const statusOptionsView = Component.statusListFor(s.mode).map(v => ({ value: v, label: Component.labelize(v) }));
+    const allStatusOptions = ['draft', 'sent', 'accepted', 'declined', 'expired', 'partially_paid', 'paid', 'overdue', 'issued'].map(v => ({ value: v, label: Component.labelize(v) }));
+
+    const clientNameOptions = s.clients.map(c => c.name);
+    const catalogOptionsView = s.catalogItems.map(ci => ({ id: ci.id, label: ci.description + ' \u00b7 ' + this.fmt(parseFloat(ci.rate) || 0) }));
+
+    const filteredDocumentsView = s.documentsList
+      .filter(d => s.listTypeFilter === 'all' || d.doc_type === s.listTypeFilter)
+      .filter(d => s.listStatusFilter === 'all' || d.status === s.listStatusFilter)
+      .filter(d => {
+        if (!s.listSearch) return true;
+        const q = s.listSearch.toLowerCase();
+        return (d.doc_number || '').toLowerCase().includes(q) || (d.client_name || '').toLowerCase().includes(q);
+      })
+      .map(d => ({
+        doc_number: d.doc_number,
+        doc_type: d.doc_type,
+        client_name: d.client_name || '\u2014',
+        statusLabel: Component.labelize(d.status),
+        tone: Component.statusTone(d.status),
+        totalFormatted: this.fmt(d.total || 0),
+        dateShort: d.doc_date || '',
+        onOpen: () => this.openDocument(d.id)
+      }));
+
+    return {
+      showChecking: s.checkingGate,
+      showGate: !s.checkingGate && !s.unlocked,
+      unlocked: s.unlocked,
+      gatePasswordInput: s.gatePasswordInput,
+      setGatePasswordInput: e => this.setState({ gatePasswordInput: e.target.value }),
+      gateError: s.gateError,
+      submitGate: e => this.submitGate(e),
+
+      isListView: s.view === 'list',
+      isEditorView: s.view === 'editor',
+      navToggleLabel: s.view === 'list' ? '\u2190 Back to Editor' : 'All Documents',
+      navToggleHandler: s.view === 'list' ? (() => this.backToEditor()) : (() => this.openDocumentsList()),
+
+      helperText: s.saveMessage || 'Click any field to edit it directly, then print to save a PDF.',
+      saveButtonLabel: s.saving ? 'Saving\u2026' : 'Save',
+      saveDocument: () => this.saveDocument(),
+
+      listSearch: s.listSearch,
+      setListSearch: e => this.setState({ listSearch: e.target.value }),
+      listTypeFilter: s.listTypeFilter,
+      setListTypeFilter: e => this.setState({ listTypeFilter: e.target.value }),
+      listStatusFilter: s.listStatusFilter,
+      setListStatusFilter: e => this.setState({ listStatusFilter: e.target.value }),
+      listLoading: s.listLoading,
+      listEmpty: !s.listLoading && filteredDocumentsView.length === 0,
+      filteredDocumentsView: filteredDocumentsView,
+      allStatusOptions: allStatusOptions,
+
+      isQuote: isQuote,
+      isInvoice: isInvoice,
+      isReceipt: isReceipt,
+      showDates: showDates,
+      docTitle: isQuote ? 'QUOTE' : (isInvoice ? 'INVOICE' : 'RECEIPT'),
+      docNumberDisplay: s.docNumber || '\u2026',
+      setDocNumber: e => this.setState({ docNumber: e.target.value }),
+      docDate: s.docDate,
+      setDocDate: e => this.setState({ docDate: e.target.value }),
+      validFor: s.validFor,
+      setValidFor: e => this.setState({ validFor: e.target.value }),
+      dueTerms: s.dueTerms,
+      setDueTerms: e => this.setState({ dueTerms: e.target.value }),
+      status: s.status,
+      setStatus: e => this.setState({ status: e.target.value }),
+      statusOptionsView: statusOptionsView,
+      statusLabelPrint: Component.labelize(s.status),
+      hasParent: !!s.parentDocNumber,
+      parentDocNumber: s.parentDocNumber,
+
+      paymentMethod: s.paymentMethod,
+      setPaymentMethod: e => this.setState({ paymentMethod: e.target.value }),
+      paymentMethodOther: s.paymentMethodOther,
+      setPaymentMethodOther: e => this.setState({ paymentMethodOther: e.target.value }),
+      isPaymentOther: s.paymentMethod === 'other',
+      paymentMethodLabel: (() => {
+        const labels = { cash: 'Cash', card: 'Card', venmo: 'Venmo', zelle: 'Zelle', cashapp: 'Cash App', check: 'Check', transfer: 'Bank Transfer' };
+        if (s.paymentMethod === 'other') return s.paymentMethodOther || 'Other';
+        return labels[s.paymentMethod] || '\u2014';
+      })(),
+
+      billToLabel: isQuote ? 'Prepared For' : (isInvoice ? 'Bill To' : 'Received From'),
+      businessContactName: s.businessContactName,
+      setBusinessContactName: e => this.setState({ businessContactName: e.target.value }, () => this.persist()),
+      businessPhone: s.businessPhone,
+      setBusinessPhone: e => this.setState({ businessPhone: e.target.value }, () => this.persist()),
+      businessEmail: s.businessEmail,
+      setBusinessEmail: e => this.setState({ businessEmail: e.target.value }, () => this.persist()),
+      clientCompany: s.clientCompany,
+      onClientCompanyChange: e => this.onClientCompanyChange(e),
+      clientNameOptions: clientNameOptions,
+      clientPersonName: s.clientPersonName,
+      setClientPersonName: e => this.setState({ clientPersonName: e.target.value }),
+      clientPhone: s.clientPhone,
+      setClientPhone: e => this.setState({ clientPhone: e.target.value }),
+      clientEmail: s.clientEmail,
+      setClientEmail: e => this.setState({ clientEmail: e.target.value }),
+
+      itemsView: itemsView,
+      addItem: () => this.addItem(),
+      catalogPick: s.catalogPick,
+      onPickCatalogItem: e => this.pickCatalogItem(e),
+      catalogOptionsView: catalogOptionsView,
+
+      discountType: s.discountType,
+      setDiscountType: e => this.setState({ discountType: e.target.value }),
+      discountValue: s.discountValue,
+      setDiscountValue: e => this.setState({ discountValue: e.target.value }),
+      subtotalFormatted: this.fmt(subtotal),
+      amountPaid: s.amountPaid,
+      setAmountPaid: e => this.setState({ amountPaid: e.target.value }),
+      paidFieldLabel: isInvoice ? 'Deposit Paid' : 'Amount Received',
+      showAmountPaidRow: !isQuote,
+      showMarkPaid: !isQuote && !isPaidInFull && afterDiscount > 0,
+      markPaidInFull: () => this.markPaidInFull(),
+      totalLineLabel: isQuote ? 'Estimated Total' : (isInvoice ? 'Balance Due' : 'Amount Received'),
+      totalLineValue: isQuote ? this.fmt(afterDiscount) : (isInvoice ? this.fmt(balance) : this.fmt(amountPaidNum)),
+      totalBoxBg: totalBoxBg,
+      isPaidInFull: isPaidInFull,
+      showRemainingNote: isReceipt && !isPaidInFull,
+      balanceFormatted: this.fmt(balance),
+
+      canConvertToInvoice: isQuote && isSaved,
+      canMarkPaidReceipt: isInvoice && isSaved && s.status !== 'paid',
+      needsSaveFirst: !isSaved && (isQuote || isInvoice),
+      convertToInvoice: () => this.convertToInvoice(),
+      markPaidCreateReceipt: () => this.markPaidCreateReceipt(),
+
+      notes: isQuote ? s.notesQuote : (isInvoice ? s.notesInvoice : s.notesReceipt),
+      setNotes: e => this.setState(isQuote ? { notesQuote: e.target.value } : (isInvoice ? { notesInvoice: e.target.value } : { notesReceipt: e.target.value })),
+
+      setQuoteMode: () => this.setMode('quote'),
+      setInvoiceMode: () => this.setMode('invoice'),
+      setReceiptMode: () => this.setMode('receipt'),
+      quoteTabStyle: Object.assign({}, tabBase, isQuote ? activeTab : inactiveTab),
+      invoiceTabStyle: Object.assign({}, tabBase, isInvoice ? activeTab : inactiveTab),
+      receiptTabStyle: Object.assign({}, tabBase, isReceipt ? activeTab : inactiveTab),
+      newDocument: () => this.newDocument(),
+      printDoc: () => this.printDoc()
+    };
+  }
+}
+
+</script>
+</body>
+</html>

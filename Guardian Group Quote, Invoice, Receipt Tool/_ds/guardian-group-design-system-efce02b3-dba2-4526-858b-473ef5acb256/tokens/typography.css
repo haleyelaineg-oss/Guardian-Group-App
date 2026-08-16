@@ -1,0 +1,52 @@
+/* ============================================================
+   GUARDIAN GROUP — typography.css
+   Two-family system:
+     • Barlow Condensed (display) — UPPERCASE labels, headings,
+       numerals, buttons. Tracked-out, condensed, confident.
+     • Barlow (body) — readable, slightly airy, light weights
+       for subtitles. Set on a navy-tinted ink, not pure black.
+   ============================================================ */
+
+:root {
+  /* Families */
+  --font-body:    'Barlow', system-ui, sans-serif;
+  --font-display: 'Barlow Condensed', 'Barlow', sans-serif;
+  --font-mono:    ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Weights */
+  --fw-light:    300; /* @kind font */
+  --fw-regular:  400; /* @kind font */
+  --fw-medium:   500; /* @kind font */
+  --fw-semibold: 600; /* @kind font */
+  --fw-bold:     700; /* @kind font */
+
+  /* Display scale (Barlow Condensed) — used for titles & numbers */
+  --fs-display:   52px;  /* hero workshop title (clamps to 32 on mobile) */
+  --fs-h1:        36px;  /* success / view titles */
+  --fs-h2:        28px;  /* section titles */
+  --fs-h3:        22px;  /* card / wordmark */
+  --fs-number:    56px;  /* big step numerals */
+
+  /* Body scale (Barlow) */
+  --fs-lead:      17px;  /* hero subtitle */
+  --fs-body:      16px;  /* base */
+  --fs-sm:        15px;  /* inputs, card body */
+  --fs-xs:        14px;  /* labels, meta */
+  --fs-2xs:       13px;  /* fine print */
+  --fs-3xs:       12px;  /* eyebrow labels, footer */
+  --fs-micro:     11px;  /* table heads, status pills */
+
+  /* Line heights */
+  --lh-tight:     1.1; /* @kind other */
+  --lh-snug:      1.2; /* @kind other */
+  --lh-body:      1.6; /* @kind other */
+  --lh-loose:     1.8; /* @kind other */
+
+  /* Letter-spacing — Guardian leans on tracked-out display caps */
+  --ls-tight:     -0.02em;  /* @kind other */
+  --ls-heading:   -0.01em;  /* @kind other */
+  --ls-body:       0; /* @kind other */
+  --ls-label:      0.06em;  /* @kind other */
+  --ls-eyebrow:    0.12em;  /* @kind other */
+  --ls-wide:       0.2em;   /* @kind other */
+}

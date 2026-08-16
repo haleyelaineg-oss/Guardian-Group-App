@@ -1,0 +1,52 @@
+/* ============================================================
+   GUARDIAN GROUP — colors.css
+   The brand palette is a single deep-navy → steel-blue ramp.
+   Source of truth: Color Codes.docx + css/survey.css from the
+   Guardian Group App repo.
+   ============================================================ */
+
+:root {
+  /* ── Core brand ramp (dark → light) ───────────────────── */
+  --gg-dark:   #16435B;  /* primary navy — headers, footers, hero base */
+  --gg-mid:    #2A5C76;  /* primary action / CTA blue */
+  --gg-steel:  #52829C;  /* steel — accents, secondary fills */
+  --gg-light:  #77A4BC;  /* light blue — tertiary fills, on-dark accents */
+  --gg-pale:   #C8DCE9;  /* pale blue — borders, tracks, muted fills */
+  --gg-off:    #F6F6F6;  /* off-white — app background */
+  --gg-white:  #FFFFFF;
+  --gg-black:  #0D1B24;  /* near-black navy — admin shell */
+
+  /* ── Ink ──────────────────────────────────────────────── */
+  --gg-text:   #1C3444;  /* body text (navy-tinted, not pure black) */
+  --gg-muted:  #6B8FA3;  /* muted / secondary text */
+
+  /* ── Admin-shell extras (from admin.css) ──────────────── */
+  --gg-shell:      #0F1E28;  /* admin body background */
+  --gg-shell-2:    #1A3A50;  /* admin login gradient end */
+  --gg-canvas:     #F4F7FA;  /* admin content canvas */
+
+  /* ── Semantic status ──────────────────────────────────── */
+  --gg-success:    #165B3C;  /* "open" / positive states */
+  --gg-success-bg: rgba(22,91,60,0.10);
+  --gg-danger:     #C0392B;  /* errors, destructive, low-seats */
+  --gg-danger-bg:  #FDF0EF;
+  --gg-danger-bd:  #F5C6C2;
+
+  /* ── Tinted overlays (brand blue at low alpha) ────────── */
+  --gg-tint-mid:   rgba(42,92,118,0.05);   /* selected card fill */
+  --gg-tint-hover: rgba(42,92,118,0.03);   /* hover row fill */
+  --gg-ring:       rgba(42,92,118,0.12);   /* focus ring */
+
+  /* ── Semantic aliases ─────────────────────────────────── */
+  --color-primary:        var(--gg-mid);
+  --color-primary-strong: var(--gg-dark);
+  --color-accent:         var(--gg-steel);
+  --surface-page:         var(--gg-off);
+  --surface-card:         var(--gg-white);
+  --surface-inverse:      var(--gg-dark);
+  --border-subtle:        var(--gg-pale);
+  --text-heading:         var(--gg-dark);
+  --text-body:            var(--gg-text);
+  --text-muted:           var(--gg-muted);
+  --text-on-dark:         var(--gg-pale);
+}

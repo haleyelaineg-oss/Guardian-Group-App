@@ -25,7 +25,15 @@
       </a>
       <nav class="nav-links">
         <a href="../" class="nav-link">Home</a>
-        <a href="../about/" class="nav-link active">About</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button">About <span class="nav-caret">▾</span></button>
+          <div class="nav-dropdown-menu">
+            <a href="../about/">About Us</a>
+            <a href="../about/#story">Our Story</a>
+            <a href="../about/#the-guardian-group-way">The Guardian Group Way</a>
+            <a href="../about/#team">Our Team</a>
+          </div>
+        </div>
         <div class="nav-dropdown">
           <button class="nav-dropdown-toggle" type="button">Services <span class="nav-caret">▾</span></button>
           <div class="nav-dropdown-menu">
@@ -51,55 +59,134 @@
   <!-- PAGE HERO -->
   <section class="hero page-hero">
     <div class="hero-inner">
-      <div class="hero-eyebrow">About Us</div>
-      <h1 class="hero-title placeholder">[Placeholder headline — pull from guardiangroupsafety.com/about]</h1>
-      <p class="hero-subtitle placeholder">[Placeholder subheading — one or two sentences introducing the company.]</p>
+      <h1 class="hero-title placeholder"> </h1>
+      <p class="hero-subtitle placeholder"></p>
     </div>
   </section>
 
   <!-- STORY -->
-  <section class="section">
-    <div class="section-inner narrow">
-      <div class="section-eyebrow">Our Story</div>
-      <h2 class="section-title placeholder">[Placeholder — company story headline]</h2>
-      <div class="section-body">
-        <p class="placeholder">[Placeholder — replace with the real "About" copy from guardiangroupsafety.com/about. This is where the founding story, mission, and philosophy goes.]</p>
-        <p class="placeholder">[Placeholder — second paragraph if needed.]</p>
+  <section class="section" id="story">
+    <div class="section-inner">
+      <div class="story-layout">
+        <img src="../assets/team/Dave+Hay+Exit.png" alt="Dave and Haley exiting the plane together" class="story-photo" />
+        <div class="story-content">
+          <div class="section-eyebrow">About Us</div>
+          <h2 class="section-title placeholder">Our Story</h2>
+          <div class="section-body">
+            <p class="placeholder">Guardian Group Safety & Leadership Solutions was founded by Haley and David Vincent, two industry professionals with a shared passion for ensuring work is done efficiently and safely. After years of hands-on experience in tree care, aviation, and leadership positions, they saw a gap in the way safety was taught and created Guardian Group to try to help change that.</p>
+
+            <p>Guardian Group Safety & Leadership Solutions helps organizations build stronger operations by focusing on the leadership, systems, and supporting the people doing the work. We don’t treat safety as a separate function or something that can be managed independently from day-to-day operations. We believe safe work is the natural result of operations that are well designed, well supported, and backed by strong leadership. Our approach looks beyond traditional safety programs to understand realistically how work actually gets done. By strengthening operational systems, developing supportive leadership, and giving teams the training and support they need to succeed, we help organizations create environments where safety isn’t a separate entity, it’s built into the way the work is done.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- MISSION / VALUES -->
-  <section class="section section-alt">
+  <section class="section section-alt" id="the-guardian-group-way">
     <div class="section-inner">
-      <div class="section-header-center">
-        <div class="section-eyebrow">What We Believe</div>
-        <h2 class="section-title">Our Approach</h2>
-      </div>
-      <div class="card-grid cols-3">
-        <div class="info-card">
-          <div class="info-card-title placeholder">[Placeholder value #1]</div>
-          <p class="info-card-desc placeholder">[Placeholder description]</p>
+      <div class="way-list">
+        <div class="way-item">
+          <h3 class="way-title">Our Philosophy</h3>
+          <div class="way-body">
+            <p>At Guardian Group, we believe that, contrary to popular belief, you don’t need a “safety cop,” and that policing safety can actually make your operation less safe in the grand scheme of things.</p>
+            <p>When people are blamed and punished for making an unsafe choice, they don’t necessarily stop making those choices. They get better at hiding them. That leaves leaders addressing the behavior they can see without ever understanding what drove that decision in the first place.</p>
+            <p>We can’t control every decision a person makes. We can control the system we ask them to work within.</p>
+            <p>Because safety isn’t something you police into an organization. It’s the result of an operation that works well.</p>
+          </div>
         </div>
-        <div class="info-card">
-          <div class="info-card-title placeholder">[Placeholder value #2]</div>
-          <p class="info-card-desc placeholder">[Placeholder description]</p>
+        <div class="way-item">
+          <h3 class="way-title">How We Work</h3>
+          <div class="way-body">
+            <p>Instead of asking, “Why did this person make an unsafe choice?” we ask, “What made that choice make sense in the moment?”</p>
+            <p>Was there production pressure? An inefficient process? Inadequate training? Conflicting expectations? A missing resource? A system that made the safer option harder, slower, or less practical?</p>
+            <p>We focus on understanding how the work actually gets done and identifying the conditions that influence behavior. Then, we work alongside leaders to address the systems behind recurring problems and develop practical solutions that make work safer, more efficient, and more effective — building operations where the safe choice is also the practical choice.</p>
+          </div>
         </div>
-        <div class="info-card">
-          <div class="info-card-title placeholder">[Placeholder value #3]</div>
-          <p class="info-card-desc placeholder">[Placeholder description]</p>
+        <div class="way-item">
+          <h3 class="way-title">Our Values</h3>
+          <ul class="values-list">
+            <li><strong>Top-Down Leadership.</strong> Leaders create the conditions their teams work within. Meaningful change starts with leadership taking ownership of those conditions.</li>
+            <li><strong>People-First.</strong> People are not the problem. We seek to understand their experience, respect their expertise, and build systems that support them in doing their work safely &amp; efficiently.</li>
+            <li><strong>Accountability.</strong> Accountability means owning what is within your control. We help organizations move beyond blame and focus on what leaders, teams, and systems can actually change.</li>
+            <li><strong>Practicality.</strong> A solution only works if it works in the real world. We prioritize straightforward, sustainable improvements that make sense for the people expected to use them.</li>
+            <li><strong>Objectivity.</strong> We approach problems with curiosity instead of assumptions, looking at what is actually happening before deciding what should change.</li>
+            <li><strong>Humility.</strong> Good leadership requires the willingness to question your own assumptions, hear uncomfortable information, and change course when the evidence says there’s a better way.</li>
+          </ul>
         </div>
       </div>
     </div>
   </section>
 
   <!-- TEAM -->
-  <section class="section">
+  <section class="section" id="team">
     <div class="section-inner">
       <div class="section-header-center">
         <div class="section-eyebrow">Who We Are</div>
         <h2 class="section-title">Our Team</h2>
-        <p class="section-lead placeholder">[Placeholder — team intro copy, or bios if you want individual team members listed here.]</p>
+      </div>
+
+      <div class="team-list">
+        <div class="team-member">
+          <img src="../assets/team/david-vincent.jpg" alt="David Vincent" class="team-photo" />
+          <div class="team-content">
+            <h3 class="team-name">David Vincent</h3>
+            <div class="team-role">Co-Founder, Guardian Group Safety and Leadership Solutions</div>
+
+            <p>David Vincent is a highly credentialed safety professional and trainer with over 15 years of experience in creating and implementing world-class safety programs across industries. As a founding member of Guardian Group Safety and Leadership Solutions, Dave combines his extensive certifications and hands-on expertise to help organizations develop safer workplaces, enhance leadership skills, and drive operational excellence.</p>
+
+            <p>With a degree in Education and a passion for mentoring, Dave specializes in helping leaders integrate safety as a core component of operational excellence. His approach focuses on top-down leadership, ensuring safety is embedded into an organization's culture and aligned with its goals. By empowering leaders to champion safety, Dave fosters environments where teams feel supported, engaged, and committed to getting everyone home safe each day.</p>
+
+            <p>Dave's work is driven by the belief that safety is not a standalone task but a fundamental aspect of how organizations operate. He is committed to bridging the gap between compliance and culture, helping businesses not only meet standards but also thrive by building trust and accountability at every level.</p>
+
+            <p>With over 3,000 skydives and advanced certifications as a United States Parachute Association (USPA) Sigma Tandem Instructor, Safety &amp; Training Advisor, and Professional Canopy Pilot, Dave understands what it means to operate in high-stakes, high-risk environments. This experience informs his practical, results-driven approach to safety and leadership, blending precision, risk management, and collaboration.</p>
+
+            <p>At Guardian Group SLS, Dave's mission is to empower organizations to achieve safety excellence through leadership, teamwork, and a commitment to continuous improvement. Whether conducting workplace safety audits, developing tailored training programs, or consulting on leadership strategies, David partners with organizations to create cultures where safety and success go hand in hand.</p>
+
+            <div class="team-certs">
+              <div class="team-certs-title">Certifications</div>
+              <ul>
+                <li>Certified Safety Professional (CSP)</li>
+                <li>Safety Management Professional (SMP)</li>
+                <li>Certified Tree-Care Safety Professional (CTSP)</li>
+                <li>ISA Certified Arborist</li>
+                <li>Construction Health and Safety Technician (CHST)</li>
+                <li>Certified Instructional Trainer (CIT)</li>
+                <li>OSHA 30-Hour Training</li>
+                <li>USPA Safety &amp; Training Advisor</li>
+                <li>USPA Tandem Skydiving Instructor</li>
+                <li>USPA Coach & AFF Instructor</li>
+                <li>State of Michigan Teaching Certificate</li>
+                <li>American Red Cross First Aid / CPR / AED Instructor</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="team-member">
+          <img src="../assets/team/haley-gwinn.jpg" alt="Haley Gwinn" class="team-photo" />
+          <div class="team-content">
+            <h3 class="team-name">Haley Vincent</h3>
+            <div class="team-role">Co-Founder, Guardian Group Safety and Leadership Solutions</div>
+
+            <p>Haley combines exceptional leadership and safety expertise developed through years of experience in the high-risk world of skydiving. As a Dropzone Manager, FAA Senior Rigger, and USPA Skydiving Instructor, she played a pivotal role in transforming Skydive Grand Haven from a single Cessna operation into a thriving multi-turbine business. Her ability to manage complex operations while fostering a culture of safety and accountability underscores her unique skill set in driving a strong and effective safety culture, business growth, and operational excellence.</p>
+
+            <p>Haley's expertise extends to building high-performing teams, streamlining processes, and finding creative solutions to unique challenges. She takes pride in educating others in ways that resonate with their individual learning styles, believing that effective learning is the foundation for strong leadership and impactful safety practices. This personalized approach, paired with her engaging and approachable demeanor, makes Haley an invaluable partner for organizations aiming to elevate their safety culture.</p>
+
+            <p>Haley's work emphasizes the critical connection between leadership and safety, helping organizations develop cultures that value safety as a driver of efficiency and success. With her engaging and approachable style, Haley excels at equipping leaders with actionable strategies to inspire change and foster accountability. Her commitment to transforming safety from a compliance exercise into a seamless part of daily operations sets her apart, making her an invaluable partner for organizations aiming to elevate their safety culture.</p>
+
+            <div class="team-certs">
+              <div class="team-certs-title">Certifications</div>
+              <ul>
+                <li>IS-906: Basic Workplace Security Awareness (FEMA Emergency Management Institute)</li>
+                <li>FAA Certified Senior Rigger</li>
+                <li>IS-235.C: Emergency Planning (FEMA Emergency Management Institute)</li>
+                <li>USPA Coach & IAD Instructor</li>
+                <li>USPA Tandem Instructor</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -107,7 +194,7 @@
   <!-- CTA -->
   <section class="cta-band">
     <div class="cta-band-inner">
-      <h2 class="section-title">Let's work together.</h2>
+      <h2 class="section-title">Want to Work Together?</h2>
       <p class="section-lead">See how Guardian Group can support your organization.</p>
       <div class="hero-actions" style="margin-top:24px">
         <a href="../services/" class="btn btn-outline-light">Our Services</a>
@@ -116,21 +203,21 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
+   <!-- FOOTER -->
   <footer class="site-footer">
     <div class="footer-inner">
       <div>
-        <img src="../assets/logo-white.png" alt="Guardian Group" class="footer-brand-logo" onerror="this.style.display='none'" />
+        <img src="assets/logo-white.png" alt="Guardian Group" class="footer-brand-logo" onerror="this.style.display='none'" />
         <div class="footer-brand-text">GUARDIAN GROUP</div>
-        <p class="footer-brand-desc">Safety &amp; Leadership Solutions. <span class="placeholder">[Placeholder — short footer description]</span></p>
+        <p class="footer-brand-desc">Safety &amp; Leadership Solutions <span class="placeholder"></span></p>
       </div>
       <div>
         <div class="footer-col-title">Site</div>
         <div class="footer-links">
-          <a href="../">Home</a>
-          <a href="../about/">About</a>
-          <a href="../services/">Services</a>
-          <a href="../contact/">Contact</a>
+          <a href="/">Home</a>
+          <a href="about/">About</a>
+          <a href="services/">Services</a>
+          <a href="contact/">Contact</a>
         </div>
       </div>
       <div>
@@ -147,7 +234,7 @@
     </div>
   </footer>
 
-  <script src="../js/site.js"></script>
+  <script src="js/site.js"></script>
   <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
 </body>
 </html>

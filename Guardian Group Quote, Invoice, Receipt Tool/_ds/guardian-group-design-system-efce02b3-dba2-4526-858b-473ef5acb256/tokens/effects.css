@@ -1,0 +1,40 @@
+/* ============================================================
+   GUARDIAN GROUP — effects.css
+   Shadows, focus ring, gradients, motion.
+   Shadows are navy-tinted (never neutral grey) and soft.
+   The brand's signature surface is the dark→mid diagonal gradient
+   used on every hero.
+   ============================================================ */
+
+:root {
+  /* Shadows — all tinted with the brand navy (22,67,91) */
+  --shadow-xs:  0 2px 8px rgba(22,67,91,0.06);   /* dashboard cards */
+  --shadow-sm:  0 2px 16px rgba(0,0,0,0.20);     /* sticky header (on dark) */
+  --shadow:     0 4px 24px rgba(22,67,91,0.10);  /* default card */
+  --shadow-lg:  0 8px 48px rgba(22,67,91,0.16);  /* raised / success card */
+  --shadow-modal: 0 16px 48px rgba(10,30,50,0.22);
+  --shadow-cta: 0 4px 16px rgba(42,92,118,0.30); /* primary button */
+
+  /* Focus ring */
+  --ring: 0 0 0 3px rgba(42,92,118,0.12);
+
+  /* Signature gradients */
+  --gradient-hero: linear-gradient(135deg, #16435B 0%, #2A5C76 100%); /* @kind other */
+  --gradient-shell: linear-gradient(135deg, #0D1B24 0%, #1A3A50 100%); /* @kind other */
+  --gradient-progress: linear-gradient(90deg, #16435B, #52829C); /* @kind other */
+
+  /* Motion */
+  --transition:     0.2s ease; /* @kind other */
+  --transition-fast: 0.15s ease; /* @kind other */
+  --transition-slow: 0.4s ease; /* @kind other */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+}
+
+/* Brand keyframes available to consumers */
+@keyframes gg-fade-slide-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gg-spin {
+  to { transform: rotate(360deg); }
+}
