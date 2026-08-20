@@ -50,13 +50,24 @@ async function signOut() {
 // ── VIEWS ─────────────────────────────────────────────────────
 function setView(viewName, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .nav-subitem').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${viewName}`).classList.add('active');
   btn.classList.add('active');
 
+  const parentGroup = btn.closest('.nav-group');
+  if (parentGroup) {
+    parentGroup.classList.add('expanded');
+    parentGroup.querySelector('.nav-group-toggle').classList.add('active');
+  }
+
   if (viewName === 'survey-builder') loadSurveyBuilder();
   if (viewName === 'registrants') loadRegistrants();
-  if (viewName === 'companies') loadCompanies();
+  if (viewName === 'clients') loadCompanies();
+  if (viewName === 'address-book') loadAddressBook();
+}
+
+function toggleNavGroup(toggleBtn) {
+  toggleBtn.closest('.nav-group').classList.toggle('expanded');
 }
 
 // ── WORKSHOPS ─────────────────────────────────────────────────
@@ -792,9 +803,11 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount || 0);
 }
 
-// ── COMPANIES (org admin assignment) ────────────────────────
+// ── CLIENTS (compact list) ──────────────────────────────────
+let currentClientId = null;
+
 async function loadCompanies() {
-  const container = document.getElementById('companiesContent');
+  const container = document.getElementById('clientsContent');
   container.innerHTML = '<p class="empty-hint">Loading...</p>';
 
   const { data: companies, error } = await ggClient
@@ -803,14 +816,20 @@ async function loadCompanies() {
     .order('name', { ascending: true });
 
   if (error || !companies || companies.length === 0) {
-    container.innerHTML = '<p class="empty-hint">No companies yet.</p>';
+    container.innerHTML = '<p class="empty-hint">No clients yet.</p>';
     return;
   }
 
-  const { data: allParticipants } = await ggClient
-    .from('participants')
-    .select('id, full_name, email, company_id')
-    .in('company_id', companies.map(c => c.id));
+  const [{ data: allParticipants }, { data: memberships }] = await Promise.all([
+    ggClient
+      .from('participants')
+      .select('id, company_id, is_active, auth_user_id')
+      .in('company_id', companies.map(c => c.id)),
+    ggClient
+      .from('company_membership')
+      .select('company_id, client_code, membership_tier, max_seats')
+      .in('company_id', companies.map(c => c.id))
+  ]);
 
   const participantsByCompany = {};
   (allParticipants || []).forEach(p => {
@@ -818,29 +837,35 @@ async function loadCompanies() {
     participantsByCompany[p.company_id].push(p);
   });
 
+  const membershipByCompany = {};
+  (memberships || []).forEach(m => { membershipByCompany[m.company_id] = m; });
+
   container.innerHTML = `
-    <div class="reg-cards">
-      ${companies.map(c => {
-        const members = participantsByCompany[c.id] || [];
-        return `
-          <div class="reg-card">
-            <div class="reg-card-header">
-              <div>
-                <div class="reg-card-name">${escHtml(c.name)}</div>
-                <div class="reg-card-email">${escHtml(c.contact_name || '—')} · ${escHtml(c.contact_email || '—')}</div>
-              </div>
-              <div class="reg-card-meta-right">
-                <label class="field-label" style="margin:0;">Org Admin</label>
-                <select class="attendance-status-select" onchange="setCompanyOrgAdmin('${c.id}', this.value)" ${members.length === 0 ? 'disabled' : ''}>
-                  <option value="">— None —</option>
-                  ${members.map(m => `<option value="${m.id}" ${c.org_admin_participant_id === m.id ? 'selected' : ''}>${escHtml(m.full_name)} (${escHtml(m.email)})</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <div class="reg-card-footer-meta">${members.length} participant${members.length !== 1 ? 's' : ''} on file</div>
-          </div>
-        `;
-      }).join('')}
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead>
+          <tr><th>Client</th><th>Code</th><th>Tier</th><th>Seats</th><th></th></tr>
+        </thead>
+        <tbody>
+          ${companies.map(c => {
+            const members = participantsByCompany[c.id] || [];
+            const activeCount = members.filter(m => m.is_active && m.auth_user_id).length;
+            const membership = membershipByCompany[c.id];
+            return `
+              <tr class="client-list-row" onclick="showClientDetail('${c.id}')">
+                <td>${escHtml(c.name)}</td>
+                <td>${membership ? `<span class="client-code-chip">${escHtml(membership.client_code)}</span>` : '—'}</td>
+                <td>${escHtml(membership?.membership_tier || '—')}</td>
+                <td>${membership ? (membership.max_seats === null ? `${activeCount} / Unlimited` : `${activeCount} / ${membership.max_seats}`) : '—'}</td>
+                <td style="white-space:nowrap;">
+                  <button class="btn-sm btn-sm-ghost" onclick="event.stopPropagation(); showClientDetail('${c.id}')">Edit</button>
+                  <button class="btn-sm btn-sm-danger" onclick="event.stopPropagation(); deleteClient('${c.id}', '${escHtml(c.name).replace(/'/g, "\\'")}')">Delete</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
     </div>
   `;
 }
@@ -851,7 +876,531 @@ async function setCompanyOrgAdmin(companyId, participantId) {
     .update({ org_admin_participant_id: participantId || null })
     .eq('id', companyId);
   if (error) { alert('Could not update org admin: ' + error.message); return; }
+  loadClientDetail();
+}
+
+function generateClientCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L — avoids read-aloud ambiguity
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => chars[b % chars.length]).join('');
+}
+
+function copyClientCode(code) {
+  navigator.clipboard.writeText(code);
+  alert('Client code copied!');
+}
+
+async function regenerateClientCode(companyId) {
+  if (!confirm('Regenerating immediately invalidates the current code — anyone who hasn\'t signed up yet will need the new one. Continue?')) return;
+  const { error } = await ggClient
+    .from('company_membership')
+    .update({ client_code: generateClientCode() })
+    .eq('company_id', companyId);
+  if (error) { alert('Could not regenerate code: ' + error.message); return; }
+  loadClientDetail();
+}
+
+async function updateMembershipField(companyId, field, rawValue) {
+  const value = field === 'max_seats' ? (parseInt(rawValue, 10) || 0) : (rawValue.trim() || null);
+  const { error } = await ggClient
+    .from('company_membership')
+    .update({ [field]: value })
+    .eq('company_id', companyId);
+  if (error) { alert('Could not save: ' + error.message); }
+  loadClientDetail();
+}
+
+async function enableMembership(companyId) {
+  const { error } = await ggClient
+    .from('company_membership')
+    .insert({ company_id: companyId, client_code: generateClientCode(), max_seats: 5 });
+  if (error) { alert('Could not enable membership: ' + error.message); return; }
+  loadClientDetail();
+}
+
+function showCreateCompany() {
+  document.getElementById('createCompanyCard').style.display = 'block';
+}
+function hideCreateCompany() {
+  document.getElementById('createCompanyCard').style.display = 'none';
+}
+
+// Keeps a company's primary_contact_participant_id pointed at a real
+// participant row matching the typed name/email — creates one the
+// first time, updates that same one on later edits, never duplicates.
+// Used by both createCompany() and saveClientOverview().
+async function upsertPrimaryContact(companyId, existingParticipantId, fullName, email) {
+  if (!fullName) return { id: null, error: null };
+
+  if (existingParticipantId) {
+    const { error } = await ggClient.from('participants')
+      .update({ full_name: fullName, email })
+      .eq('id', existingParticipantId);
+    return { id: existingParticipantId, error };
+  }
+
+  const { data, error } = await ggClient.from('participants')
+    .insert({ full_name: fullName, email, company_id: companyId })
+    .select('id')
+    .single();
+  return { id: data?.id || null, error };
+}
+
+async function createCompany() {
+  const name = document.getElementById('newCompanyName').value.trim();
+  if (!name) { alert('Client name is required.'); return; }
+
+  const contactName = document.getElementById('newCompanyContactName').value.trim() || null;
+  const contactEmail = document.getElementById('newCompanyContactEmail').value.trim() || null;
+
+  const { data: co, error } = await ggClient
+    .from('companies')
+    .insert({
+      name,
+      contact_name: contactName,
+      contact_email: contactEmail,
+      billing_address: document.getElementById('newCompanyBillingAddress').value.trim() || null,
+    })
+    .select()
+    .single();
+
+  if (error) { alert('Error creating client: ' + error.message); return; }
+
+  if (contactName) {
+    const { id: contactId, error: contactErr } = await upsertPrimaryContact(co.id, null, contactName, contactEmail);
+    if (contactErr) {
+      alert(/duplicate key|unique/i.test(contactErr.message)
+        ? 'Client created, but that contact email is already on file for someone else — link them from the Address Book instead.'
+        : 'Client created, but saving the primary contact failed: ' + contactErr.message);
+    } else if (contactId) {
+      await ggClient.from('companies').update({ primary_contact_participant_id: contactId }).eq('id', co.id);
+    }
+  }
+
+  const unlimitedSeats = document.getElementById('newCompanyUnlimitedSeats').checked;
+  const { error: memErr } = await ggClient.from('company_membership').insert({
+    company_id: co.id,
+    client_code: generateClientCode(),
+    membership_tier: document.getElementById('newCompanyTier').value.trim() || null,
+    max_seats: unlimitedSeats ? null : (parseInt(document.getElementById('newCompanyMaxSeats').value, 10) || 5),
+  });
+  if (memErr) { alert('Client created, but membership setup failed: ' + memErr.message); }
+
+  document.getElementById('newCompanyName').value = '';
+  document.getElementById('newCompanyContactName').value = '';
+  document.getElementById('newCompanyContactEmail').value = '';
+  document.getElementById('newCompanyBillingAddress').value = '';
+  document.getElementById('newCompanyTier').value = '';
+  document.getElementById('newCompanyMaxSeats').value = '';
+  document.getElementById('newCompanyMaxSeats').disabled = false;
+  document.getElementById('newCompanyUnlimitedSeats').checked = false;
+
+  hideCreateCompany();
   loadCompanies();
+}
+
+async function deleteClient(companyId, name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone — their client code, membership, and roster assignment all go with it.`)) return;
+  const { error } = await ggClient.from('companies').delete().eq('id', companyId);
+  if (error) {
+    alert(/foreign key|violates/i.test(error.message)
+      ? `Can't delete ${name} — they still have contacts, registrants, or training records on file. Remove those first (Address Book) before deleting the client.`
+      : 'Could not delete client: ' + error.message);
+    return;
+  }
+  loadCompanies();
+}
+
+// ── CLIENT DETAIL (client code, address book, training, invoices) ──
+
+function showClientDetail(companyId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-client-detail').classList.add('active');
+  currentClientId = companyId;
+  loadClientDetail();
+}
+
+function backToClients() {
+  setView('clients', document.querySelector('[data-view="clients"]'));
+}
+
+let editingPhones = [];
+let currentPrimaryContactId = null;
+const PHONE_TYPES = ['Office', 'Work Cell', 'Personal'];
+
+function renderPhoneRows() {
+  if (editingPhones.length === 0) {
+    return '<p class="empty-hint" style="margin:8px 0;">No phone numbers yet.</p>';
+  }
+  return editingPhones.map((p, i) => `
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+      <select class="field-input" style="max-width:140px;" onchange="editingPhones[${i}].type = this.value">
+        ${PHONE_TYPES.map(t => `<option value="${t}" ${p.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+      </select>
+      <input type="text" class="field-input" value="${escHtml(p.number || '')}" placeholder="(555) 555-5555" oninput="editingPhones[${i}].number = this.value" />
+      <button type="button" class="btn-sm btn-sm-danger" onclick="removePhoneRow(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function addPhoneRow() {
+  editingPhones.push({ type: 'Office', number: '' });
+  document.getElementById('phoneRowsContainer').innerHTML = renderPhoneRows();
+}
+
+function removePhoneRow(index) {
+  editingPhones.splice(index, 1);
+  document.getElementById('phoneRowsContainer').innerHTML = renderPhoneRows();
+}
+
+async function loadClientDetail() {
+  const container = document.getElementById('clientDetailContent');
+  container.innerHTML = '<p class="empty-hint">Loading...</p>';
+  const companyId = currentClientId;
+
+  const [{ data: company }, { data: membership }, { data: roster }] = await Promise.all([
+    ggClient.from('companies').select('id, name, contact_name, contact_email, phones, billing_address, primary_contact_participant_id, org_admin_participant_id').eq('id', companyId).single(),
+    ggClient.from('company_membership').select('company_id, client_code, membership_tier, max_seats').eq('company_id', companyId).maybeSingle(),
+    ggClient.from('participants').select('id, full_name, email, phone, title, is_active, auth_user_id').eq('company_id', companyId).order('full_name', { ascending: true })
+  ]);
+
+  if (!company) { container.innerHTML = '<p class="empty-hint">Client not found.</p>'; return; }
+
+  editingPhones = (company.phones || []).map(p => ({ ...p }));
+  currentPrimaryContactId = company.primary_contact_participant_id || null;
+
+  const members = roster || [];
+  const activeCount = members.filter(m => m.is_active && m.auth_user_id).length;
+  const memberIds = members.map(m => m.id);
+
+  const [{ data: attendanceRows }, { data: invoiceRows }] = await Promise.all([
+    memberIds.length
+      ? ggClient.from('attendance').select('id, participant_id, status, certificate_issued, workshop:workshop_id(title)').in('participant_id', memberIds)
+      : Promise.resolve({ data: [] }),
+    ggClient.from('documents').select('id, doc_type, doc_number, status, total, doc_date, quote_clients!inner(company_id)').eq('quote_clients.company_id', companyId).order('created_at', { ascending: false })
+  ]);
+
+  const rosterById = {};
+  members.forEach(m => { rosterById[m.id] = m; });
+
+  const membershipPanel = membership ? `
+    <div class="builder-card" style="margin-top:12px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="client-code-chip">${escHtml(membership.client_code)}</span>
+        <button class="btn-sm btn-sm-ghost" onclick="copyClientCode('${escHtml(membership.client_code)}')">Copy</button>
+        <button class="btn-sm btn-sm-ghost" onclick="regenerateClientCode('${company.id}')">Regenerate</button>
+        <span class="seat-badge">${activeCount} / ${membership.max_seats === null ? 'Unlimited' : membership.max_seats} active</span>
+      </div>
+      <div class="fields-grid" style="margin-top:12px;">
+        <div class="field-group half">
+          <label class="field-label">Membership Tier</label>
+          <select class="field-input" onchange="updateMembershipField('${company.id}', 'membership_tier', this.value)">
+            <option value="">— Select —</option>
+            ${['Blue', 'Silver', 'Gold', 'Platinum'].map(t => `<option value="${t}" ${membership.membership_tier === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field-group half">
+          <label class="field-label">Max Seats</label>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <input type="number" class="field-input" value="${membership.max_seats === null ? '' : membership.max_seats}" min="0" step="1" ${membership.max_seats === null ? 'disabled' : ''} onchange="updateMembershipField('${company.id}', 'max_seats', this.value)" />
+            <label style="display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:13px; color:var(--gg-muted);">
+              <input type="checkbox" ${membership.max_seats === null ? 'checked' : ''} onchange="setUnlimitedSeats('${company.id}', this.checked)" />
+              Unlimited
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  ` : `
+    <div class="builder-card" style="margin-top:12px;">
+      <button class="btn-sm btn-sm-ghost" onclick="enableMembership('${company.id}')">Enable Portal Membership</button>
+    </div>
+  `;
+
+  const rosterRows = members.map(m => {
+    const isOrgAdmin = company.org_admin_participant_id === m.id;
+    const isPrimaryContact = company.primary_contact_participant_id === m.id;
+    const hasPortalAccess = m.is_active && m.auth_user_id;
+    return `
+      <tr>
+        <td>${escHtml(m.full_name || '—')}${isPrimaryContact ? ' <span class="wc-badge">Primary Contact</span>' : ''}${isOrgAdmin ? ' <span class="wc-badge">Org Admin</span>' : ''}</td>
+        <td>${escHtml(m.email || '—')}</td>
+        <td>${escHtml(m.phone || '—')}</td>
+        <td>${escHtml(m.title || '—')}</td>
+        <td>${hasPortalAccess ? '<span class="reg-card-status-badge attended">Active</span>' : '<span class="reg-card-status-badge no_show">Not signed up</span>'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const trainingRows = (attendanceRows || []).map(a => {
+    const p = rosterById[a.participant_id];
+    return `
+      <tr>
+        <td>${escHtml(p?.full_name || '—')}</td>
+        <td>${escHtml(a.workshop?.title || '—')}</td>
+        <td><span class="reg-card-status-badge ${escHtml(a.status)}">${escHtml(a.status)}</span></td>
+        <td>${a.certificate_issued ? 'Issued' : '—'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const invoiceRowsHtml = (invoiceRows || []).map(d => `
+    <tr>
+      <td>${escHtml(d.doc_number)}</td>
+      <td>${escHtml(d.doc_type)}</td>
+      <td><span class="reg-card-status-badge">${escHtml(d.status)}</span></td>
+      <td>${formatCurrency(d.total)}</td>
+      <td>${escHtml(d.doc_date || '—')}</td>
+      <td><a class="btn-sm btn-sm-ghost" href="../quote-tool/index.html?doc=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">View →</a></td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="view-header">
+      <h1 class="view-title">${escHtml(company.name)}</h1>
+    </div>
+
+    <div class="detail-section-title">Overview</div>
+    <div class="fields-grid">
+      <div class="field-group half">
+        <label class="field-label">Primary Contact</label>
+        <input type="text" id="detailContactName" class="field-input" value="${escHtml(company.contact_name || '')}" />
+        <p class="field-hint">Saved to this client's roster too, so they can be picked as Org Admin.</p>
+      </div>
+      <div class="field-group half">
+        <label class="field-label">Contact Email</label>
+        <input type="email" id="detailContactEmail" class="field-input" value="${escHtml(company.contact_email || '')}" />
+      </div>
+      <div class="field-group full">
+        <label class="field-label">Phone Numbers</label>
+        <div id="phoneRowsContainer">${renderPhoneRows()}</div>
+        <button type="button" class="btn-sm btn-sm-ghost" onclick="addPhoneRow()">+ Add Phone Number</button>
+      </div>
+      <div class="field-group full">
+        <label class="field-label">Billing Address</label>
+        <textarea id="detailBillingAddress" class="field-input" rows="2">${escHtml(company.billing_address || '')}</textarea>
+      </div>
+      <div class="field-group half">
+        <label class="field-label" style="margin:0;">Org Admin</label>
+        <select class="attendance-status-select" onchange="setCompanyOrgAdmin('${company.id}', this.value)" ${members.length === 0 ? 'disabled' : ''}>
+          <option value="">— None —</option>
+          ${members.map(m => `<option value="${m.id}" ${company.org_admin_participant_id === m.id ? 'selected' : ''}>${escHtml(m.full_name)} (${escHtml(m.email || 'no email')})</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="create-form-actions" style="justify-content:flex-start; margin-top:16px;">
+      <button class="btn btn-primary" onclick="saveClientOverview('${company.id}')">Save →</button>
+    </div>
+
+    <div class="detail-section-title">Client Code</div>
+    ${membershipPanel}
+
+    <div class="detail-section-title">Company Roster</div>
+    <p class="view-sub" style="margin-top:-8px;">Everyone registered with this client's code. <a href="#" onclick="openAddressBookForCompany('${company.id}'); return false;">Manage contacts in Address Book →</a></p>
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Title</th><th>Portal</th></tr></thead>
+        <tbody>${rosterRows || '<tr><td colspan="5">No one registered yet.</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="detail-section-title">Training Records</div>
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead><tr><th>Name</th><th>Workshop</th><th>Status</th><th>Certificate</th></tr></thead>
+        <tbody>${trainingRows || '<tr><td colspan="4">No training records yet.</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="detail-section-title">Invoices</div>
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead><tr><th>Number</th><th>Type</th><th>Status</th><th>Total</th><th>Date</th><th></th></tr></thead>
+        <tbody>${invoiceRowsHtml || '<tr><td colspan="6">No invoices yet.</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function saveClientOverview(companyId) {
+  const contactName = document.getElementById('detailContactName').value.trim() || null;
+  const contactEmail = document.getElementById('detailContactEmail').value.trim() || null;
+
+  let primaryContactId = contactName ? currentPrimaryContactId : null;
+  if (contactName) {
+    const { id, error: contactErr } = await upsertPrimaryContact(companyId, currentPrimaryContactId, contactName, contactEmail);
+    if (contactErr) {
+      alert(/duplicate key|unique/i.test(contactErr.message)
+        ? 'That email is already on file for another contact — link them from the Address Book instead.'
+        : 'Could not save primary contact: ' + contactErr.message);
+      return;
+    }
+    primaryContactId = id;
+  }
+
+  const payload = {
+    contact_name: contactName,
+    contact_email: contactEmail,
+    phones: editingPhones.filter(p => p.number && p.number.trim()),
+    billing_address: document.getElementById('detailBillingAddress').value.trim() || null,
+    primary_contact_participant_id: primaryContactId
+  };
+  const { error } = await ggClient.from('companies').update(payload).eq('id', companyId);
+  if (error) { alert('Could not save: ' + error.message); return; }
+  loadClientDetail();
+}
+
+async function setUnlimitedSeats(companyId, unlimited) {
+  const { error } = await ggClient.from('company_membership').update({ max_seats: unlimited ? null : 5 }).eq('company_id', companyId);
+  if (error) { alert('Could not save: ' + error.message); }
+  loadClientDetail();
+}
+
+async function updateContactField(participantId, field, rawValue) {
+  const { error } = await ggClient.from('participants').update({ [field]: rawValue.trim() || null }).eq('id', participantId);
+  if (error) { alert('Could not save: ' + error.message); }
+  loadAddressBook();
+}
+
+async function removeContact(participantId, name) {
+  if (!confirm(`Remove ${name} from the address book? This cannot be undone.`)) return;
+  const { error } = await ggClient.from('participants').delete().eq('id', participantId);
+  if (error) {
+    alert(/foreign key|violates/i.test(error.message)
+      ? `Can't remove ${name} — they have training or registration history on file.`
+      : 'Could not remove contact: ' + error.message);
+    return;
+  }
+  loadAddressBook();
+}
+
+// ── ADDRESS BOOK (all contacts, filterable across clients) ──────
+let addressBookCompanies = [];
+
+async function loadAddressBookFilters() {
+  const { data } = await ggClient.from('companies').select('id, name').order('name', { ascending: true });
+  addressBookCompanies = data || [];
+  const opts = addressBookCompanies.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+
+  const filterSel = document.getElementById('abFilterCompany');
+  const selectedFilter = filterSel.value;
+  filterSel.innerHTML = '<option value="">All Companies</option>' + opts;
+  filterSel.value = selectedFilter;
+
+  document.getElementById('abNewCompany').innerHTML = '<option value="">— None —</option>' + opts;
+}
+
+async function loadAddressBook() {
+  await loadAddressBookFilters();
+  const container = document.getElementById('addressBookContent');
+  container.innerHTML = '<p class="empty-hint">Loading...</p>';
+
+  const companyFilter = document.getElementById('abFilterCompany').value;
+  const statusFilter = document.getElementById('abFilterStatus').value;
+  const search = document.getElementById('abFilterSearch').value.trim().toLowerCase();
+
+  let query = ggClient
+    .from('participants')
+    .select('id, full_name, email, phone, title, company_id, is_active, auth_user_id, companies!company_id(name, org_admin_participant_id)')
+    .order('full_name', { ascending: true });
+  if (companyFilter) query = query.eq('company_id', companyFilter);
+
+  const { data: rows, error } = await query;
+  if (error) { container.innerHTML = `<p class="empty-hint">Error: ${escHtml(error.message)}</p>`; return; }
+
+  let filtered = rows || [];
+  if (statusFilter === 'active') filtered = filtered.filter(p => p.is_active && p.auth_user_id);
+  if (statusFilter === 'none') filtered = filtered.filter(p => !(p.is_active && p.auth_user_id));
+  if (search) {
+    filtered = filtered.filter(p =>
+      (p.full_name || '').toLowerCase().includes(search) ||
+      (p.email || '').toLowerCase().includes(search) ||
+      (p.phone || '').toLowerCase().includes(search) ||
+      (p.title || '').toLowerCase().includes(search)
+    );
+  }
+
+  if (filtered.length === 0) { container.innerHTML = '<p class="empty-hint">No contacts match.</p>'; return; }
+
+  container.innerHTML = `
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Title</th><th>Portal</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.map(p => {
+            const isOrgAdmin = p.companies?.org_admin_participant_id === p.id;
+            const hasPortalAccess = p.is_active && p.auth_user_id;
+            const canRemove = !hasPortalAccess && !isOrgAdmin;
+            return `
+              <tr>
+                <td>${escHtml(p.full_name || '—')}${isOrgAdmin ? ' <span class="wc-badge">Org Admin</span>' : ''}</td>
+                <td>
+                  <select class="field-input" onchange="reassignContactCompany('${p.id}', this.value)">
+                    <option value="">— None —</option>
+                    ${addressBookCompanies.map(c => `<option value="${c.id}" ${p.company_id === c.id ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('')}
+                  </select>
+                </td>
+                <td><input type="email" class="field-input" value="${escHtml(p.email || '')}" onchange="updateContactField('${p.id}', 'email', this.value)" /></td>
+                <td><input type="text" class="field-input" value="${escHtml(p.phone || '')}" onchange="updateContactField('${p.id}', 'phone', this.value)" /></td>
+                <td><input type="text" class="field-input" value="${escHtml(p.title || '')}" onchange="updateContactField('${p.id}', 'title', this.value)" /></td>
+                <td>${hasPortalAccess ? '<span class="reg-card-status-badge attended">Active</span>' : '<span class="reg-card-status-badge no_show">Not signed up</span>'}</td>
+                <td>${canRemove
+                  ? `<button class="btn-sm btn-sm-danger" onclick="removeContact('${p.id}', '${escHtml(p.full_name || 'this contact').replace(/'/g, "\\'")}')">Remove</button>`
+                  : `<span class="empty-hint" title="${isOrgAdmin ? 'Reassign the org admin first' : 'Manage portal access from their Company view in the client portal'}">Locked</span>`}
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function showCreateContact() {
+  document.getElementById('createContactCard').style.display = 'block';
+}
+function hideCreateContact() {
+  document.getElementById('createContactCard').style.display = 'none';
+}
+
+async function createAddressBookContact() {
+  const fullName = document.getElementById('abNewName').value.trim();
+  if (!fullName) { alert('Full name is required.'); return; }
+
+  const { error } = await ggClient.from('participants').insert({
+    full_name: fullName,
+    company_id: document.getElementById('abNewCompany').value || null,
+    email: document.getElementById('abNewEmail').value.trim() || null,
+    phone: document.getElementById('abNewPhone').value.trim() || null,
+    title: document.getElementById('abNewTitle').value.trim() || null
+  });
+
+  if (error) {
+    alert(/duplicate key|unique/i.test(error.message) ? 'That email is already on file for another contact.' : 'Could not add contact: ' + error.message);
+    return;
+  }
+
+  document.getElementById('abNewName').value = '';
+  document.getElementById('abNewCompany').value = '';
+  document.getElementById('abNewEmail').value = '';
+  document.getElementById('abNewPhone').value = '';
+  document.getElementById('abNewTitle').value = '';
+  hideCreateContact();
+  loadAddressBook();
+}
+
+async function reassignContactCompany(participantId, companyId) {
+  const { error } = await ggClient.from('participants').update({ company_id: companyId || null }).eq('id', participantId);
+  if (error) { alert('Could not reassign: ' + error.message); }
+  loadAddressBook();
+}
+
+async function openAddressBookForCompany(companyId) {
+  setView('address-book', document.querySelector('[data-view="address-book"]'));
+  await loadAddressBookFilters();
+  document.getElementById('abFilterCompany').value = companyId;
+  loadAddressBook();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────

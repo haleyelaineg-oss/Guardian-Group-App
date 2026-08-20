@@ -126,6 +126,33 @@
 .nav-item.active { background: rgba(255,255,255,0.12); color: white; }
 a.nav-item { text-decoration: none; box-sizing: border-box; }
 .nav-icon { font-size: 16px; opacity: 0.7; }
+
+.nav-group { display: flex; flex-direction: column; }
+.nav-group-caret { margin-left: auto; font-size: 11px; opacity: 0.6; transition: transform 0.15s ease; }
+.nav-group.expanded .nav-group-caret { transform: rotate(180deg); }
+.nav-submenu { display: none; flex-direction: column; gap: 2px; padding: 4px 0 4px 14px; }
+.nav-group.expanded .nav-submenu { display: flex; }
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  border-left: 2px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  width: 100%;
+  text-transform: uppercase;
+}
+.nav-subitem:hover { background: rgba(255,255,255,0.07); color: white; }
+.nav-subitem.active { background: rgba(255,255,255,0.12); color: white; border-left-color: white; }
 .sidebar-footer {
   padding: 16px 20px;
   border-top: 1px solid rgba(255,255,255,0.08);
@@ -500,6 +527,33 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .btn-sm-danger { background: #fdf0ef; color: #c0392b; border: 1px solid #f5c6c2; }
 .btn-sm-danger:hover { background: #f9dbd8; }
 
+.client-code-chip {
+  font-family: monospace;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  background: var(--gg-off);
+  border: 1px solid var(--gg-pale);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.seat-badge {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gg-muted);
+  margin-left: auto;
+}
+
+.client-list-row { cursor: pointer; }
+.client-list-row:hover { background: var(--gg-off); }
+.detail-section-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gg-dark);
+  margin: 24px 0 12px;
+}
+
 /* ── CREATE FORM ─────────────────────────────────────────── */
 .create-form-card {
   background: white;
@@ -712,6 +766,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 @media (max-width: 900px) {
   .sidebar { width: 64px; }
   .sidebar-brand, .sidebar-tag, .nav-item span:last-child { display: none; }
+  .nav-submenu, .nav-group-caret { display: none !important; }
   .dash-main { margin-left: 64px; }
   .charts-row { grid-template-columns: 1fr; }
   .workshops-list { grid-template-columns: 1fr; }

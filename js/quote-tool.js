@@ -1,12 +1,11 @@
 // ============================================================
 // GUARDIAN GROUP — quote-tool.js
-// Quote / Invoice / Receipt tool. Talks to its own Supabase
-// project (separate from the main survey/workshops backend).
+// Quote / Invoice / Receipt tool. Shares the main Supabase project
+// (js/config.js) — quote_clients/documents/service_items tables,
+// staff-only RLS. Only reachable from the logged-in admin dashboard.
 // Vanilla JS port of the approved Claude Design build.
 // ============================================================
 
-const QT_SUPABASE_URL = 'https://gymrzsyrrjuyfnbnhzsk.supabase.co';
-const QT_SUPABASE_KEY = 'sb_publishable_8n3FBcV6i-0w3NnES4_TpQ_SEHNwKo_';
 const QT_SHOW_ITEM_DATES = false;
 
 function esc(str) {
@@ -211,11 +210,15 @@ function qtRemoveItem(id) {
 // ── Supabase client ──────────────────────────────────────────
 
 function buildClient() {
-  sb = window.supabase.createClient(QT_SUPABASE_URL, QT_SUPABASE_KEY);
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-function init() {
+async function init() {
   buildClient();
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/admin/'; return; }
+
   render();
   let biz = {};
   try { biz = JSON.parse(localStorage.getItem('gg_qt_business_info_v1') || '{}'); } catch (e) {}
@@ -225,14 +228,20 @@ function init() {
 
   loadClients();
   loadCatalog();
-  resetToBlank('quote');
+
+  const docId = new URLSearchParams(window.location.search).get('doc');
+  if (docId) {
+    await qtOpenDocument(docId);
+  } else {
+    resetToBlank('quote');
+  }
 }
 
 // ── Data loading ─────────────────────────────────────────────
 
 async function loadClients() {
   if (!sb) return;
-  const { data } = await sb.from('clients').select('id,name,contact_name,phone,email,notes').order('name');
+  const { data } = await sb.from('quote_clients').select('id,name,contact_name,phone,email,notes').order('name');
   if (data) { state.clients = data; render(); }
 }
 async function loadCatalog() {
@@ -321,12 +330,12 @@ async function upsertClient() {
     if (state.clientPhone && !existing.phone) patch.phone = state.clientPhone;
     if (state.clientEmail && !existing.email) patch.email = state.clientEmail;
     if (Object.keys(patch).length) {
-      await sb.from('clients').update(patch).eq('id', existing.id);
+      await sb.from('quote_clients').update(patch).eq('id', existing.id);
       Object.assign(existing, patch);
     }
     return existing.id;
   }
-  const { data, error } = await sb.from('clients').insert({
+  const { data, error } = await sb.from('quote_clients').insert({
     name: name, contact_name: state.clientPersonName || '', phone: state.clientPhone || '', email: state.clientEmail || ''
   }).select('id,name,contact_name,phone,email,notes').single();
   if (!error && data) { state.clients.push(data); return data.id; }

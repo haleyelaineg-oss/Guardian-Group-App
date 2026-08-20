@@ -49,23 +49,30 @@
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-view="workshops" onclick="setView('workshops', this)">
-          <span class="nav-icon">◫</span> Workshops
+        <div class="nav-group">
+          <button class="nav-item nav-group-toggle" onclick="toggleNavGroup(this)">
+            <span class="nav-icon">◫</span> Trainings &amp; Workshops <span class="nav-group-caret">▾</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-subitem active" data-view="workshops" onclick="setView('workshops', this)">Workshops</button>
+            <button class="nav-subitem" data-view="registrants" onclick="setView('registrants', this)">Registrants</button>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-item nav-group-toggle" onclick="toggleNavGroup(this)">
+            <span class="nav-icon">◈</span> Surveys <span class="nav-group-caret">▾</span>
+          </button>
+          <div class="nav-submenu">
+            <button class="nav-subitem" data-view="overview" onclick="setView('overview', this)">Survey Response Overview</button>
+            <button class="nav-subitem" data-view="survey-builder" onclick="setView('survey-builder', this)">Survey Builder</button>
+            <button class="nav-subitem" data-view="responses" onclick="setView('responses', this)">Survey Responses</button>
+          </div>
+        </div>
+        <button class="nav-item" data-view="clients" onclick="setView('clients', this)">
+          <span class="nav-icon">⬒</span> Clients
         </button>
-        <button class="nav-item" data-view="overview" onclick="setView('overview', this)">
-          <span class="nav-icon">◈</span> Survey Response Overview
-        </button>
-        <button class="nav-item" data-view="responses" onclick="setView('responses', this)">
-          <span class="nav-icon">◧</span> Survey Responses
-        </button>
-        <button class="nav-item" data-view="registrants" onclick="setView('registrants', this)">
-          <span class="nav-icon">◉</span> Registrants
-        </button>
-        <button class="nav-item" data-view="companies" onclick="setView('companies', this)">
-          <span class="nav-icon">⬒</span> Companies
-        </button>
-        <button class="nav-item" data-view="survey-builder" onclick="setView('survey-builder', this)">
-          <span class="nav-icon">▣</span> Survey Builder
+        <button class="nav-item" data-view="address-book" onclick="setView('address-book', this)">
+          <span class="nav-icon">❖</span> Address Book
         </button>
         <a class="nav-item" href="../quote-tool/index.html" target="_blank" rel="noopener">
           <span class="nav-icon">▤</span> Quote / Invoice / Receipt
@@ -271,13 +278,128 @@
         </div>
       </div>
 
-      <!-- VIEW: COMPANIES ─────────────────────────────────── -->
-      <div class="view" id="view-companies">
+      <!-- VIEW: CLIENTS ───────────────────────────────────── -->
+      <div class="view" id="view-clients">
         <div class="view-header">
-          <h1 class="view-title">Companies</h1>
-          <p class="view-sub">Assign which participant is the client portal admin for each company.</p>
+          <h1 class="view-title">Clients</h1>
+          <button class="btn btn-primary" onclick="showCreateCompany()">+ New Client</button>
         </div>
-        <div id="companiesContent">
+        <p class="view-sub">Click a client to manage their client code, company roster, training records, and invoices.</p>
+
+        <!-- CREATE FORM -->
+        <div class="create-form-card" id="createCompanyCard" style="display:none">
+          <h3 class="card-title">Create New Client</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="newCompanyName">Client Name <span class="required">*</span></label>
+              <input type="text" id="newCompanyName" class="field-input" placeholder="e.g. Acme Industrial" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newCompanyContactName">Contact Name</label>
+              <input type="text" id="newCompanyContactName" class="field-input" placeholder="e.g. Jane Smith" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newCompanyContactEmail">Contact Email</label>
+              <input type="email" id="newCompanyContactEmail" class="field-input" placeholder="jane@acme.com" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="newCompanyBillingAddress">Billing Address</label>
+              <textarea id="newCompanyBillingAddress" class="field-input" rows="2" placeholder="123 Main St, Suite 100&#10;Chicago, IL 60601"></textarea>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newCompanyTier">Membership Tier</label>
+              <select id="newCompanyTier" class="field-input">
+                <option value="">— Select —</option>
+                <option value="Blue">Blue</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newCompanyMaxSeats">Max Seats</label>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <input type="number" id="newCompanyMaxSeats" class="field-input" placeholder="5" min="0" step="1" />
+                <label style="display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:13px; color:var(--gg-muted);">
+                  <input type="checkbox" id="newCompanyUnlimitedSeats" onchange="document.getElementById('newCompanyMaxSeats').disabled = this.checked" />
+                  Unlimited
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideCreateCompany()">Cancel</button>
+            <button class="btn btn-primary" onclick="createCompany()">Create Client →</button>
+          </div>
+        </div>
+
+        <div id="clientsContent">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
+      <!-- VIEW: CLIENT DETAIL ─────────────────────────────── -->
+      <div class="view" id="view-client-detail">
+        <button class="btn-sm btn-sm-ghost" onclick="backToClients()">← Back to Clients</button>
+        <div id="clientDetailContent">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
+      <!-- VIEW: ADDRESS BOOK ──────────────────────────────── -->
+      <div class="view" id="view-address-book">
+        <div class="view-header">
+          <h1 class="view-title">Address Book</h1>
+          <button class="btn btn-primary" onclick="showCreateContact()">+ Add Contact</button>
+        </div>
+        <p class="view-sub">Everyone on file, across all clients.</p>
+
+        <!-- CREATE FORM -->
+        <div class="create-form-card" id="createContactCard" style="display:none">
+          <h3 class="card-title">Add Contact</h3>
+          <div class="fields-grid">
+            <div class="field-group half">
+              <label class="field-label" for="abNewName">Full Name <span class="required">*</span></label>
+              <input type="text" id="abNewName" class="field-input" placeholder="Jane Smith" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="abNewCompany">Company</label>
+              <select id="abNewCompany" class="field-input"><option value="">— None —</option></select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="abNewEmail">Email</label>
+              <input type="email" id="abNewEmail" class="field-input" placeholder="jane@acme.com" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="abNewPhone">Phone</label>
+              <input type="text" id="abNewPhone" class="field-input" placeholder="(555) 555-5555" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="abNewTitle">Title</label>
+              <input type="text" id="abNewTitle" class="field-input" placeholder="Safety Manager" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideCreateContact()">Cancel</button>
+            <button class="btn btn-primary" onclick="createAddressBookContact()">Add Contact →</button>
+          </div>
+        </div>
+
+        <div class="top-bar">
+          <div class="top-bar-left" style="gap:12px; flex-wrap:wrap;">
+            <select id="abFilterCompany" class="workshop-select" onchange="loadAddressBook()">
+              <option value="">All Companies</option>
+            </select>
+            <select id="abFilterStatus" class="workshop-select" onchange="loadAddressBook()">
+              <option value="">All Statuses</option>
+              <option value="active">Portal Active</option>
+              <option value="none">Not Signed Up</option>
+            </select>
+            <input type="text" id="abFilterSearch" class="field-input" placeholder="Search name, email, phone, title…" oninput="loadAddressBook()" style="max-width:240px;" />
+          </div>
+        </div>
+
+        <div id="addressBookContent">
           <p class="empty-hint">Loading...</p>
         </div>
       </div>

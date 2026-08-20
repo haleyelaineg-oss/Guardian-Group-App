@@ -8,6 +8,7 @@ const pdb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('loginForm'))       initLoginPage();
+  if (document.getElementById('signupForm'))      initSignupPage();
   if (document.getElementById('setPasswordForm')) initSetPasswordPage();
   if (document.getElementById('dashboard'))       initDashboardPage();
   if (document.getElementById('certificatePage')) initCertificatePage();
@@ -64,6 +65,69 @@ async function initLoginPage() {
       ? 'If that email has a portal account, a reset link is on its way.'
       : 'Check your email for a password reset link.';
     successEl.style.display = 'block';
+  });
+}
+
+// ── SIGNUP PAGE ──────────────────────────────────────────────
+async function initSignupPage() {
+  // Already signed in? Skip straight to the dashboard.
+  const { data: { session } } = await pdb.auth.getSession();
+  if (session) { window.location.href = '/portal/dashboard.html'; return; }
+
+  document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const clientCode = document.getElementById('signupCode').value.trim();
+    const fullName   = document.getElementById('signupName').value.trim();
+    const email      = document.getElementById('signupEmail').value.trim();
+    const password   = document.getElementById('signupPassword').value;
+    const confirm    = document.getElementById('signupConfirmPassword').value;
+    const errEl      = document.getElementById('signupError');
+    const btn        = document.getElementById('signupBtn');
+
+    errEl.style.display = 'none';
+
+    if (password.length < 8) {
+      errEl.textContent = 'Password must be at least 8 characters.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (password !== confirm) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating Account...';
+
+    try {
+      const resp = await fetch('/.netlify/functions/portal-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientCode, fullName, email, password })
+      });
+      const result = await resp.json().catch(() => ({}));
+
+      if (!resp.ok || !result.success) {
+        errEl.textContent = result.error || 'Could not create your account. Please try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Create Account →';
+        return;
+      }
+
+      const { error: signInErr } = await pdb.auth.signInWithPassword({ email, password });
+      if (signInErr) {
+        window.location.href = '/portal/index.html';
+        return;
+      }
+      window.location.href = '/portal/dashboard.html';
+    } catch (err) {
+      errEl.textContent = 'Could not create your account. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Create Account →';
+    }
   });
 }
 
@@ -250,48 +314,66 @@ async function loadCompanyView() {
   }
   container.innerHTML = '<p class="empty-hint">Loading...</p>';
 
-  const { data: roster } = await pdb
-    .from('participants')
-    .select('id, full_name, email')
-    .eq('company_id', myParticipant.company_id);
+  const [{ data: roster }, { data: seatStatus }] = await Promise.all([
+    pdb
+      .from('participants')
+      .select('id, full_name, email, is_active, auth_user_id')
+      .eq('company_id', myParticipant.company_id)
+      .order('full_name', { ascending: true }),
+    pdb.rpc('org_admin_seat_status', { p_company_id: myParticipant.company_id }).maybeSingle()
+  ]);
 
   if (!roster || roster.length === 0) {
-    container.innerHTML = '<p class="empty-hint">No one from your company has registered yet.</p>';
+    container.innerHTML = '<p class="empty-hint">No one from your company has joined the portal yet.</p>';
     return;
   }
 
-  const ids = roster.map(p => p.id);
-  const { data: attendanceRows } = await pdb
-    .from('attendance')
-    .select('id, participant_id, status, certificate_issued, workshop:workshop_id(title)')
-    .in('participant_id', ids);
+  const seatLine = seatStatus
+    ? `<p class="view-sub">${seatStatus.active_count} of ${seatStatus.max_seats} seats used${seatStatus.membership_tier ? ` — ${escHtml(seatStatus.membership_tier)}` : ''}</p>`
+    : '';
 
-  const rosterById = {};
-  roster.forEach(p => { rosterById[p.id] = p; });
-
-  const rows = (attendanceRows || []).map(a => {
-    const p = rosterById[a.participant_id];
+  const rows = roster.map(p => {
+    const active = p.is_active && p.auth_user_id;
+    const isMe = p.id === myParticipant.id;
     return `
       <tr>
-        <td>${escHtml(p?.full_name || '—')}</td>
-        <td>${escHtml(p?.email || '—')}</td>
-        <td>${escHtml(a.workshop?.title || '—')}</td>
-        <td><span class="reg-card-status-badge ${escHtml(a.status)}">${escHtml(a.status)}</span></td>
-        <td>${a.certificate_issued ? `<a class="btn-sm btn-sm-ghost" href="/portal/certificate.html?id=${encodeURIComponent(a.id)}">View</a>` : '—'}</td>
+        <td>${escHtml(p.full_name || '—')}</td>
+        <td>${escHtml(p.email || '—')}</td>
+        <td><span class="reg-card-status-badge ${active ? 'attended' : 'no_show'}">${active ? 'Active' : 'Removed'}</span></td>
+        <td>${active && !isMe ? `<button class="btn-sm btn-sm-danger" onclick="removeMember('${p.id}', '${escHtml(p.full_name || 'this member').replace(/'/g, "\\'")}')">Remove</button>` : (isMe ? '<span class="empty-hint">You</span>' : '—')}</td>
       </tr>
     `;
   }).join('');
 
   container.innerHTML = `
+    ${seatLine}
     <div class="responses-table-wrap">
       <table class="responses-table">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Workshop</th><th>Status</th><th>Certificate</th></tr>
+          <tr><th>Name</th><th>Email</th><th>Status</th><th></th></tr>
         </thead>
-        <tbody>${rows || '<tr><td colspan="5">No training records yet.</td></tr>'}</tbody>
+        <tbody>${rows}</tbody>
       </table>
     </div>
   `;
+}
+
+async function removeMember(participantId, name) {
+  if (!confirm(`Remove ${name} from the portal? They will lose access immediately.`)) return;
+
+  const { data: { session } } = await pdb.auth.getSession();
+  const resp = await fetch('/.netlify/functions/portal-remove-member', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken: session.access_token, targetParticipantId: participantId })
+  });
+  const result = await resp.json().catch(() => ({}));
+
+  if (!resp.ok || !result.success) {
+    alert(result.error || 'Could not remove member.');
+    return;
+  }
+  loadCompanyView();
 }
 
 async function portalSignOut() {
