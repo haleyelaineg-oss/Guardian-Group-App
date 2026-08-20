@@ -64,6 +64,7 @@ function setView(viewName, btn) {
   if (viewName === 'registrants') loadRegistrants();
   if (viewName === 'clients') loadCompanies();
   if (viewName === 'address-book') loadAddressBook();
+  if (viewName === 'calendar') loadCalendarMonth();
 }
 
 function toggleNavGroup(toggleBtn) {
@@ -251,6 +252,8 @@ function hideEditWorkshop() {
 function handleModalOverlayClick(event) {
   if (event.target === document.getElementById('editWorkshopModal')) {
     hideEditWorkshop();
+  } else if (event.target === document.getElementById('eventDetailModal')) {
+    hideEventDetail();
   }
 }
 

@@ -74,6 +74,9 @@
         <button class="nav-item" data-view="address-book" onclick="setView('address-book', this)">
           <span class="nav-icon">❖</span> Address Book
         </button>
+        <button class="nav-item" data-view="calendar" onclick="setView('calendar', this)">
+          <span class="nav-icon">▦</span> Calendar
+        </button>
         <a class="nav-item" href="../quote-tool/index.html" target="_blank" rel="noopener">
           <span class="nav-icon">▤</span> Quote / Invoice / Receipt
         </a>
@@ -459,6 +462,95 @@
         <div class="tiny-note">Tip: Use this for per-workshop dynamic surveys. If no builder config exists, default survey remains.</div>
       </div>
 
+      <!-- VIEW: CALENDAR ──────────────────────────────────── -->
+      <div class="view" id="view-calendar">
+        <div class="view-header">
+          <h1 class="view-title">Calendar</h1>
+          <p class="view-sub">Plan travel and track spending for upcoming events.</p>
+        </div>
+
+        <div class="calendar-toolbar">
+          <div class="calendar-nav">
+            <button class="btn-sm btn-sm-ghost" onclick="calendarPrevMonth()">‹</button>
+            <div class="calendar-month-label" id="calendarMonthLabel"></div>
+            <button class="btn-sm btn-sm-ghost" onclick="calendarNextMonth()">›</button>
+            <button class="btn-sm btn-sm-ghost" onclick="calendarGoToday()">Today</button>
+          </div>
+          <button class="btn btn-primary" onclick="showCreateEvent()">+ New Event</button>
+        </div>
+
+        <!-- CREATE FORM -->
+        <div class="create-form-card" id="createEventCard" style="display:none">
+          <h3 class="card-title">Create New Event</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="newEventTitle">Event Title <span class="required">*</span></label>
+              <input type="text" id="newEventTitle" class="field-input" placeholder="e.g. Acme Industrial On-Site Training" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="newEventType">Event Type</label>
+              <select id="newEventType" class="field-input">
+                <option value="workshop">Workshop</option>
+                <option value="travel">Travel</option>
+                <option value="meeting">Meeting</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="newEventCompany">Client</label>
+              <select id="newEventCompany" class="field-input">
+                <option value="">— None —</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="newEventWorkshop">Linked Workshop</label>
+              <select id="newEventWorkshop" class="field-input">
+                <option value="">— None —</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventStartDate">Start Date <span class="required">*</span></label>
+              <input type="date" id="newEventStartDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventStartTime">Start Time</label>
+              <input type="time" id="newEventStartTime" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventEndDate">End Date</label>
+              <input type="date" id="newEventEndDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventEndTime">End Time</label>
+              <input type="time" id="newEventEndTime" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventLocation">Location</label>
+              <input type="text" id="newEventLocation" class="field-input" placeholder="e.g. Calgary, AB" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventBudget">Planned Budget (USD)</label>
+              <input type="number" id="newEventBudget" class="field-input" placeholder="e.g. 1500" min="0" step="1" />
+            </div>
+            <div class="field-group full">
+              <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted);">
+                <input type="checkbox" id="newEventAllDay" /> All-day event
+              </label>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="newEventNotes">Notes</label>
+              <textarea id="newEventNotes" class="field-input" rows="3" placeholder="Any other details worth noting..."></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideCreateEvent()">Cancel</button>
+            <button class="btn btn-primary" onclick="createEvent()">Create Event →</button>
+          </div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+
     </main>
   </div>
 
@@ -518,8 +610,209 @@
     </div>
   </div>
 
+  <!-- EVENT DETAIL MODAL -->
+  <div class="modal-overlay" id="eventDetailModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <h3 class="modal-title" id="eventDetailTitle">Event</h3>
+        <button class="modal-close" onclick="hideEventDetail()">✕</button>
+      </div>
+
+      <div class="event-tabs">
+        <button class="event-tab-btn active" id="eventTabBtnDetails" onclick="switchEventTab('details')">Details</button>
+        <button class="event-tab-btn" id="eventTabBtnTravel" onclick="switchEventTab('travel')">Travel</button>
+        <button class="event-tab-btn" id="eventTabBtnSpending" onclick="switchEventTab('spending')">Spending</button>
+      </div>
+
+      <!-- DETAILS TAB -->
+      <div class="event-tab-panel active" id="eventTabPanelDetails">
+        <div class="fields-grid">
+          <div class="field-group full">
+            <label class="field-label" for="editEventTitle">Event Title <span class="required">*</span></label>
+            <input type="text" id="editEventTitle" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="editEventType">Event Type</label>
+            <select id="editEventType" class="field-input">
+              <option value="workshop">Workshop</option>
+              <option value="travel">Travel</option>
+              <option value="meeting">Meeting</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="editEventCompany">Client</label>
+            <select id="editEventCompany" class="field-input">
+              <option value="">— None —</option>
+            </select>
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="editEventWorkshop">Linked Workshop</label>
+            <select id="editEventWorkshop" class="field-input">
+              <option value="">— None —</option>
+            </select>
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventStartDate">Start Date <span class="required">*</span></label>
+            <input type="date" id="editEventStartDate" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventStartTime">Start Time</label>
+            <input type="time" id="editEventStartTime" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventEndDate">End Date</label>
+            <input type="date" id="editEventEndDate" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventEndTime">End Time</label>
+            <input type="time" id="editEventEndTime" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventLocation">Location</label>
+            <input type="text" id="editEventLocation" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventBudget">Planned Budget (USD)</label>
+            <input type="number" id="editEventBudget" class="field-input" min="0" step="1" />
+          </div>
+          <div class="field-group full">
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted);">
+              <input type="checkbox" id="editEventAllDay" /> All-day event
+            </label>
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="editEventNotes">Notes</label>
+            <textarea id="editEventNotes" class="field-input" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="create-form-actions">
+          <button class="btn-sm btn-sm-danger" onclick="deleteEvent(currentEventId)">Delete Event</button>
+          <button class="btn btn-primary" onclick="saveEventDetails()">Save Changes →</button>
+        </div>
+      </div>
+
+      <!-- TRAVEL TAB -->
+      <div class="event-tab-panel" id="eventTabPanelTravel">
+        <div id="eventTravelList"></div>
+        <div class="create-form-card" id="addTravelItemCard" style="display:none">
+          <h3 class="card-title">Add Travel Item</h3>
+          <div class="fields-grid">
+            <div class="field-group third">
+              <label class="field-label" for="travelItemType">Type</label>
+              <select id="travelItemType" class="field-input">
+                <option value="flight">Flight</option>
+                <option value="hotel">Hotel</option>
+                <option value="car_rental">Car Rental</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="travelItemDescription">Description <span class="required">*</span></label>
+              <input type="text" id="travelItemDescription" class="field-input" placeholder="e.g. Flight to Calgary — WestJet" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemProvider">Provider</label>
+              <input type="text" id="travelItemProvider" class="field-input" placeholder="e.g. WestJet, Marriott" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemConfirmation">Confirmation #</label>
+              <input type="text" id="travelItemConfirmation" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemDepartsDate">Departs</label>
+              <input type="date" id="travelItemDepartsDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemDepartsTime">Departs Time</label>
+              <input type="time" id="travelItemDepartsTime" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemArrivesDate">Arrives</label>
+              <input type="date" id="travelItemArrivesDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemArrivesTime">Arrives Time</label>
+              <input type="time" id="travelItemArrivesTime" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemCost">Cost (USD)</label>
+              <input type="number" id="travelItemCost" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="travelItemStatus">Status</label>
+              <select id="travelItemStatus" class="field-input">
+                <option value="planned">Planned</option>
+                <option value="booked">Booked</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="travelItemNotes">Notes</label>
+              <textarea id="travelItemNotes" class="field-input" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideAddTravelItem()">Cancel</button>
+            <button class="btn btn-primary" onclick="addTravelItem()">Add Travel Item →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="showAddTravelItemBtn" onclick="showAddTravelItem()">+ Add Travel Item</button>
+      </div>
+
+      <!-- SPENDING TAB -->
+      <div class="event-tab-panel" id="eventTabPanelSpending">
+        <div class="stat-cards stat-cards-compact" id="eventSpendingStats"></div>
+        <div id="eventExpensesList"></div>
+        <div class="create-form-card" id="addExpenseCard" style="display:none">
+          <h3 class="card-title">Add Expense</h3>
+          <div class="fields-grid">
+            <div class="field-group third">
+              <label class="field-label" for="expenseCategory">Category</label>
+              <select id="expenseCategory" class="field-input">
+                <option value="travel">Travel</option>
+                <option value="lodging">Lodging</option>
+                <option value="meals">Meals</option>
+                <option value="materials">Materials</option>
+                <option value="venue">Venue</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="expenseDescription">Description <span class="required">*</span></label>
+              <input type="text" id="expenseDescription" class="field-input" placeholder="e.g. Rental car deposit" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="expenseAmount">Amount (USD) <span class="required">*</span></label>
+              <input type="number" id="expenseAmount" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="expenseStatus">Status</label>
+              <select id="expenseStatus" class="field-input">
+                <option value="planned">Planned</option>
+                <option value="paid">Paid</option>
+                <option value="reimbursed">Reimbursed</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="expenseIncurredOn">Date Incurred</label>
+              <input type="date" id="expenseIncurredOn" class="field-input" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideAddExpense()">Cancel</button>
+            <button class="btn btn-primary" onclick="addExpense()">Add Expense →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="showAddExpenseBtn" onclick="showAddExpense()">+ Add Expense</button>
+      </div>
+
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/config.js"></script>
   <script src="../js/admin.js"></script>
+  <script src="../js/admin-calendar.js"></script>
 </body>
 </html>
