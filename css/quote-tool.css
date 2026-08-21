@@ -121,6 +121,9 @@
 .qt-btn-dark { background: var(--gg-dark); color: #fff; padding: 9px 18px; }
 .qt-btn-primary { background: var(--gg-mid); color: #fff; padding: 10px 20px; box-shadow: var(--shadow-cta); }
 .qt-btn-muted { border: var(--border-field) solid var(--gg-pale); background: var(--gg-white); color: var(--gg-muted); padding: 9px 16px; }
+.qt-btn-danger { border: var(--border-field) solid var(--gg-danger-bd); background: var(--gg-danger-bg); color: var(--gg-danger); padding: 9px 16px; }
+.qt-doc-row-delete { border: none; background: transparent; color: var(--gg-pale); font-size: 16px; cursor: pointer; line-height: 1; padding: 0 4px; }
+.qt-doc-row-delete:hover { color: var(--gg-danger); }
 .qt-btn-text { border: none; background: transparent; color: var(--gg-steel); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 0; font-family: inherit; }
 .qt-btn-dashed { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; border: 1px dashed var(--gg-pale); background: transparent; color: var(--gg-steel); font-size: 12px; padding: 8px 14px; border-radius: var(--radius); cursor: pointer; }
 .qt-btn-cta-block { display: block; width: 100%; margin-top: 14px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; background: var(--gg-mid); color: #fff; border: none; border-radius: var(--radius); padding: 11px; font-size: 12px; cursor: pointer; box-shadow: var(--shadow-cta); }
@@ -138,9 +141,18 @@ select.qt-select {
 .qt-topbar { max-width: 8.5in; margin: 0 auto 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .qt-topbar-left { display: flex; align-items: center; gap: 8px; }
 .qt-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.qt-mode-tabs { display: flex; background: var(--gg-off); border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius); padding: 3px; }
-.qt-mode-tab { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; border: none; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: var(--gg-muted); }
-.qt-mode-tab.active { background: var(--gg-dark); color: #fff; }
+.qt-doc-type-label {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--gg-dark);
+  background: var(--gg-off);
+  border: var(--border-field) solid var(--gg-pale);
+  border-radius: var(--radius);
+  padding: 9px 14px;
+}
 
 .qt-subbar { max-width: 8.5in; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .qt-helper-text { font-size: var(--fs-2xs); color: var(--gg-muted); }
@@ -155,7 +167,7 @@ select.qt-select {
 .qt-doc-rows { display: flex; flex-direction: column; }
 .qt-doc-row-head, .qt-doc-row {
   display: grid;
-  grid-template-columns: 120px 80px 1fr 120px 90px 100px;
+  grid-template-columns: 120px 80px 1fr 120px 90px 100px 28px;
   gap: 12px;
 }
 .qt-doc-row-head {

@@ -49,16 +49,39 @@
         </div>
       </div>
       <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="dashboard" onclick="setView('dashboard', this)">
+          <span class="nav-icon">◉</span> Dashboard
+        </button>
         <div class="nav-group">
+          <div class="nav-item nav-group-toggle" id="financialNavToggle">
+            <button type="button" class="nav-group-label" onclick="setView('financial-overview', document.getElementById('financialNavToggle'))">
+              <span class="nav-icon">▤</span> Financial
+            </button>
+            <button type="button" class="nav-group-caret-btn" onclick="event.stopPropagation(); toggleNavGroup(document.getElementById('financialNavToggle'))">
+              <span class="nav-group-caret">▾</span>
+            </button>
+          </div>
+          <div class="nav-submenu">
+            <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('quote', this)">Quotes</button>
+            <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('invoice', this)">Invoices</button>
+            <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('receipt', this)">Receipts</button>
+          </div>
+        </div>
+        <!-- ARCHIVED 2026-08-21 — Trainings & Workshops + Surveys don't
+             fit the current direction of the app. Nothing deleted, just
+             hidden: the views, data, and admin.js logic underneath are
+             all untouched. Delete this style="display:none" to bring
+             either group back. -->
+        <div class="nav-group" style="display:none">
           <button class="nav-item nav-group-toggle" onclick="toggleNavGroup(this)">
             <span class="nav-icon">◫</span> Trainings &amp; Workshops <span class="nav-group-caret">▾</span>
           </button>
           <div class="nav-submenu">
-            <button class="nav-subitem active" data-view="workshops" onclick="setView('workshops', this)">Workshops</button>
+            <button class="nav-subitem" data-view="workshops" onclick="setView('workshops', this)">Workshops</button>
             <button class="nav-subitem" data-view="registrants" onclick="setView('registrants', this)">Registrants</button>
           </div>
         </div>
-        <div class="nav-group">
+        <div class="nav-group" style="display:none">
           <button class="nav-item nav-group-toggle" onclick="toggleNavGroup(this)">
             <span class="nav-icon">◈</span> Surveys <span class="nav-group-caret">▾</span>
           </button>
@@ -76,9 +99,6 @@
         </button>
         <button class="nav-item" data-view="calendar" onclick="setView('calendar', this)">
           <span class="nav-icon">▦</span> Calendar
-        </button>
-        <button class="nav-item" data-view="quotes" onclick="setView('quotes', this)">
-          <span class="nav-icon">▤</span> Quote / Invoice / Receipt
         </button>
         <a class="nav-item" href="../resources/" target="_blank" rel="noopener">
           <span class="nav-icon">◆</span> Resource Library
@@ -104,6 +124,69 @@
           <span class="share-label">Survey Link:</span>
           <code class="share-url" id="shareLinkText"></code>
           <button class="btn-copy" onclick="copyLink()">Copy</button>
+        </div>
+      </div>
+
+      <!-- VIEW: DASHBOARD ─────────────────────────────────── -->
+      <div class="view active" id="view-dashboard">
+        <div class="view-header">
+          <h1 class="view-title">Dashboard</h1>
+          <p class="view-sub">A quick look at what's due and what's coming up.</p>
+        </div>
+
+        <div class="stat-cards" id="dashboardStats">
+          <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading…</div></div>
+        </div>
+
+        <div class="dashboard-section-header">
+          <h2 class="detail-section-title" style="margin:0;">Upcoming Events</h2>
+          <a href="#" class="dashboard-section-link" onclick="setView('calendar', document.querySelector('[data-view=\'calendar\']')); return false;">View Calendar →</a>
+        </div>
+        <div id="dashboardUpcomingEvents">
+          <p class="empty-hint">Loading…</p>
+        </div>
+      </div>
+
+      <!-- VIEW: FINANCIAL OVERVIEW ────────────────────────── -->
+      <div class="view" id="view-financial-overview">
+        <div class="view-header">
+          <h1 class="view-title">Financial Overview</h1>
+          <p class="view-sub">Quotes, invoices, and receipts at a glance.</p>
+        </div>
+
+        <div class="stat-cards" id="financialOverviewStats">
+          <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading…</div></div>
+        </div>
+
+        <div class="detail-section-title">All Documents</div>
+        <div class="dashboard-section-header" style="margin-top:0;">
+          <input type="text" id="financialDocsSearch" class="field-input" style="max-width:260px;" placeholder="Search client or number…" oninput="financialDocsSearchInput(this.value)">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <select id="financialDocsTypeFilter" class="field-input" onchange="setFinancialDocsFilter('type', this.value)">
+              <option value="all">All types</option>
+              <option value="quote">Quotes</option>
+              <option value="invoice">Invoices</option>
+              <option value="receipt">Receipts</option>
+            </select>
+            <select id="financialDocsStatusFilter" class="field-input" onchange="setFinancialDocsFilter('status', this.value)">
+              <option value="all">All statuses</option>
+              <option value="past_due">Past Due</option>
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="accepted">Accepted</option>
+              <option value="declined">Declined</option>
+              <option value="expired">Expired</option>
+              <option value="partially_paid">Partially Paid</option>
+              <option value="paid">Paid</option>
+              <option value="issued">Issued</option>
+            </select>
+          </div>
+        </div>
+        <div class="responses-table-wrap">
+          <table class="responses-table">
+            <thead><tr><th>Number</th><th>Type</th><th>Client</th><th>Status</th><th>Total</th><th>Date</th></tr></thead>
+            <tbody id="financialDocsTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -203,7 +286,7 @@
       </div>
 
       <!-- VIEW: WORKSHOPS ─────────────────────────────────── -->
-      <div class="view active" id="view-workshops">
+      <div class="view" id="view-workshops">
         <div class="view-header">
           <h1 class="view-title">Workshops</h1>
           <button class="btn btn-primary" onclick="showCreateWorkshop()">+ New Workshop</button>

@@ -21,9 +21,25 @@ function escAttr(str) {
 function formatToday() {
   return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+function toIsoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function todayIso() {
+  return toIsoDate(new Date());
+}
+function computeDueDate(docDateStr, dueTermsStr) {
+  if (!docDateStr) return '';
+  const base = new Date(docDateStr);
+  if (isNaN(base.getTime())) return '';
+  const match = /(\d+)/.exec(dueTermsStr || '');
+  const days = match ? parseInt(match[1], 10) : 14;
+  const due = new Date(base);
+  due.setDate(due.getDate() + days);
+  return toIsoDate(due);
+}
 function statusListFor(mode) {
   if (mode === 'quote') return ['draft', 'sent', 'accepted', 'declined', 'expired'];
-  if (mode === 'invoice') return ['draft', 'sent', 'partially_paid', 'paid', 'overdue'];
+  if (mode === 'invoice') return ['draft', 'sent', 'partially_paid', 'paid'];
   return ['issued'];
 }
 function labelize(s) {
@@ -70,6 +86,8 @@ let state = {
   docDate: formatToday(),
   validFor: '14 days',
   dueTerms: 'Net 14',
+  dueDate: '',
+  datePaid: '',
   paymentMethod: '',
   paymentMethodOther: '',
   businessContactName: '',
@@ -106,7 +124,9 @@ let state = {
   listLoading: false,
   listSearch: '',
   listTypeFilter: 'all',
-  listStatusFilter: 'all'
+  listStatusFilter: 'all',
+  listClientFilter: 'all',
+  docsUnlocked: false
 };
 
 let itemIdCounter = 1;
@@ -233,9 +253,15 @@ async function init() {
   loadClients();
   loadCatalog();
 
-  const docId = new URLSearchParams(window.location.search).get('doc');
+  const params = new URLSearchParams(window.location.search);
+  const docId = params.get('doc');
   if (docId) {
     await qtOpenDocument(docId);
+  } else if (params.get('view') === 'list') {
+    const type = params.get('type');
+    state.docsUnlocked = !type;
+    state.listStatusFilter = params.get('status') || 'all';
+    qtOpenDocumentsList(type || 'all');
   } else {
     resetToBlank('quote');
   }
@@ -263,21 +289,21 @@ async function loadDocumentsList() {
   renderDocRows();
   const { data } = await sb
     .from('documents')
-    .select('id,doc_type,doc_number,status,client_name,total,doc_date,created_at')
+    .select('id,doc_type,doc_number,status,client_name,total,doc_date,due_date,company_id,created_at')
     .order('created_at', { ascending: false })
     .limit(500);
   state.listLoading = false;
   state.documentsList = data || [];
   renderDocRows();
 }
-function qtOpenDocumentsList() {
+function qtOpenDocumentsList(type) {
   state.view = 'list';
+  if (type !== undefined) state.listTypeFilter = type;
   render();
   loadDocumentsList();
 }
-function qtBackToEditor() {
-  state.view = 'editor';
-  render();
+function qtCreateNewFromList() {
+  resetToBlank(state.listTypeFilter);
 }
 
 // ── Client / catalog interactions ───────────────────────────
@@ -402,6 +428,7 @@ async function upsertClient() {
 
 function buildDocPayload(totals) {
   const s = state;
+  const isQuote = s.mode === 'quote';
   const amountPaidNum = parseFloat(s.amountPaid) || 0;
   const balance = totals.afterDiscount - amountPaidNum;
   return {
@@ -412,14 +439,17 @@ function buildDocPayload(totals) {
     client_person_name: s.clientPersonName,
     client_email: s.clientEmail,
     client_phone: s.clientPhone,
+    company_id: s.clientCompanyId || null,
     business_contact_name: s.businessContactName,
     business_phone: s.businessPhone,
     business_email: s.businessEmail,
     doc_date: s.docDate,
-    valid_for: s.mode === 'quote' ? s.validFor : null,
+    valid_for: isQuote ? s.validFor : null,
     due_terms: s.mode === 'invoice' ? s.dueTerms : null,
-    payment_method: s.mode === 'receipt' ? s.paymentMethod : null,
-    payment_method_other: s.mode === 'receipt' ? s.paymentMethodOther : null,
+    due_date: s.mode === 'invoice' ? (s.dueDate || null) : null,
+    payment_method: !isQuote ? s.paymentMethod : null,
+    payment_method_other: !isQuote ? s.paymentMethodOther : null,
+    date_paid: !isQuote ? (s.datePaid || null) : null,
     items: s.items,
     discount_type: s.discountType,
     discount_value: parseFloat(s.discountValue) || 0,
@@ -428,7 +458,7 @@ function buildDocPayload(totals) {
     total: totals.afterDiscount,
     amount_paid: amountPaidNum,
     balance: balance,
-    notes: s.mode === 'quote' ? s.notesQuote : (s.mode === 'invoice' ? s.notesInvoice : s.notesReceipt),
+    notes: isQuote ? s.notesQuote : (s.mode === 'invoice' ? s.notesInvoice : s.notesReceipt),
     parent_doc_id: s.parentDocId || null
   };
 }
@@ -444,6 +474,9 @@ async function qtSaveDocument() {
       const { data } = await sb.rpc('next_doc_number', { p_type: state.mode });
       docNumber = data;
       state.docNumber = docNumber;
+    }
+    if (state.mode === 'invoice' && !state.dueDate) {
+      state.dueDate = computeDueDate(state.docDate, state.dueTerms);
     }
     const totals = computeTotals(state);
     const clientId = await upsertClient();
@@ -464,6 +497,20 @@ async function qtSaveDocument() {
     state.saving = false;
     render();
     flashMessage('Save failed — check your connection and try again.');
+  }
+}
+
+async function qtDeleteDocument(id) {
+  if (!sb) return;
+  if (!confirm('Delete this document permanently? This cannot be undone.')) return;
+  const { error } = await sb.from('documents').delete().eq('id', id);
+  if (error) { flashMessage('Could not delete — try again.'); return; }
+  if (state.view === 'list') {
+    state.documentsList = state.documentsList.filter(d => d.id !== id);
+    renderDocRows();
+  }
+  if (state.currentDocId === id) {
+    qtOpenDocumentsList(state.mode);
   }
 }
 
@@ -490,11 +537,14 @@ async function qtOpenDocument(id) {
     parentDocId: data.parent_doc_id,
     parentDocNumber: parentNumber,
     mode: data.doc_type,
+    docsUnlocked: false,
     status: data.status,
     docNumber: data.doc_number,
     docDate: data.doc_date || '',
     validFor: data.valid_for || '14 days',
     dueTerms: data.due_terms || 'Net 14',
+    dueDate: data.due_date || '',
+    datePaid: data.date_paid || '',
     paymentMethod: data.payment_method || '',
     paymentMethodOther: data.payment_method_other || '',
     businessContactName: data.business_contact_name || state.businessContactName,
@@ -527,20 +577,25 @@ async function qtConvertToInvoice() {
     const { data: numData, error: numErr } = await sb.rpc('next_doc_number', { p_type: 'invoice' });
     if (numErr) throw numErr;
     const totals = computeTotals(state);
+    const newDocDate = formatToday();
+    const newDueDate = computeDueDate(newDocDate, 'Net 14');
     const payload = Object.assign({}, buildDocPayload(totals), {
       doc_type: 'invoice',
       doc_number: numData,
       status: 'draft',
       due_terms: 'Net 14',
+      due_date: newDueDate,
       valid_for: null,
       payment_method: null,
       payment_method_other: null,
-      doc_date: formatToday(),
+      date_paid: null,
+      doc_date: newDocDate,
       amount_paid: 0,
       balance: totals.afterDiscount,
       notes: state.notesInvoice,
       parent_doc_id: state.currentDocId,
-      client_id: state.clientId
+      client_id: state.clientId,
+      company_id: state.clientCompanyId || null
     });
     const ins = await sb.from('documents').insert(payload).select().single();
     if (ins.error) throw ins.error;
@@ -552,8 +607,10 @@ async function qtConvertToInvoice() {
       mode: 'invoice',
       status: 'draft',
       docNumber: numData,
-      docDate: formatToday(),
+      docDate: newDocDate,
       dueTerms: 'Net 14',
+      dueDate: newDueDate,
+      datePaid: '',
       amountPaid: '0',
       saving: false
     });
@@ -568,12 +625,21 @@ async function qtConvertToInvoice() {
 
 async function qtMarkPaidCreateReceipt() {
   if (state.mode !== 'invoice' || !state.currentDocId || !sb) return;
+  if (!state.paymentMethod) { flashMessage('Select a payment method first.'); return; }
+  if (state.paymentMethod === 'other' && !(state.paymentMethodOther || '').trim()) {
+    flashMessage('Specify the payment method.');
+    return;
+  }
   state.saving = true;
   render();
   try {
     const totals = computeTotals(state);
     const fullAmount = totals.afterDiscount;
-    await sb.from('documents').update({ status: 'paid', amount_paid: fullAmount, balance: 0 }).eq('id', state.currentDocId);
+    const paidDate = state.datePaid || todayIso();
+    await sb.from('documents').update({
+      status: 'paid', amount_paid: fullAmount, balance: 0, date_paid: paidDate,
+      payment_method: state.paymentMethod, payment_method_other: state.paymentMethodOther || null
+    }).eq('id', state.currentDocId);
     const { data: numData, error: numErr } = await sb.rpc('next_doc_number', { p_type: 'receipt' });
     if (numErr) throw numErr;
     const payload = Object.assign({}, buildDocPayload(totals), {
@@ -581,15 +647,18 @@ async function qtMarkPaidCreateReceipt() {
       doc_number: numData,
       status: 'issued',
       due_terms: null,
+      due_date: null,
       valid_for: null,
-      payment_method: '',
-      payment_method_other: '',
+      payment_method: state.paymentMethod,
+      payment_method_other: state.paymentMethodOther || null,
+      date_paid: paidDate,
       doc_date: formatToday(),
       amount_paid: fullAmount,
       balance: 0,
       notes: state.notesReceipt,
       parent_doc_id: state.currentDocId,
-      client_id: state.clientId
+      client_id: state.clientId,
+      company_id: state.clientCompanyId || null
     });
     const ins = await sb.from('documents').insert(payload).select().single();
     if (ins.error) throw ins.error;
@@ -601,7 +670,7 @@ async function qtMarkPaidCreateReceipt() {
       status: 'issued',
       docNumber: numData,
       docDate: formatToday(),
-      paymentMethod: '',
+      datePaid: paidDate,
       amountPaid: fullAmount.toFixed(2),
       saving: false
     });
@@ -617,15 +686,19 @@ async function qtMarkPaidCreateReceipt() {
 function resetToBlank(mode) {
   itemIdCounter = 1;
   Object.assign(state, {
+    view: 'editor',
     currentDocId: null,
     parentDocId: null,
     parentDocNumber: null,
     mode: mode,
+    docsUnlocked: false,
     status: 'draft',
     docNumber: '',
     docDate: formatToday(),
     validFor: '14 days',
     dueTerms: 'Net 14',
+    dueDate: '',
+    datePaid: '',
     paymentMethod: '',
     paymentMethodOther: '',
     clientId: null,
@@ -653,9 +726,6 @@ async function fetchPreviewNumber(mode) {
   } catch (e) {}
 }
 
-function qtSetMode(mode) {
-  if (mode !== state.mode) resetToBlank(mode);
-}
 function qtNewDocument() {
   resetToBlank(state.mode);
 }
@@ -670,11 +740,19 @@ function qtMarkPaidInFull() {
 
 // ── List view ────────────────────────────────────────────────
 
+function isPastDue(d) {
+  return !!(d.due_date && d.due_date < todayIso() && d.status !== 'paid');
+}
 function filteredDocuments() {
   const s = state;
   return s.documentsList
     .filter(d => s.listTypeFilter === 'all' || d.doc_type === s.listTypeFilter)
-    .filter(d => s.listStatusFilter === 'all' || d.status === s.listStatusFilter)
+    .filter(d => {
+      if (s.listStatusFilter === 'all') return true;
+      if (s.listStatusFilter === 'past_due') return isPastDue(d);
+      return d.status === s.listStatusFilter;
+    })
+    .filter(d => s.listClientFilter === 'all' || String(d.company_id) === String(s.listClientFilter))
     .filter(d => {
       if (!s.listSearch) return true;
       const q = s.listSearch.toLowerCase();
@@ -709,6 +787,9 @@ function renderUnlocked() {
   const s = state;
   const isListView = s.view === 'list';
   const isEditorView = s.view === 'editor';
+  const backListType = s.docsUnlocked ? 'all' : s.mode;
+  const backListLabel = s.docsUnlocked ? 'All Documents' : `All ${labelize(s.mode)}s`;
+  const canCreateFromList = s.listTypeFilter !== 'all' && s.listTypeFilter !== 'receipt';
   return `
     <div>
       <div class="qt-topbar" data-noprint>
@@ -717,13 +798,18 @@ function renderUnlocked() {
           <div class="qt-eyebrow">Quote &middot; Invoice &middot; Receipt Tool</div>
         </div>
         <div class="qt-topbar-right">
-          <button class="qt-btn qt-btn-ghost" onclick="${isListView ? 'qtBackToEditor()' : 'qtOpenDocumentsList()'}">${isListView ? '← Back to Editor' : 'All Documents'}</button>
+          ${isListView
+            ? (canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList()">+ New ${esc(labelize(s.listTypeFilter))}</button>` : '')
+            : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('${backListType}')">${esc(backListLabel)}</button>`}
           ${isEditorView ? renderModeTabsAndActions() : ''}
         </div>
       </div>
       <div class="qt-subbar" data-noprint>
         <div class="qt-helper-text" id="qtHelperText">${esc(s.saveMessage || 'Click any field to edit it directly, then print to save a PDF.')}</div>
-        ${isEditorView ? `<button class="qt-btn qt-btn-dark" onclick="qtSaveDocument()">${s.saving ? 'Saving…' : 'Save'}</button>` : ''}
+        <div style="display:flex; gap:8px;">
+          ${isEditorView && s.currentDocId ? `<button class="qt-btn qt-btn-danger" onclick="qtDeleteDocument('${escAttr(s.currentDocId)}')">Delete</button>` : ''}
+          ${isEditorView ? `<button class="qt-btn qt-btn-dark" onclick="qtSaveDocument()">${s.saving ? 'Saving…' : 'Save'}</button>` : ''}
+        </div>
       </div>
       ${isListView ? renderListView() : ''}
       ${isEditorView ? renderEditorView() : ''}
@@ -762,32 +848,35 @@ function renderNewClientModal() {
 function renderModeTabsAndActions() {
   const s = state;
   return `
-    <div class="qt-mode-tabs">
-      <button class="qt-mode-tab ${s.mode === 'quote' ? 'active' : ''}" onclick="qtSetMode('quote')">Quote</button>
-      <button class="qt-mode-tab ${s.mode === 'invoice' ? 'active' : ''}" onclick="qtSetMode('invoice')">Invoice</button>
-      <button class="qt-mode-tab ${s.mode === 'receipt' ? 'active' : ''}" onclick="qtSetMode('receipt')">Receipt</button>
-    </div>
-    <button class="qt-btn qt-btn-muted" onclick="qtNewDocument()">New</button>
+    <div class="qt-doc-type-label">${esc(labelize(s.mode))}</div>
+    ${s.mode !== 'receipt' ? `<button class="qt-btn qt-btn-muted" onclick="qtNewDocument()">New</button>` : ''}
     <button class="qt-btn qt-btn-primary" onclick="qtPrintDoc()">Print / Save PDF</button>`;
 }
 
 function renderListView() {
   const s = state;
+  const listTitle = s.docsUnlocked ? 'All Documents' : `${labelize(s.listTypeFilter)}s`;
   return `
     <div id="listPage" class="qt-list-page">
       <div class="qt-list-header">
-        <div class="qt-list-title">All Documents</div>
+        <div class="qt-list-title">${esc(listTitle)}</div>
         <div class="qt-list-controls">
           <input class="qt-list-search" value="${escAttr(s.listSearch)}" oninput="qtListSearchInput(this.value)" placeholder="Search client or number…">
+          ${s.docsUnlocked ? `
           <select class="qt-select" onchange="qtSetListFilter('listTypeFilter', this.value)">
             <option value="all" ${s.listTypeFilter === 'all' ? 'selected' : ''}>All types</option>
             <option value="quote" ${s.listTypeFilter === 'quote' ? 'selected' : ''}>Quotes</option>
             <option value="invoice" ${s.listTypeFilter === 'invoice' ? 'selected' : ''}>Invoices</option>
             <option value="receipt" ${s.listTypeFilter === 'receipt' ? 'selected' : ''}>Receipts</option>
-          </select>
+          </select>` : ''}
           <select class="qt-select" onchange="qtSetListFilter('listStatusFilter', this.value)">
             <option value="all" ${s.listStatusFilter === 'all' ? 'selected' : ''}>All statuses</option>
-            ${['draft', 'sent', 'accepted', 'declined', 'expired', 'partially_paid', 'paid', 'overdue', 'issued'].map(v => `<option value="${v}" ${s.listStatusFilter === v ? 'selected' : ''}>${esc(labelize(v))}</option>`).join('')}
+            ${(s.docsUnlocked || s.listTypeFilter === 'invoice') ? `<option value="past_due" ${s.listStatusFilter === 'past_due' ? 'selected' : ''}>Past Due</option>` : ''}
+            ${(s.docsUnlocked ? ['draft', 'sent', 'accepted', 'declined', 'expired', 'partially_paid', 'paid', 'issued'] : statusListFor(s.listTypeFilter)).map(v => `<option value="${v}" ${s.listStatusFilter === v ? 'selected' : ''}>${esc(labelize(v))}</option>`).join('')}
+          </select>
+          <select class="qt-select" onchange="qtSetListFilter('listClientFilter', this.value)">
+            <option value="all" ${s.listClientFilter === 'all' ? 'selected' : ''}>All clients</option>
+            ${s.clients.map(c => `<option value="${escAttr(String(c.id))}" ${String(s.listClientFilter) === String(c.id) ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -799,19 +888,26 @@ function renderDocRowsInner() {
   const s = state;
   const filtered = filteredDocuments();
   let html = `<div class="qt-doc-row-head">
-      <div>Number</div><div>Type</div><div>Client</div><div>Status</div><div>Total</div><div>Date</div>
+      <div>Number</div><div>Type</div><div>Client</div><div>Status</div><div>Total</div><div>Date</div><div></div>
     </div>`;
   if (s.listLoading) return html + `<div class="qt-list-empty">Loading…</div>`;
   if (filtered.length === 0) return html + `<div class="qt-list-empty">No documents yet — save one from the editor.</div>`;
-  html += filtered.map(d => `
+  html += filtered.map(d => {
+    const pastDue = isPastDue(d);
+    const pillLabel = pastDue ? 'Past Due' : labelize(d.status);
+    const pillTone = pastDue ? 'danger' : statusTone(d.status);
+    const dateLabel = d.doc_type === 'invoice' && d.due_date ? d.due_date : (d.doc_date || '');
+    return `
     <div class="qt-doc-row" onclick="qtOpenDocument('${escAttr(String(d.id))}')">
       <div class="num">${esc(d.doc_number)}</div>
       <div class="type">${esc(d.doc_type)}</div>
       <div>${esc(d.client_name || '—')}</div>
-      <div><span class="qt-status-pill tone-${statusTone(d.status)}">${esc(labelize(d.status))}</span></div>
+      <div><span class="qt-status-pill tone-${pillTone}">${esc(pillLabel)}</span></div>
       <div>${fmt(d.total || 0)}</div>
-      <div>${esc(d.doc_date || '')}</div>
-    </div>`).join('');
+      <div>${esc(dateLabel)}</div>
+      <button type="button" class="qt-doc-row-delete" title="Delete" onclick="event.stopPropagation(); qtDeleteDocument('${escAttr(String(d.id))}')">&times;</button>
+    </div>`;
+  }).join('');
   return html;
 }
 
@@ -857,6 +953,7 @@ function renderEditorView() {
           <div class="qt-doc-meta-row"><span>Date</span><input class="qt-field-line" value="${escAttr(s.docDate)}" oninput="qtSetField('docDate', this.value)"></div>
           ${isQuote ? `<div class="qt-doc-meta-row"><span>Valid for</span><input class="qt-field-line" value="${escAttr(s.validFor)}" oninput="qtSetField('validFor', this.value)" placeholder="e.g. 14 days"></div>` : ''}
           ${isInvoice ? `<div class="qt-doc-meta-row"><span>Terms</span><input class="qt-field-line" value="${escAttr(s.dueTerms)}" oninput="qtSetField('dueTerms', this.value)" placeholder="e.g. Net 14"></div>` : ''}
+          ${isInvoice ? `<div class="qt-doc-meta-row"><span>Due</span><input type="date" class="qt-field-line" value="${escAttr(s.dueDate)}" oninput="qtSetField('dueDate', this.value)"></div>` : ''}
           <div class="qt-doc-meta-row" data-noprint>
             <span>Status</span>
             <select class="qt-status-select" onchange="qtSetField('status', this.value); render();">
@@ -940,7 +1037,7 @@ function renderEditorView() {
           <span class="qt-status-pill tone-open">Paid in full</span>
         </div>
         <div class="qt-balance-note" id="qtBalanceNote" style="display:${showRemainingNote ? '' : 'none'};">Balance remaining: ${fmt(balance)}</div>` : ''}
-        ${isReceipt ? `
+        ${!isQuote && isSaved ? `
         <div class="qt-paidvia-row">
           <span>Paid via</span>
           <div class="qt-paidvia-right">
@@ -957,6 +1054,13 @@ function renderEditorView() {
             </select>
             ${s.paymentMethod === 'other' ? `<input class="qt-field-line" data-noprint value="${escAttr(s.paymentMethodOther)}" placeholder="Specify" oninput="qtSetField('paymentMethodOther', this.value)">` : ''}
             <span data-printonly style="display:none;font-weight:600;color:var(--gg-dark);">${esc(paymentMethodLabel(s))}</span>
+          </div>
+        </div>
+        <div class="qt-paidvia-row">
+          <span>Date paid</span>
+          <div class="qt-paidvia-right">
+            <input type="date" class="qt-field-line" data-noprint value="${escAttr(s.datePaid)}" oninput="qtSetField('datePaid', this.value)">
+            <span data-printonly style="display:none;font-weight:600;color:var(--gg-dark);">${esc(s.datePaid || '—')}</span>
           </div>
         </div>` : ''}
         ${canConvertToInvoice ? `<button class="qt-btn-cta-block" data-noprint onclick="qtConvertToInvoice()">Convert to Invoice →</button>` : ''}

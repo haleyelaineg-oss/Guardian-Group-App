@@ -38,7 +38,7 @@ async function checkSession() {
 function showDashboard() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'flex';
-  loadWorkshops();
+  loadDashboardView();
 }
 
 async function signOut() {
@@ -69,6 +69,113 @@ function setView(viewName, btn) {
   if (viewName === 'address-book') loadAddressBook();
   if (viewName === 'calendar') loadCalendarMonth();
   if (viewName === 'quotes') loadQuoteToolFrame();
+  if (viewName === 'dashboard') loadDashboardView();
+  if (viewName === 'financial-overview') loadFinancialOverview();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function todayIsoDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatEventWhen(ev) {
+  const d = new Date(ev.starts_at);
+  if (isNaN(d.getTime())) return '';
+  const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (ev.all_day) return dateLabel;
+  return `${dateLabel} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+}
+
+async function loadDashboardView() {
+  const statsEl = document.getElementById('dashboardStats');
+  const eventsEl = document.getElementById('dashboardUpcomingEvents');
+  if (!statsEl || !eventsEl) return;
+
+  const [{ data: invoices }, { data: events }] = await Promise.all([
+    ggClient.from('documents').select('id,doc_number,client_name,status,total,balance,doc_date,due_date,date_paid').eq('doc_type', 'invoice'),
+    ggClient.from('events').select('id,title,event_type,starts_at,all_day,location')
+      .gte('starts_at', new Date().toISOString()).order('starts_at', { ascending: true }).limit(8)
+  ]);
+
+  renderDashboardStats(invoices || []);
+  renderDashboardEvents(events || []);
+}
+
+function renderDashboardStats(invoices, targetId) {
+  const statsEl = document.getElementById(targetId || 'dashboardStats');
+  if (!statsEl) return;
+  const todayStr = todayIsoDate();
+  const in7Str = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const monthStartStr = todayStr.slice(0, 7) + '-01';
+
+  const open = { count: 0, sum: 0 };
+  const pastDue = { count: 0, sum: 0 };
+  const dueSoon = { count: 0, sum: 0 };
+  const paidThisMonth = { count: 0, sum: 0 };
+
+  invoices.forEach(inv => {
+    const balance = Number(inv.balance) || 0;
+    if (inv.status === 'paid') {
+      // date_paid is only populated going forward — older paid invoices
+      // fall back to doc_date so they still show up somewhere sensible.
+      const paidStr = inv.date_paid || inv.doc_date;
+      const paidDate = paidStr ? new Date(paidStr) : null;
+      if (paidDate && !isNaN(paidDate.getTime())) {
+        const paidIso = `${paidDate.getFullYear()}-${String(paidDate.getMonth() + 1).padStart(2, '0')}-${String(paidDate.getDate()).padStart(2, '0')}`;
+        if (paidIso >= monthStartStr) {
+          paidThisMonth.count++;
+          paidThisMonth.sum += Number(inv.total) || 0;
+        }
+      }
+      return;
+    }
+    open.count++;
+    open.sum += balance;
+    if (inv.due_date && inv.due_date < todayStr) {
+      pastDue.count++;
+      pastDue.sum += balance;
+    } else if (inv.due_date && inv.due_date >= todayStr && inv.due_date <= in7Str) {
+      dueSoon.count++;
+      dueSoon.sum += balance;
+    }
+  });
+
+  const cards = [
+    { label: 'Open Invoices', ...open, sub: 'outstanding', accent: '', link: "openFinancialList('invoice')" },
+    { label: 'Past Due', ...pastDue, sub: 'overdue', accent: pastDue.count ? 'accent-danger' : '', link: "openFinancialList('invoice', null, 'past_due')" },
+    { label: 'Due Within 7 Days', ...dueSoon, sub: 'coming due', accent: '', link: "openFinancialList('invoice')" },
+    { label: 'Paid This Month', ...paidThisMonth, sub: 'received', accent: 'accent', link: "openFinancialList('invoice', null, 'paid')" }
+  ];
+
+  statsEl.innerHTML = cards.map(c => `
+    <div class="stat-card ${c.accent} clickable" onclick="${c.link}">
+      <div class="stat-value">${c.count}</div>
+      <div class="stat-label">${escHtml(c.label)}</div>
+      <div class="stat-sub">${formatCurrency(c.sum)} ${escHtml(c.sub)}</div>
+    </div>
+  `).join('');
+}
+
+function renderDashboardEvents(events) {
+  const eventsEl = document.getElementById('dashboardUpcomingEvents');
+  if (!events.length) {
+    eventsEl.innerHTML = '<p class="empty-hint">Nothing on the calendar yet.</p>';
+    return;
+  }
+  eventsEl.innerHTML = events.map(ev => `
+    <div class="dashboard-event-row">
+      <span class="calendar-event-chip event-type-${escHtml(ev.event_type || 'other')}">${escHtml(EVENT_TYPE_LABELS[ev.event_type] || 'Other')}</span>
+      <div>
+        <div class="dashboard-event-title">${escHtml(ev.title)}</div>
+        <div class="dashboard-event-meta">${formatEventWhen(ev)}${ev.location ? ' · ' + escHtml(ev.location) : ''}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ── QUOTE / INVOICE / RECEIPT TOOL (embedded) ──────────────────
@@ -81,6 +188,74 @@ function openQuoteDocument(docId) {
   setView('quotes', document.querySelector('[data-view="quotes"]'));
   const frame = document.getElementById('quoteToolFrame');
   frame.src = '../quote-tool/index.html?doc=' + encodeURIComponent(docId);
+}
+
+function openFinancialList(type, btn, status) {
+  setView('quotes', btn || document.getElementById('financialNavToggle'));
+  const frame = document.getElementById('quoteToolFrame');
+  let src = '../quote-tool/index.html?view=list&type=' + encodeURIComponent(type);
+  if (status) src += '&status=' + encodeURIComponent(status);
+  frame.src = src;
+}
+
+let financialAllDocs = [];
+let financialDocsFilter = { search: '', type: 'all', status: 'all' };
+
+async function loadFinancialOverview() {
+  const statsEl = document.getElementById('financialOverviewStats');
+  if (!statsEl) return;
+  const { data } = await ggClient.from('documents')
+    .select('id,doc_type,doc_number,client_name,status,total,balance,doc_date,due_date,date_paid,company_id')
+    .order('created_at', { ascending: false });
+  financialAllDocs = data || [];
+  renderDashboardStats(financialAllDocs.filter(d => d.doc_type === 'invoice'), 'financialOverviewStats');
+  renderFinancialDocsTable();
+}
+
+function financialDocsSearchInput(value) {
+  financialDocsFilter.search = value;
+  renderFinancialDocsTable();
+}
+function setFinancialDocsFilter(field, value) {
+  financialDocsFilter[field] = value;
+  renderFinancialDocsTable();
+}
+
+function renderFinancialDocsTable() {
+  const tbody = document.getElementById('financialDocsTableBody');
+  if (!tbody) return;
+  const todayStr = todayIsoDate();
+  const q = financialDocsFilter.search.trim().toLowerCase();
+
+  const filtered = financialAllDocs.filter(d => {
+    if (financialDocsFilter.type !== 'all' && d.doc_type !== financialDocsFilter.type) return false;
+    if (financialDocsFilter.status === 'past_due') {
+      if (!(d.due_date && d.due_date < todayStr && d.status !== 'paid')) return false;
+    } else if (financialDocsFilter.status !== 'all' && d.status !== financialDocsFilter.status) {
+      return false;
+    }
+    if (q && !((d.doc_number || '').toLowerCase().includes(q) || (d.client_name || '').toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6">No documents match.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(d => {
+    const pastDue = d.due_date && d.due_date < todayStr && d.status !== 'paid';
+    const dateLabel = d.doc_type === 'invoice' && d.due_date ? d.due_date : (d.doc_date || '—');
+    return `
+      <tr class="client-list-row" onclick="openQuoteDocument('${escHtml(d.id)}')">
+        <td>${escHtml(d.doc_number)}</td>
+        <td>${escHtml(d.doc_type)}</td>
+        <td>${escHtml(d.client_name || '—')}</td>
+        <td><span class="reg-card-status-badge">${escHtml(pastDue ? 'Past Due' : d.status)}</span></td>
+        <td>${formatCurrency(d.total)}</td>
+        <td>${escHtml(dateLabel)}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function toggleNavGroup(toggleBtn) {
@@ -1093,11 +1268,12 @@ async function loadClientDetail() {
   const activeCount = members.filter(m => m.is_active && m.auth_user_id).length;
   const memberIds = members.map(m => m.id);
 
-  const [{ data: attendanceRows }, { data: invoiceRows }] = await Promise.all([
+  const [{ data: attendanceRows }, { data: invoiceRows }, { data: clientDocRows }] = await Promise.all([
     memberIds.length
       ? ggClient.from('attendance').select('id, participant_id, status, certificate_issued, workshop:workshop_id(title)').in('participant_id', memberIds)
       : Promise.resolve({ data: [] }),
-    ggClient.from('documents').select('id, doc_type, doc_number, status, total, doc_date, quote_clients!inner(company_id)').eq('quote_clients.company_id', companyId).order('created_at', { ascending: false })
+    ggClient.from('documents').select('id, doc_type, doc_number, status, total, doc_date, due_date').eq('company_id', companyId).order('created_at', { ascending: false }),
+    ggClient.from('client_documents').select('id, document_id, file_name, storage_path, file_size, created_at').eq('company_id', companyId).order('created_at', { ascending: false })
   ]);
 
   const rosterById = {};
@@ -1164,16 +1340,37 @@ async function loadClientDetail() {
     `;
   }).join('');
 
-  const invoiceRowsHtml = (invoiceRows || []).map(d => `
+  const invoiceRowsHtml = (invoiceRows || []).map(d => {
+    const isPastDue = d.due_date && d.due_date < todayIsoDate() && d.status !== 'paid';
+    const dateLabel = d.doc_type === 'invoice' && d.due_date ? d.due_date : (d.doc_date || '—');
+    return `
     <tr>
       <td>${escHtml(d.doc_number)}</td>
       <td>${escHtml(d.doc_type)}</td>
-      <td><span class="reg-card-status-badge">${escHtml(d.status)}</span></td>
+      <td><span class="reg-card-status-badge">${escHtml(isPastDue ? 'Past Due' : d.status)}</span></td>
       <td>${formatCurrency(d.total)}</td>
-      <td>${escHtml(d.doc_date || '—')}</td>
+      <td>${escHtml(dateLabel)}</td>
       <td><button type="button" class="btn-sm btn-sm-ghost" onclick="openQuoteDocument('${escHtml(d.id)}')">View →</button></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
+
+  const invoiceOptionsHtml = (invoiceRows || []).map(d => `<option value="${escHtml(d.id)}">${escHtml(d.doc_number)} (${escHtml(d.doc_type)})</option>`).join('');
+  const clientDocRowsHtml = (clientDocRows || []).map(doc => {
+    const linked = doc.document_id ? (invoiceRows || []).find(d => d.id === doc.document_id) : null;
+    return `
+    <tr>
+      <td>${escHtml(doc.file_name)}</td>
+      <td>${formatFileSize(doc.file_size)}</td>
+      <td>${escHtml((doc.created_at || '').slice(0, 10))}</td>
+      <td>${linked ? escHtml(linked.doc_number) : '—'}</td>
+      <td>
+        <button type="button" class="btn-sm btn-sm-ghost" onclick="viewClientDocument('${escHtml(doc.storage_path)}')">View</button>
+        <button type="button" class="btn-sm btn-sm-danger" onclick="deleteClientDocument('${escHtml(doc.id)}', '${escHtml(doc.storage_path)}')">Delete</button>
+      </td>
+    </tr>
+  `;
+  }).join('');
 
   container.innerHTML = `
     <div class="view-header">
@@ -1235,11 +1432,64 @@ async function loadClientDetail() {
     <div class="detail-section-title">Invoices</div>
     <div class="responses-table-wrap">
       <table class="responses-table">
-        <thead><tr><th>Number</th><th>Type</th><th>Status</th><th>Total</th><th>Date</th><th></th></tr></thead>
+        <thead><tr><th>Number</th><th>Type</th><th>Status</th><th>Total</th><th>Due</th><th></th></tr></thead>
         <tbody>${invoiceRowsHtml || '<tr><td colspan="6">No invoices yet.</td></tr>'}</tbody>
       </table>
     </div>
+
+    <div class="detail-section-title">Documents</div>
+    <p class="view-sub" style="margin-top:-8px;">Signed operating agreements and other files for this client.</p>
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead><tr><th>File</th><th>Size</th><th>Uploaded</th><th>Linked To</th><th></th></tr></thead>
+        <tbody>${clientDocRowsHtml || '<tr><td colspan="5">No documents uploaded yet.</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      <input type="file" id="clientDocFile" class="field-input" style="max-width:280px;">
+      <select id="clientDocLinkTo" class="field-input" style="max-width:240px;">
+        <option value="">— Not linked to a specific quote/invoice —</option>
+        ${invoiceOptionsHtml}
+      </select>
+      <button class="btn-sm btn-sm-ghost" onclick="uploadClientDocument('${company.id}')">+ Upload Document</button>
+    </div>
   `;
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function uploadClientDocument(companyId) {
+  const fileInput = document.getElementById('clientDocFile');
+  const file = fileInput.files[0];
+  if (!file) { alert('Choose a file first.'); return; }
+  const linkedDocId = document.getElementById('clientDocLinkTo').value || null;
+  const path = `${companyId}/${crypto.randomUUID()}-${file.name}`;
+  const { error: upErr } = await ggClient.storage.from('client-documents').upload(path, file);
+  if (upErr) { alert('Upload failed: ' + upErr.message); return; }
+  const { error: insErr } = await ggClient.from('client_documents').insert({
+    company_id: companyId, document_id: linkedDocId, file_name: file.name, storage_path: path, file_size: file.size
+  });
+  if (insErr) { alert('Could not save document record: ' + insErr.message); return; }
+  loadClientDetail();
+}
+
+async function viewClientDocument(path) {
+  const { data, error } = await ggClient.storage.from('client-documents').createSignedUrl(path, 300);
+  if (error || !data) { alert('Could not open file: ' + (error ? error.message : 'unknown error')); return; }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+async function deleteClientDocument(id, path) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  await ggClient.storage.from('client-documents').remove([path]);
+  const { error } = await ggClient.from('client_documents').delete().eq('id', id);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  loadClientDetail();
 }
 
 async function saveClientOverview(companyId) {
