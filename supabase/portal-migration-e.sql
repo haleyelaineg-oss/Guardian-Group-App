@@ -1,4 +1,4 @@
-`-- ============================================================
+-- ============================================================
 -- GUARDIAN GROUP — Client Portal, Migration E
 -- Unlimited-seats option for company_membership + multiple typed
 -- phone numbers on companies (for the client detail page's
@@ -28,4 +28,3 @@ alter table company_membership alter column max_seats drop not null;
 -- from the client detail page, never queried by individual phone.
 -- ============================================================
 alter table companies add column if not exists phones jsonb not null default '[]'::jsonb;
-`

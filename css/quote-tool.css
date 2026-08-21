@@ -202,8 +202,32 @@ select.qt-select {
 .qt-party select.qt-field-line.company { margin-top: 8px; font-size: 16px; font-weight: 700; color: var(--gg-dark); }
 .qt-party select.qt-field-line.company { width: 100%; box-sizing: border-box; cursor: pointer; border-bottom: 1px dotted transparent; }
 .qt-party select.qt-field-line.company:hover { border-bottom-color: var(--gg-pale); }
-.qt-client-new-row { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; }
-.qt-client-new-row input.qt-field-line.company { margin-top: 0; }
+
+/* ── New client modal ────────────────────────────────────── */
+.qt-modal-overlay {
+  position: fixed; inset: 0; background: rgba(20,30,38,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 16px;
+}
+.qt-modal-card {
+  background: var(--gg-white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 420px; box-sizing: border-box; padding: 24px;
+}
+.qt-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.qt-modal-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--gg-dark); text-transform: uppercase; }
+.qt-modal-close { border: none; background: transparent; font-size: 20px; line-height: 1; color: var(--gg-muted); cursor: pointer; padding: 4px; }
+.qt-modal-close:hover { color: var(--gg-dark); }
+.qt-modal-body { display: flex; flex-direction: column; gap: 4px; }
+.qt-modal-label { font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gg-muted); margin-top: 12px; }
+.qt-modal-label:first-child { margin-top: 0; }
+.qt-required { color: var(--gg-danger); }
+.qt-modal-input {
+  border: var(--border-field) solid var(--gg-pale); border-radius: var(--radius-sm);
+  padding: 9px 12px; font: inherit; font-size: 14px; color: var(--gg-text);
+  background: var(--gg-white); box-sizing: border-box; outline: none;
+}
+.qt-modal-input:focus { border-color: var(--gg-steel); }
+.qt-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 
 .qt-items-wrap { padding-top: 20px; overflow-x: auto; }
 .qt-item-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--gg-off); min-width: 560px; }

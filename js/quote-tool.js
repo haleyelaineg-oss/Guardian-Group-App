@@ -76,11 +76,14 @@ let state = {
   businessPhone: '',
   businessEmail: '',
   clientId: null,
+  clientCompanyId: null,
   clientCompany: '',
   clientPersonName: '',
   clientEmail: '',
   clientPhone: '',
-  clientEntryMode: 'select',
+  showNewClientModal: false,
+  newClientSaving: false,
+  newClientDraft: { name: '', contactName: '', email: '', phone: '' },
   items: [
     { id: 1, date: '', description: 'Safety & Leadership Workshop (full day)', type: 'flat', qty: '1', rate: '0' }
   ],
@@ -240,9 +243,13 @@ async function init() {
 
 // ── Data loading ─────────────────────────────────────────────
 
+function qtFirstPhone(company) {
+  return (company.phones && company.phones[0] && company.phones[0].number) || '';
+}
+
 async function loadClients() {
   if (!sb) return;
-  const { data } = await sb.from('quote_clients').select('id,name,contact_name,phone,email,notes').order('name');
+  const { data } = await sb.from('companies').select('id,name,contact_name,contact_email,phones').order('name');
   if (data) { state.clients = data; render(); }
 }
 async function loadCatalog() {
@@ -277,35 +284,63 @@ function qtBackToEditor() {
 
 function qtSelectClientOption(value) {
   if (value === '__new__') {
-    state.clientEntryMode = 'new';
-    state.clientId = null;
-    state.clientCompany = '';
-    state.clientPersonName = '';
-    state.clientEmail = '';
-    state.clientPhone = '';
-    render();
+    qtOpenNewClientModal();
     return;
   }
-  const client = state.clients.find(c => String(c.id) === String(value));
-  state.clientId = client ? client.id : null;
-  state.clientCompany = client ? client.name : '';
-  state.clientPersonName = client ? (client.contact_name || '') : '';
-  state.clientEmail = client ? (client.email || '') : '';
-  state.clientPhone = client ? (client.phone || '') : '';
+  const company = state.clients.find(c => String(c.id) === String(value));
+  state.clientCompanyId = company ? company.id : null;
+  state.clientId = null;
+  state.clientCompany = company ? company.name : '';
+  state.clientPersonName = company ? (company.contact_name || '') : '';
+  state.clientEmail = company ? (company.contact_email || '') : '';
+  state.clientPhone = company ? qtFirstPhone(company) : '';
   render();
 }
-function qtBackToClientSelect() {
-  state.clientEntryMode = 'select';
-  state.clientId = null;
-  state.clientCompany = '';
-  state.clientPersonName = '';
-  state.clientEmail = '';
-  state.clientPhone = '';
+
+function qtOpenNewClientModal() {
+  state.showNewClientModal = true;
+  state.newClientDraft = { name: '', contactName: '', email: '', phone: '' };
   render();
 }
-function qtNewClientNameInput(value) {
-  state.clientCompany = value;
+function qtCloseNewClientModal() {
+  state.showNewClientModal = false;
+  render();
+}
+function qtSetNewClientField(field, value) {
+  state.newClientDraft[field] = value;
+}
+async function qtCreateNewClient() {
+  const name = (state.newClientDraft.name || '').trim();
+  if (!name) { flashMessage('Company name is required.'); return; }
+  if (!sb) return;
+  state.newClientSaving = true;
+  render();
+  const contactName = (state.newClientDraft.contactName || '').trim();
+  const email = (state.newClientDraft.email || '').trim();
+  const phone = (state.newClientDraft.phone || '').trim();
+  const { data: company, error } = await sb.from('companies').insert({
+    name: name,
+    contact_name: contactName || null,
+    contact_email: email || null,
+    phones: phone ? [{ type: 'Office', number: phone }] : []
+  }).select('id,name,contact_name,contact_email,phones').single();
+  state.newClientSaving = false;
+  if (error || !company) {
+    render();
+    flashMessage('Could not create client — try again.');
+    return;
+  }
+  state.clients.push(company);
+  state.clients.sort((a, b) => a.name.localeCompare(b.name));
+  state.clientCompanyId = company.id;
   state.clientId = null;
+  state.clientCompany = company.name;
+  state.clientPersonName = contactName;
+  state.clientEmail = email;
+  state.clientPhone = phone;
+  state.showNewClientModal = false;
+  render();
+  flashMessage('Client created ✓');
 }
 
 function qtPickCatalogItem(value) {
@@ -335,24 +370,31 @@ async function qtSaveItemToCatalog(id) {
 }
 
 async function upsertClient() {
-  const name = (state.clientCompany || '').trim();
-  if (!name || !sb) return state.clientId || null;
-  const existing = state.clients.find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (!sb) return state.clientId || null;
+  // No company selected — either nothing picked, or this is a legacy
+  // document whose quote_clients row was never linked to a company.
+  // Keep using its already-resolved quote_clients id as-is.
+  if (!state.clientCompanyId) return state.clientId || null;
+
+  const { data: existing } = await sb.from('quote_clients')
+    .select('id,contact_name,phone,email').eq('company_id', state.clientCompanyId).maybeSingle();
   if (existing) {
     const patch = {};
     if (state.clientPersonName && !existing.contact_name) patch.contact_name = state.clientPersonName;
     if (state.clientPhone && !existing.phone) patch.phone = state.clientPhone;
     if (state.clientEmail && !existing.email) patch.email = state.clientEmail;
-    if (Object.keys(patch).length) {
-      await sb.from('quote_clients').update(patch).eq('id', existing.id);
-      Object.assign(existing, patch);
-    }
+    if (Object.keys(patch).length) await sb.from('quote_clients').update(patch).eq('id', existing.id);
     return existing.id;
   }
+  const company = state.clients.find(c => c.id === state.clientCompanyId);
   const { data, error } = await sb.from('quote_clients').insert({
-    name: name, contact_name: state.clientPersonName || '', phone: state.clientPhone || '', email: state.clientEmail || ''
-  }).select('id,name,contact_name,phone,email,notes').single();
-  if (!error && data) { state.clients.push(data); return data.id; }
+    name: (company && company.name) || state.clientCompany,
+    contact_name: state.clientPersonName || '',
+    phone: state.clientPhone || '',
+    email: state.clientEmail || '',
+    company_id: state.clientCompanyId
+  }).select('id').single();
+  if (!error && data) return data.id;
   return null;
 }
 
@@ -438,6 +480,11 @@ async function qtOpenDocument(id) {
   }
   const items = (data.items && data.items.length) ? data.items : [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }];
   itemIdCounter = Math.max.apply(null, items.map(i => i.id || 1));
+  let clientCompanyId = null;
+  if (data.client_id) {
+    const qc = await sb.from('quote_clients').select('company_id').eq('id', data.client_id).maybeSingle();
+    clientCompanyId = qc.data ? qc.data.company_id : null;
+  }
   Object.assign(state, {
     currentDocId: data.id,
     parentDocId: data.parent_doc_id,
@@ -454,11 +501,11 @@ async function qtOpenDocument(id) {
     businessPhone: data.business_phone || state.businessPhone,
     businessEmail: data.business_email || state.businessEmail,
     clientId: data.client_id,
+    clientCompanyId: clientCompanyId,
     clientCompany: data.client_name || '',
     clientPersonName: data.client_person_name || '',
     clientEmail: data.client_email || '',
     clientPhone: data.client_phone || '',
-    clientEntryMode: 'select',
     items: items,
     discountType: data.discount_type || '$',
     discountValue: String(data.discount_value != null ? data.discount_value : 0),
@@ -582,11 +629,11 @@ function resetToBlank(mode) {
     paymentMethod: '',
     paymentMethodOther: '',
     clientId: null,
+    clientCompanyId: null,
     clientCompany: '',
     clientPersonName: '',
     clientEmail: '',
     clientPhone: '',
-    clientEntryMode: 'select',
     items: [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }],
     discountType: '$',
     discountValue: '0',
@@ -680,6 +727,35 @@ function renderUnlocked() {
       </div>
       ${isListView ? renderListView() : ''}
       ${isEditorView ? renderEditorView() : ''}
+      ${s.showNewClientModal ? renderNewClientModal() : ''}
+    </div>`;
+}
+
+function renderNewClientModal() {
+  const d = state.newClientDraft;
+  const saving = state.newClientSaving;
+  return `
+    <div class="qt-modal-overlay" data-noprint onclick="if (event.target === this) qtCloseNewClientModal()">
+      <div class="qt-modal-card">
+        <div class="qt-modal-header">
+          <h3 class="qt-modal-title">New Client</h3>
+          <button type="button" class="qt-modal-close" onclick="qtCloseNewClientModal()">&times;</button>
+        </div>
+        <div class="qt-modal-body">
+          <label class="qt-modal-label">Company Name <span class="qt-required">*</span></label>
+          <input class="qt-modal-input" value="${escAttr(d.name)}" placeholder="e.g. Acme Industrial" oninput="qtSetNewClientField('name', this.value)">
+          <label class="qt-modal-label">Contact Name</label>
+          <input class="qt-modal-input" value="${escAttr(d.contactName)}" placeholder="Jane Smith" oninput="qtSetNewClientField('contactName', this.value)">
+          <label class="qt-modal-label">Email</label>
+          <input class="qt-modal-input" type="email" value="${escAttr(d.email)}" placeholder="jane@acme.com" oninput="qtSetNewClientField('email', this.value)">
+          <label class="qt-modal-label">Phone</label>
+          <input class="qt-modal-input" value="${escAttr(d.phone)}" placeholder="(555) 555-5555" oninput="qtSetNewClientField('phone', this.value)">
+        </div>
+        <div class="qt-modal-actions">
+          <button type="button" class="qt-btn qt-btn-muted" onclick="qtCloseNewClientModal()">Cancel</button>
+          <button type="button" class="qt-btn qt-btn-primary" onclick="qtCreateNewClient()">${saving ? 'Saving…' : 'Add Client →'}</button>
+        </div>
+      </div>
     </div>`;
 }
 
@@ -804,20 +880,12 @@ function renderEditorView() {
       </div>
       <div class="qt-party">
         <div class="qt-eyebrow">${esc(billToLabel)}</div>
-        ${s.clientEntryMode === 'new' ? `
-        <div class="qt-client-new-row" data-noprint>
-          <input class="qt-field-line company" style="flex:1;" value="${escAttr(s.clientCompany)}" placeholder="New client — company name" oninput="qtNewClientNameInput(this.value)">
-          ${s.clients.length ? `<button type="button" class="qt-btn-text" onclick="qtBackToClientSelect()">Choose existing →</button>` : ''}
-        </div>
-        <div class="qt-field-line company" data-printonly style="display:none;">${esc(s.clientCompany || 'New client')}</div>
-        ` : `
         <select class="qt-field-line company" data-noprint onchange="qtSelectClientOption(this.value)">
           <option value="">— Select client —</option>
-          ${s.clients.map(c => `<option value="${escAttr(String(c.id))}" ${String(s.clientId) === String(c.id) ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          ${s.clients.map(c => `<option value="${escAttr(String(c.id))}" ${String(s.clientCompanyId) === String(c.id) ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
           <option value="__new__">+ Create New Client</option>
         </select>
         <div class="qt-field-line company" data-printonly style="display:none;">${esc(s.clientCompany || '—')}</div>
-        `}
         <input class="qt-field-line first" id="qtClientPersonName" value="${escAttr(s.clientPersonName)}" placeholder="Contact name" oninput="qtSetField('clientPersonName', this.value)">
         <input class="qt-field-line" id="qtClientPhone" value="${escAttr(s.clientPhone)}" placeholder="Phone" oninput="qtSetField('clientPhone', this.value)">
         <input class="qt-field-line" id="qtClientEmail" value="${escAttr(s.clientEmail)}" placeholder="Email" oninput="qtSetField('clientEmail', this.value)">
