@@ -590,6 +590,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   border: none;
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .btn-sm-ghost {
   background: var(--gg-off);
@@ -898,6 +899,8 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .calendar-event-chip.event-type-workshop { background: rgba(82,130,156,0.18); color: var(--gg-steel); }
 .calendar-event-chip.event-type-travel   { background: rgba(46,125,79,0.12); color: #2e7d4f; }
 .calendar-event-chip.event-type-meeting  { background: rgba(192,141,43,0.14); color: #a56a1a; }
+.calendar-event-chip.event-type-speaking { background: rgba(124,77,175,0.14); color: #6a3fa0; }
+.calendar-event-chip.event-type-training { background: rgba(15,125,138,0.14); color: #0f7d8a; }
 
 /* ── EVENT DETAIL MODAL TABS ─────────────────────────────── */
 .event-tabs {

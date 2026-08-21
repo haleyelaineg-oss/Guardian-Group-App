@@ -1,8 +1,10 @@
 // ============================================================
 // GUARDIAN GROUP — admin-calendar.js
-// Handles: calendar month grid, events, per-event travel items
-// and expenses. Relies on globals defined in admin.js: ggClient,
-// escHtml, formatCurrency, formatDate, buildScheduledAt,
+// Handles: calendar month grid, events, a unified itinerary
+// (travel logistics + trip content in one table, fields shown
+// depend on Type), expenses, and document attachments. Relies on
+// globals defined in admin.js: ggClient, escHtml, formatCurrency,
+// formatDate, formatFileSize, buildScheduledAt,
 // handleModalOverlayClick.
 // ============================================================
 
@@ -11,11 +13,29 @@ let calendarEventsCache = [];
 let currentEventId = null;
 let currentEventTab = 'details';
 let cachedCompaniesForEvents = null;
-let cachedWorkshopsForEvents = null;
+let cachedInvoicesForEvents = null;
+let editingItineraryItemId = null;
+let currentItineraryItems = [];
+let currentExpenses = [];
+let currentEventDocuments = [];
 
-const EVENT_TYPE_LABELS = { workshop: 'Workshop', travel: 'Travel', meeting: 'Meeting', other: 'Other' };
-const TRAVEL_ITEM_TYPE_LABELS = { flight: 'Flight', hotel: 'Hotel', car_rental: 'Car Rental', other: 'Other' };
+const EVENT_TYPE_LABELS = { workshop: 'Workshop', travel: 'Travel', meeting: 'Meeting', speaking: 'Speaking Engagement', training: 'Training', other: 'Other' };
 const EXPENSE_CATEGORY_LABELS = { travel: 'Travel', lodging: 'Lodging', meals: 'Meals', materials: 'Materials', venue: 'Venue', other: 'Other' };
+const ITINERARY_ITEM_TYPE_LABELS = {
+  driving_to: 'Driving To',
+  driving_home: 'Driving Home',
+  departing_flight: 'Departing Flight',
+  return_flight: 'Return Flight',
+  hotel: 'Hotel',
+  car_rental: 'Car Rental',
+  speaking_session: 'Speaking Session',
+  training_session: 'Training Session',
+  other: 'Other'
+};
+// Which extra field groups show on the itinerary item form/table, based on Type.
+// "other" shows both, since it's the catch-all and could be either kind of item.
+const LOGISTICS_TYPES = new Set(['driving_to', 'driving_home', 'departing_flight', 'return_flight', 'hotel', 'car_rental']);
+const SESSION_TYPES = new Set(['speaking_session', 'training_session']);
 
 // ── MONTH GRID ────────────────────────────────────────────────
 async function loadCalendarMonth() {
@@ -28,11 +48,17 @@ async function loadCalendarMonth() {
   const gridEnd = new Date(gridStart);
   gridEnd.setDate(gridEnd.getDate() + 42);
 
+  const gridStartIso = gridStart.toISOString();
+  const gridEndIso = gridEnd.toISOString();
+
+  // An event is visible on this grid if it starts before the grid
+  // ends, AND either its end date reaches into the grid, or (for
+  // events with no end date) it starts within the grid.
   const { data, error } = await ggClient
     .from('events')
     .select('id, title, event_type, starts_at, ends_at, all_day')
-    .gte('starts_at', gridStart.toISOString())
-    .lt('starts_at', gridEnd.toISOString())
+    .lt('starts_at', gridEndIso)
+    .or(`ends_at.gte.${gridStartIso},and(ends_at.is.null,starts_at.gte.${gridStartIso})`)
     .order('starts_at', { ascending: true });
 
   calendarEventsCache = error ? [] : (data || []);
@@ -50,9 +76,16 @@ function renderCalendarGrid() {
 
   const eventsByDay = {};
   calendarEventsCache.forEach(ev => {
-    const key = new Date(ev.starts_at).toDateString();
-    if (!eventsByDay[key]) eventsByDay[key] = [];
-    eventsByDay[key].push(ev);
+    const start = new Date(ev.starts_at);
+    const end = ev.ends_at ? new Date(ev.ends_at) : start;
+    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const lastDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    while (cursor <= lastDay) {
+      const key = cursor.toDateString();
+      if (!eventsByDay[key]) eventsByDay[key] = [];
+      eventsByDay[key].push(ev);
+      cursor.setDate(cursor.getDate() + 1);
+    }
   });
 
   const todayKey = new Date().toDateString();
@@ -98,39 +131,77 @@ function calendarGoToday() {
 }
 
 // ── EVENT SELECT OPTIONS (shared by create form + edit tab) ───
-async function populateEventSelectOptions(companySelectId, workshopSelectId) {
+async function populateEventSelectOptions(companySelectId) {
   if (!cachedCompaniesForEvents) {
     const { data } = await ggClient.from('companies').select('id, name').order('name', { ascending: true });
     cachedCompaniesForEvents = data || [];
   }
-  if (!cachedWorkshopsForEvents) {
-    const { data } = await ggClient.from('workshops').select('id, title, workshop_date').order('workshop_date', { ascending: false });
-    cachedWorkshopsForEvents = data || [];
+  fillCompanySelect(companySelectId);
+}
+
+function fillCompanySelect(selectId) {
+  const select = document.getElementById(selectId);
+  const value = select.value;
+  select.innerHTML = '<option value="">— None —</option>' +
+    cachedCompaniesForEvents.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') +
+    '<option value="__new__">+ Create New Client</option>';
+  select.value = value;
+}
+
+// Any Client <select> that offers "+ Create New Client" wires its
+// onchange here — prompts for a name, creates a minimal companies
+// row, refreshes every Client select on screen, and selects it.
+async function handleClientSelectChange(selectEl) {
+  if (selectEl.value !== '__new__') return;
+
+  const name = prompt('New client name:');
+  if (!name || !name.trim()) { selectEl.value = ''; return; }
+
+  const { data, error } = await ggClient.from('companies').insert({ name: name.trim() }).select('id, name').single();
+  if (error) { alert('Could not create client: ' + error.message); selectEl.value = ''; return; }
+
+  cachedCompaniesForEvents = [...(cachedCompaniesForEvents || []), data].sort((a, b) => a.name.localeCompare(b.name));
+  ['newEventCompany', 'editEventCompany', 'itineraryItemCompany'].forEach(id => {
+    if (document.getElementById(id)) fillCompanySelect(id);
+  });
+  selectEl.value = data.id;
+}
+
+// ── ITINERARY FORM SELECT OPTIONS (Client + Invoice) ───────────
+async function populateItineraryFormSelects() {
+  if (!cachedCompaniesForEvents) {
+    const { data } = await ggClient.from('companies').select('id, name').order('name', { ascending: true });
+    cachedCompaniesForEvents = data || [];
   }
+  fillCompanySelect('itineraryItemCompany');
 
-  const companySelect = document.getElementById(companySelectId);
-  const companyValue = companySelect.value;
-  companySelect.innerHTML = '<option value="">— None —</option>' +
-    cachedCompaniesForEvents.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
-  companySelect.value = companyValue;
-
-  const workshopSelect = document.getElementById(workshopSelectId);
-  const workshopValue = workshopSelect.value;
-  workshopSelect.innerHTML = '<option value="">— None —</option>' +
-    cachedWorkshopsForEvents.map(w => `<option value="${w.id}">${escHtml(w.title)}${w.workshop_date ? ' — ' + formatDate(w.workshop_date) : ''}</option>`).join('');
-  workshopSelect.value = workshopValue;
+  if (!cachedInvoicesForEvents) {
+    const { data } = await ggClient
+      .from('documents')
+      .select('id, doc_number, client_name, total')
+      .eq('doc_type', 'invoice')
+      .order('doc_number', { ascending: false });
+    cachedInvoicesForEvents = data || [];
+  }
+  const invoiceSelect = document.getElementById('itineraryItemInvoice');
+  const invoiceValue = invoiceSelect.value;
+  invoiceSelect.innerHTML = '<option value="">— None —</option>' +
+    cachedInvoicesForEvents.map(inv =>
+      `<option value="${inv.id}">${escHtml(inv.doc_number)}${inv.client_name ? ' — ' + escHtml(inv.client_name) : ''} (${formatCurrency(inv.total)})</option>`
+    ).join('');
+  invoiceSelect.value = invoiceValue;
 }
 
 // ── CREATE EVENT ────────────────────────────────────────────────
 function showCreateEvent() {
   document.getElementById('createEventCard').style.display = 'block';
-  populateEventSelectOptions('newEventCompany', 'newEventWorkshop');
+  populateEventSelectOptions('newEventCompany');
 }
 function hideCreateEvent() {
   document.getElementById('createEventCard').style.display = 'none';
 }
 
-async function createEvent() {
+async function createCalendarEvent() {
   const title = document.getElementById('newEventTitle').value.trim();
   const startDate = document.getElementById('newEventStartDate').value;
   if (!title || !startDate) {
@@ -138,20 +209,17 @@ async function createEvent() {
     return;
   }
 
-  const startTime = document.getElementById('newEventStartTime').value;
   const endDate = document.getElementById('newEventEndDate').value;
-  const endTime = document.getElementById('newEventEndTime').value;
   const budget = document.getElementById('newEventBudget').value;
 
   const payload = {
     title,
     event_type: document.getElementById('newEventType').value,
-    starts_at: buildScheduledAt(startDate, startTime) || new Date(`${startDate}T00:00:00`).toISOString(),
-    ends_at: endDate ? (buildScheduledAt(endDate, endTime) || new Date(`${endDate}T00:00:00`).toISOString()) : null,
-    all_day: document.getElementById('newEventAllDay').checked,
+    starts_at: new Date(`${startDate}T00:00:00`).toISOString(),
+    ends_at: endDate ? new Date(`${endDate}T00:00:00`).toISOString() : null,
+    all_day: true,
     location: document.getElementById('newEventLocation').value.trim() || null,
     company_id: document.getElementById('newEventCompany').value || null,
-    workshop_id: document.getElementById('newEventWorkshop').value || null,
     budget_amount: budget ? parseFloat(budget) : null,
     notes: document.getElementById('newEventNotes').value.trim() || null
   };
@@ -159,13 +227,11 @@ async function createEvent() {
   const { error } = await ggClient.from('events').insert(payload);
   if (error) { alert('Could not create event: ' + error.message); return; }
 
-  ['newEventTitle', 'newEventStartDate', 'newEventStartTime', 'newEventEndDate', 'newEventEndTime', 'newEventLocation', 'newEventBudget', 'newEventNotes'].forEach(id => {
+  ['newEventTitle', 'newEventStartDate', 'newEventEndDate', 'newEventLocation', 'newEventBudget', 'newEventNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('newEventAllDay').checked = false;
   document.getElementById('newEventType').value = 'other';
   document.getElementById('newEventCompany').value = '';
-  document.getElementById('newEventWorkshop').value = '';
 
   hideCreateEvent();
   loadCalendarMonth();
@@ -175,7 +241,8 @@ async function createEvent() {
 async function showEventDetail(eventId) {
   currentEventId = eventId;
   document.getElementById('eventDetailModal').style.display = 'flex';
-  await populateEventSelectOptions('editEventCompany', 'editEventWorkshop');
+  await populateEventSelectOptions('editEventCompany');
+  await populateItineraryFormSelects();
   switchEventTab('details');
   loadEventDetail();
 }
@@ -187,7 +254,7 @@ function hideEventDetail() {
 
 function switchEventTab(tabName) {
   currentEventTab = tabName;
-  const tabs = { details: 'Details', travel: 'Travel', spending: 'Spending' };
+  const tabs = { details: 'Details', itinerary: 'Itinerary', spending: 'Spending', documents: 'Documents' };
   Object.keys(tabs).forEach(t => {
     document.getElementById(`eventTabPanel${tabs[t]}`).classList.toggle('active', t === tabName);
     document.getElementById(`eventTabBtn${tabs[t]}`).classList.toggle('active', t === tabName);
@@ -197,10 +264,11 @@ function switchEventTab(tabName) {
 async function loadEventDetail() {
   if (!currentEventId) return;
 
-  const [{ data: event, error }, { data: travelItems }, { data: expenses }] = await Promise.all([
+  const [{ data: event, error }, { data: expenses }, { data: itineraryItems }, { data: documents }] = await Promise.all([
     ggClient.from('events').select('*').eq('id', currentEventId).single(),
-    ggClient.from('event_travel_items').select('*').eq('event_id', currentEventId).order('departs_at', { ascending: true, nullsFirst: false }),
-    ggClient.from('event_expenses').select('*').eq('event_id', currentEventId).order('incurred_on', { ascending: true, nullsFirst: false })
+    ggClient.from('event_expenses').select('*').eq('event_id', currentEventId).order('incurred_on', { ascending: true, nullsFirst: false }),
+    ggClient.from('event_itinerary_items').select('*').eq('event_id', currentEventId).order('starts_at', { ascending: true, nullsFirst: false }),
+    ggClient.from('event_documents').select('*').eq('event_id', currentEventId).order('created_at', { ascending: false })
   ]);
 
   if (error || !event) {
@@ -209,34 +277,28 @@ async function loadEventDetail() {
     return;
   }
 
+  currentItineraryItems = itineraryItems || [];
+  currentExpenses = expenses || [];
+  currentEventDocuments = documents || [];
+
   document.getElementById('eventDetailTitle').textContent = event.title;
   renderEventDetailsTab(event);
-  renderEventTravelTab(travelItems || []);
-  renderEventSpendingTab(event, expenses || []);
+  renderEventItineraryTab(currentItineraryItems, currentEventDocuments);
+  renderEventSpendingTab(event, currentExpenses, currentItineraryItems);
+  renderEventDocumentsTab(currentEventDocuments, currentItineraryItems, currentExpenses);
+  populateEventDocLinkOptions(currentItineraryItems, currentExpenses);
 }
 
 function renderEventDetailsTab(event) {
   document.getElementById('editEventTitle').value = event.title || '';
   document.getElementById('editEventType').value = event.event_type || 'other';
   document.getElementById('editEventCompany').value = event.company_id || '';
-  document.getElementById('editEventWorkshop').value = event.workshop_id || '';
   document.getElementById('editEventLocation').value = event.location || '';
   document.getElementById('editEventBudget').value = event.budget_amount != null ? event.budget_amount : '';
-  document.getElementById('editEventAllDay').checked = !!event.all_day;
   document.getElementById('editEventNotes').value = event.notes || '';
 
-  const starts = new Date(event.starts_at);
-  document.getElementById('editEventStartDate').value = toDateInputValue(starts);
-  document.getElementById('editEventStartTime').value = event.all_day ? '' : toTimeInputValue(starts);
-
-  if (event.ends_at) {
-    const ends = new Date(event.ends_at);
-    document.getElementById('editEventEndDate').value = toDateInputValue(ends);
-    document.getElementById('editEventEndTime').value = event.all_day ? '' : toTimeInputValue(ends);
-  } else {
-    document.getElementById('editEventEndDate').value = '';
-    document.getElementById('editEventEndTime').value = '';
-  }
+  document.getElementById('editEventStartDate').value = toDateInputValue(new Date(event.starts_at));
+  document.getElementById('editEventEndDate').value = event.ends_at ? toDateInputValue(new Date(event.ends_at)) : '';
 }
 
 async function saveEventDetails() {
@@ -249,20 +311,17 @@ async function saveEventDetails() {
     return;
   }
 
-  const startTime = document.getElementById('editEventStartTime').value;
   const endDate = document.getElementById('editEventEndDate').value;
-  const endTime = document.getElementById('editEventEndTime').value;
   const budget = document.getElementById('editEventBudget').value;
 
   const payload = {
     title,
     event_type: document.getElementById('editEventType').value,
-    starts_at: buildScheduledAt(startDate, startTime) || new Date(`${startDate}T00:00:00`).toISOString(),
-    ends_at: endDate ? (buildScheduledAt(endDate, endTime) || new Date(`${endDate}T00:00:00`).toISOString()) : null,
-    all_day: document.getElementById('editEventAllDay').checked,
+    starts_at: new Date(`${startDate}T00:00:00`).toISOString(),
+    ends_at: endDate ? new Date(`${endDate}T00:00:00`).toISOString() : null,
+    all_day: true,
     location: document.getElementById('editEventLocation').value.trim() || null,
     company_id: document.getElementById('editEventCompany').value || null,
-    workshop_id: document.getElementById('editEventWorkshop').value || null,
     budget_amount: budget ? parseFloat(budget) : null,
     notes: document.getElementById('editEventNotes').value.trim() || null
   };
@@ -276,7 +335,7 @@ async function saveEventDetails() {
 
 async function deleteEvent(eventId) {
   if (!eventId) return;
-  if (!confirm('Delete this event? This also deletes its travel items and expenses. This cannot be undone.')) return;
+  if (!confirm('Delete this event? This also deletes its itinerary items and expenses. This cannot be undone.')) return;
 
   const { error } = await ggClient.from('events').delete().eq('id', eventId);
   if (error) { alert('Could not delete event: ' + error.message); return; }
@@ -285,109 +344,194 @@ async function deleteEvent(eventId) {
   loadCalendarMonth();
 }
 
-// ── TRAVEL TAB ────────────────────────────────────────────────
-function renderEventTravelTab(items) {
-  const container = document.getElementById('eventTravelList');
+// ── ITINERARY TAB (travel logistics + trip content, unified) ──
+function updateItineraryFormFieldsForType() {
+  const type = document.getElementById('itineraryItemType').value;
+  const showLogistics = LOGISTICS_TYPES.has(type) || type === 'other';
+  const showSession = SESSION_TYPES.has(type) || type === 'other';
+  document.querySelectorAll('.itin-logistics-field').forEach(el => { el.style.display = showLogistics ? '' : 'none'; });
+  document.querySelectorAll('.itin-session-field').forEach(el => { el.style.display = showSession ? '' : 'none'; });
+}
+
+function toggleItineraryAddressFields() {
+  const el = document.getElementById('itineraryAddressFields');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyItineraryAddress() {
+  const parts = [
+    document.getElementById('itineraryAddrStreet').value.trim(),
+    document.getElementById('itineraryAddrCity').value.trim(),
+    [document.getElementById('itineraryAddrRegion').value.trim(), document.getElementById('itineraryAddrPostal').value.trim()].filter(Boolean).join(' '),
+    document.getElementById('itineraryAddrCountry').value.trim()
+  ].filter(Boolean);
+  document.getElementById('itineraryItemLocation').value = parts.join(', ');
+  document.getElementById('itineraryAddressFields').style.display = 'none';
+}
+
+function renderEventItineraryTab(items, documents) {
+  const container = document.getElementById('eventItineraryList');
   if (!items.length) {
-    container.innerHTML = '<p class="empty-hint">No travel planned yet.</p>';
+    container.innerHTML = '<p class="empty-hint">No itinerary items yet.</p>';
     return;
   }
+
+  const companyById = Object.fromEntries((cachedCompaniesForEvents || []).map(c => [c.id, c.name]));
+  const invoiceById = Object.fromEntries((cachedInvoicesForEvents || []).map(i => [i.id, i.doc_number]));
 
   container.innerHTML = `
     <div class="responses-table-wrap">
       <table class="responses-table">
         <thead>
-          <tr><th>Type</th><th>Description</th><th>Provider</th><th>Departs</th><th>Arrives</th><th>Cost</th><th>Status</th><th></th></tr>
+          <tr><th>Type</th><th>Title</th><th>Provider</th><th>Client</th><th>Starts</th><th>Ends</th><th>Location</th><th>Cost</th><th>Status</th><th>Income</th><th>Invoice</th><th></th></tr>
         </thead>
         <tbody>
-          ${items.map(item => `
+          ${items.map(item => {
+            const docCount = (documents || []).filter(d => d.itinerary_item_id === item.id).length;
+            const isLogistics = LOGISTICS_TYPES.has(item.item_type);
+            return `
             <tr>
-              <td>${escHtml(TRAVEL_ITEM_TYPE_LABELS[item.item_type] || item.item_type)}</td>
-              <td>${escHtml(item.description)}${item.confirmation_number ? `<br><span class="field-hint">Conf# ${escHtml(item.confirmation_number)}</span>` : ''}</td>
+              <td>${escHtml(ITINERARY_ITEM_TYPE_LABELS[item.item_type] || item.item_type)}</td>
+              <td>${escHtml(item.title)}${item.confirmation_number ? `<br><span class="field-hint">Conf# ${escHtml(item.confirmation_number)}</span>` : ''}</td>
               <td>${escHtml(item.provider || '—')}</td>
-              <td>${item.departs_at ? formatDateTime(item.departs_at) : '—'}</td>
-              <td>${item.arrives_at ? formatDateTime(item.arrives_at) : '—'}</td>
+              <td>${item.company_id ? escHtml(companyById[item.company_id] || '—') : '—'}</td>
+              <td>${item.starts_at ? formatDateTime(item.starts_at) : '—'}</td>
+              <td>${item.ends_at ? formatDateTime(item.ends_at) : '—'}</td>
+              <td>${escHtml(item.location || '—')}</td>
               <td>${item.cost != null ? formatCurrency(item.cost) : '—'}</td>
+              <td>${isLogistics ? escHtml(item.status || 'planned') : '—'}</td>
+              <td>${item.income_amount != null ? formatCurrency(item.income_amount) : '—'}</td>
+              <td>${item.invoice_id ? escHtml(invoiceById[item.invoice_id] || '—') : '—'}</td>
               <td>
-                <select class="attendance-status-select" onchange="updateTravelItemField('${item.id}', 'status', this.value)">
-                  <option value="planned" ${item.status === 'planned' ? 'selected' : ''}>Planned</option>
-                  <option value="booked" ${item.status === 'booked' ? 'selected' : ''}>Booked</option>
-                  <option value="cancelled" ${item.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                </select>
+                <button class="btn-sm btn-sm-ghost" onclick="editItineraryItem('${item.id}')">Edit</button>
+                <button class="btn-sm btn-sm-ghost" onclick="openDocumentsForItineraryItem('${item.id}')">Docs${docCount ? ' (' + docCount + ')' : ''}</button>
+                <button class="btn-sm btn-sm-danger" onclick="deleteItineraryItem('${item.id}')">Delete</button>
               </td>
-              <td><button class="btn-sm btn-sm-danger" onclick="deleteTravelItem('${item.id}')">Delete</button></td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
     </div>
   `;
 }
 
-function showAddTravelItem() {
-  document.getElementById('addTravelItemCard').style.display = 'block';
-  document.getElementById('showAddTravelItemBtn').style.display = 'none';
-}
-function hideAddTravelItem() {
-  document.getElementById('addTravelItemCard').style.display = 'none';
-  document.getElementById('showAddTravelItemBtn').style.display = 'inline-block';
-}
-
-async function addTravelItem() {
-  const description = document.getElementById('travelItemDescription').value.trim();
-  if (!description) { alert('Description is required.'); return; }
-
-  const departsDate = document.getElementById('travelItemDepartsDate').value;
-  const departsTime = document.getElementById('travelItemDepartsTime').value;
-  const arrivesDate = document.getElementById('travelItemArrivesDate').value;
-  const arrivesTime = document.getElementById('travelItemArrivesTime').value;
-  const cost = document.getElementById('travelItemCost').value;
-
-  const payload = {
-    event_id: currentEventId,
-    item_type: document.getElementById('travelItemType').value,
-    description,
-    provider: document.getElementById('travelItemProvider').value.trim() || null,
-    confirmation_number: document.getElementById('travelItemConfirmation').value.trim() || null,
-    departs_at: departsDate ? (buildScheduledAt(departsDate, departsTime) || new Date(`${departsDate}T00:00:00`).toISOString()) : null,
-    arrives_at: arrivesDate ? (buildScheduledAt(arrivesDate, arrivesTime) || new Date(`${arrivesDate}T00:00:00`).toISOString()) : null,
-    cost: cost ? parseFloat(cost) : null,
-    status: document.getElementById('travelItemStatus').value,
-    notes: document.getElementById('travelItemNotes').value.trim() || null
-  };
-
-  const { error } = await ggClient.from('event_travel_items').insert(payload);
-  if (error) { alert('Could not add travel item: ' + error.message); return; }
-
-  ['travelItemDescription', 'travelItemProvider', 'travelItemConfirmation', 'travelItemDepartsDate', 'travelItemDepartsTime', 'travelItemArrivesDate', 'travelItemArrivesTime', 'travelItemCost', 'travelItemNotes'].forEach(id => {
+function resetItineraryForm() {
+  ['itineraryItemTitle', 'itineraryItemStartDate', 'itineraryItemStartTime', 'itineraryItemEndDate', 'itineraryItemEndTime',
+   'itineraryItemLocation', 'itineraryItemProvider', 'itineraryItemConfirmation', 'itineraryItemCost', 'itineraryItemIncome', 'itineraryItemNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('travelItemType').value = 'flight';
-  document.getElementById('travelItemStatus').value = 'planned';
+  document.getElementById('itineraryItemType').value = 'other';
+  document.getElementById('itineraryItemStatus').value = 'planned';
+  document.getElementById('itineraryItemCompany').value = '';
+  document.getElementById('itineraryItemInvoice').value = '';
+  document.getElementById('itineraryAddressFields').style.display = 'none';
+  ['itineraryAddrStreet', 'itineraryAddrCity', 'itineraryAddrRegion', 'itineraryAddrPostal', 'itineraryAddrCountry'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  updateItineraryFormFieldsForType();
+}
 
-  hideAddTravelItem();
+function showAddItineraryItem() {
+  editingItineraryItemId = null;
+  resetItineraryForm();
+  document.getElementById('addItineraryItemCardTitle').textContent = 'Add Itinerary Item';
+  document.getElementById('itineraryItemSubmitBtn').textContent = 'Add Itinerary Item →';
+  document.getElementById('addItineraryItemCard').style.display = 'block';
+  document.getElementById('showAddItineraryItemBtn').style.display = 'none';
+}
+function hideAddItineraryItem() {
+  document.getElementById('addItineraryItemCard').style.display = 'none';
+  document.getElementById('showAddItineraryItemBtn').style.display = 'inline-block';
+}
+
+function editItineraryItem(itemId) {
+  const item = currentItineraryItems.find(i => i.id === itemId);
+  if (!item) return;
+
+  editingItineraryItemId = itemId;
+  document.getElementById('itineraryItemType').value = item.item_type || 'other';
+  document.getElementById('itineraryItemTitle').value = item.title || '';
+  document.getElementById('itineraryItemStartDate').value = item.starts_at ? toDateInputValue(new Date(item.starts_at)) : '';
+  document.getElementById('itineraryItemStartTime').value = item.starts_at ? toTimeInputValue(new Date(item.starts_at)) : '';
+  document.getElementById('itineraryItemEndDate').value = item.ends_at ? toDateInputValue(new Date(item.ends_at)) : '';
+  document.getElementById('itineraryItemEndTime').value = item.ends_at ? toTimeInputValue(new Date(item.ends_at)) : '';
+  document.getElementById('itineraryItemLocation').value = item.location || '';
+  document.getElementById('itineraryItemProvider').value = item.provider || '';
+  document.getElementById('itineraryItemConfirmation').value = item.confirmation_number || '';
+  document.getElementById('itineraryItemCost').value = item.cost != null ? item.cost : '';
+  document.getElementById('itineraryItemStatus').value = item.status || 'planned';
+  document.getElementById('itineraryItemCompany').value = item.company_id || '';
+  document.getElementById('itineraryItemIncome').value = item.income_amount != null ? item.income_amount : '';
+  document.getElementById('itineraryItemInvoice').value = item.invoice_id || '';
+  document.getElementById('itineraryItemNotes').value = item.notes || '';
+  document.getElementById('itineraryAddressFields').style.display = 'none';
+
+  updateItineraryFormFieldsForType();
+
+  document.getElementById('addItineraryItemCardTitle').textContent = 'Edit Itinerary Item';
+  document.getElementById('itineraryItemSubmitBtn').textContent = 'Save Changes →';
+  document.getElementById('addItineraryItemCard').style.display = 'block';
+  document.getElementById('showAddItineraryItemBtn').style.display = 'none';
+}
+
+async function saveItineraryItem() {
+  const title = document.getElementById('itineraryItemTitle').value.trim();
+  if (!title) { alert('Title is required.'); return; }
+
+  const startDate = document.getElementById('itineraryItemStartDate').value;
+  const startTime = document.getElementById('itineraryItemStartTime').value;
+  const endDate = document.getElementById('itineraryItemEndDate').value;
+  const endTime = document.getElementById('itineraryItemEndTime').value;
+  const cost = document.getElementById('itineraryItemCost').value;
+  const income = document.getElementById('itineraryItemIncome').value;
+
+  const payload = {
+    item_type: document.getElementById('itineraryItemType').value,
+    title,
+    starts_at: startDate ? (buildScheduledAt(startDate, startTime) || new Date(`${startDate}T00:00:00`).toISOString()) : null,
+    ends_at: endDate ? (buildScheduledAt(endDate, endTime) || new Date(`${endDate}T00:00:00`).toISOString()) : null,
+    location: document.getElementById('itineraryItemLocation').value.trim() || null,
+    provider: document.getElementById('itineraryItemProvider').value.trim() || null,
+    confirmation_number: document.getElementById('itineraryItemConfirmation').value.trim() || null,
+    cost: cost ? parseFloat(cost) : null,
+    status: document.getElementById('itineraryItemStatus').value,
+    company_id: document.getElementById('itineraryItemCompany').value || null,
+    income_amount: income ? parseFloat(income) : null,
+    invoice_id: document.getElementById('itineraryItemInvoice').value || null,
+    notes: document.getElementById('itineraryItemNotes').value.trim() || null
+  };
+
+  const { error } = editingItineraryItemId
+    ? await ggClient.from('event_itinerary_items').update(payload).eq('id', editingItineraryItemId)
+    : await ggClient.from('event_itinerary_items').insert({ ...payload, event_id: currentEventId });
+  if (error) { alert('Could not save itinerary item: ' + error.message); return; }
+
+  editingItineraryItemId = null;
+  hideAddItineraryItem();
   loadEventDetail();
 }
 
-async function updateTravelItemField(itemId, field, value) {
-  const { error } = await ggClient.from('event_travel_items').update({ [field]: value }).eq('id', itemId);
-  if (error) { alert('Could not save: ' + error.message); }
-  loadEventDetail();
-}
-
-async function deleteTravelItem(itemId) {
-  if (!confirm('Delete this travel item?')) return;
-  const { error } = await ggClient.from('event_travel_items').delete().eq('id', itemId);
+async function deleteItineraryItem(itemId) {
+  if (!confirm('Delete this itinerary item?')) return;
+  const { error } = await ggClient.from('event_itinerary_items').delete().eq('id', itemId);
   if (error) { alert('Could not delete: ' + error.message); return; }
   loadEventDetail();
 }
 
 // ── SPENDING TAB ──────────────────────────────────────────────
-function renderEventSpendingTab(event, expenses) {
-  const totalSpend = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+function renderEventSpendingTab(event, expenses, itineraryItems) {
+  const bookedItems = (itineraryItems || []).filter(item => item.status === 'booked' && item.cost != null && parseFloat(item.cost) > 0);
+  const bookedTotal = bookedItems.reduce((sum, item) => sum + parseFloat(item.cost), 0);
+  const totalSpend = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0) + bookedTotal;
+  const totalIncome = (itineraryItems || []).reduce((sum, item) => sum + (parseFloat(item.income_amount) || 0), 0);
   const budget = event.budget_amount != null ? parseFloat(event.budget_amount) : null;
 
   let statsHtml = `
+    <div class="stat-card">
+      <div class="stat-value">${formatCurrency(totalIncome)}</div>
+      <div class="stat-label">Income</div>
+    </div>
     <div class="stat-card">
       <div class="stat-value">${formatCurrency(totalSpend)}</div>
       <div class="stat-label">Actual Spend</div>
@@ -410,10 +554,41 @@ function renderEventSpendingTab(event, expenses) {
   document.getElementById('eventSpendingStats').innerHTML = statsHtml;
 
   const container = document.getElementById('eventExpensesList');
-  if (!expenses.length) {
+  if (!expenses.length && !bookedItems.length) {
     container.innerHTML = '<p class="empty-hint">No expenses logged yet.</p>';
     return;
   }
+
+  const expenseRowsHtml = expenses.map(exp => `
+    <tr>
+      <td>${escHtml(EXPENSE_CATEGORY_LABELS[exp.category] || exp.category)}</td>
+      <td>${escHtml(exp.description)}</td>
+      <td>${exp.incurred_on ? formatDate(exp.incurred_on) : '—'}</td>
+      <td>${formatCurrency(exp.amount)}</td>
+      <td>
+        <select class="attendance-status-select" onchange="updateExpenseField('${exp.id}', 'status', this.value)">
+          <option value="planned" ${exp.status === 'planned' ? 'selected' : ''}>Planned</option>
+          <option value="paid" ${exp.status === 'paid' ? 'selected' : ''}>Paid</option>
+          <option value="reimbursed" ${exp.status === 'reimbursed' ? 'selected' : ''}>Reimbursed</option>
+        </select>
+      </td>
+      <td>
+        <button class="btn-sm btn-sm-ghost" onclick="openDocumentsForExpense('${exp.id}')">Docs</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteExpense('${exp.id}')">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  const bookedRowsHtml = bookedItems.map(item => `
+    <tr>
+      <td>${escHtml(ITINERARY_ITEM_TYPE_LABELS[item.item_type] || item.item_type)} (Booked)</td>
+      <td>${escHtml(item.title)} <span class="field-hint">via Itinerary</span></td>
+      <td>${item.starts_at ? formatDateTime(item.starts_at) : '—'}</td>
+      <td>${formatCurrency(item.cost)}</td>
+      <td>Booked</td>
+      <td class="field-hint">Edit on Itinerary</td>
+    </tr>
+  `).join('');
 
   container.innerHTML = `
     <div class="responses-table-wrap">
@@ -422,22 +597,7 @@ function renderEventSpendingTab(event, expenses) {
           <tr><th>Category</th><th>Description</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
-          ${expenses.map(exp => `
-            <tr>
-              <td>${escHtml(EXPENSE_CATEGORY_LABELS[exp.category] || exp.category)}</td>
-              <td>${escHtml(exp.description)}</td>
-              <td>${exp.incurred_on ? formatDate(exp.incurred_on) : '—'}</td>
-              <td>${formatCurrency(exp.amount)}</td>
-              <td>
-                <select class="attendance-status-select" onchange="updateExpenseField('${exp.id}', 'status', this.value)">
-                  <option value="planned" ${exp.status === 'planned' ? 'selected' : ''}>Planned</option>
-                  <option value="paid" ${exp.status === 'paid' ? 'selected' : ''}>Paid</option>
-                  <option value="reimbursed" ${exp.status === 'reimbursed' ? 'selected' : ''}>Reimbursed</option>
-                </select>
-              </td>
-              <td><button class="btn-sm btn-sm-danger" onclick="deleteExpense('${exp.id}')">Delete</button></td>
-            </tr>
-          `).join('')}
+          ${expenseRowsHtml}${bookedRowsHtml}
         </tbody>
       </table>
     </div>
@@ -467,14 +627,30 @@ async function addExpense() {
     incurred_on: document.getElementById('expenseIncurredOn').value || null
   };
 
-  const { error } = await ggClient.from('event_expenses').insert(payload);
+  const { data, error } = await ggClient.from('event_expenses').insert(payload).select().single();
   if (error) { alert('Could not add expense: ' + error.message); return; }
+
+  const fileInput = document.getElementById('expenseDocFile');
+  const file = fileInput.files[0];
+  if (file) {
+    const path = `${currentEventId}/${crypto.randomUUID()}-${file.name}`;
+    const { error: upErr } = await ggClient.storage.from('event-documents').upload(path, file);
+    if (upErr) {
+      alert('Expense was saved, but the document upload failed: ' + upErr.message);
+    } else {
+      const { error: docErr } = await ggClient.from('event_documents').insert({
+        event_id: currentEventId, expense_id: data.id, file_name: file.name, storage_path: path, file_size: file.size
+      });
+      if (docErr) alert('Expense was saved, but the document record failed to save: ' + docErr.message);
+    }
+  }
 
   document.getElementById('expenseDescription').value = '';
   document.getElementById('expenseAmount').value = '';
   document.getElementById('expenseIncurredOn').value = '';
   document.getElementById('expenseCategory').value = 'other';
   document.getElementById('expenseStatus').value = 'planned';
+  fileInput.value = '';
 
   hideAddExpense();
   loadEventDetail();
@@ -493,16 +669,122 @@ async function deleteExpense(expenseId) {
   loadEventDetail();
 }
 
+// ── DOCUMENTS TAB ─────────────────────────────────────────────
+function populateEventDocLinkOptions(itineraryItems, expenses) {
+  const select = document.getElementById('eventDocLinkTo');
+  const value = select.value;
+  const itinOptions = (itineraryItems || []).map(item => `<option value="i:${item.id}">🧭 ${escHtml(item.title)}</option>`).join('');
+  const expenseOptions = (expenses || []).map(e => `<option value="e:${e.id}">💵 ${escHtml(e.description)}</option>`).join('');
+  select.innerHTML = `<option value="">— General (not linked) —</option>${itinOptions}${expenseOptions}`;
+  select.value = value;
+}
+
+function openDocumentsForItineraryItem(itineraryItemId) {
+  switchEventTab('documents');
+  document.getElementById('eventDocLinkTo').value = 'i:' + itineraryItemId;
+}
+
+function openDocumentsForExpense(expenseId) {
+  switchEventTab('documents');
+  document.getElementById('eventDocLinkTo').value = 'e:' + expenseId;
+}
+
+function renderEventDocumentsTab(documents, itineraryItems, expenses) {
+  const container = document.getElementById('eventDocumentsList');
+  if (!documents.length) {
+    container.innerHTML = '<p class="empty-hint">No documents uploaded yet.</p>';
+    return;
+  }
+
+  const itinById = Object.fromEntries((itineraryItems || []).map(item => [item.id, item.title]));
+  const expenseById = Object.fromEntries((expenses || []).map(e => [e.id, e.description]));
+
+  container.innerHTML = `
+    <div class="responses-table-wrap">
+      <table class="responses-table">
+        <thead>
+          <tr><th>File</th><th>Size</th><th>Uploaded</th><th>Linked To</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody>
+          ${documents.map(doc => {
+            const linkedLabel = doc.itinerary_item_id ? ('🧭 ' + escHtml(itinById[doc.itinerary_item_id] || 'Itinerary item'))
+              : doc.expense_id ? ('💵 ' + escHtml(expenseById[doc.expense_id] || 'Expense'))
+              : 'General';
+            return `
+            <tr>
+              <td>${escHtml(doc.file_name)}</td>
+              <td>${formatFileSize(doc.file_size)}</td>
+              <td>${escHtml((doc.created_at || '').slice(0, 10))}</td>
+              <td>${linkedLabel}</td>
+              <td>${escHtml(doc.notes || '—')}</td>
+              <td>
+                <button class="btn-sm btn-sm-ghost" onclick="viewEventDocument('${escHtml(doc.storage_path)}')">View</button>
+                <button class="btn-sm btn-sm-danger" onclick="deleteEventDocument('${doc.id}', '${escHtml(doc.storage_path)}')">Delete</button>
+              </td>
+            </tr>
+          `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function uploadEventDocument() {
+  const fileInput = document.getElementById('eventDocFile');
+  const file = fileInput.files[0];
+  if (!file) { alert('Choose a file first.'); return; }
+
+  const linkValue = document.getElementById('eventDocLinkTo').value;
+  const notes = document.getElementById('eventDocNotes').value.trim() || null;
+  const itineraryItemId = linkValue.startsWith('i:') ? linkValue.slice(2) : null;
+  const expenseId = linkValue.startsWith('e:') ? linkValue.slice(2) : null;
+
+  const path = `${currentEventId}/${crypto.randomUUID()}-${file.name}`;
+  const { error: upErr } = await ggClient.storage.from('event-documents').upload(path, file);
+  if (upErr) { alert('Upload failed: ' + upErr.message); return; }
+
+  const { error: insErr } = await ggClient.from('event_documents').insert({
+    event_id: currentEventId,
+    itinerary_item_id: itineraryItemId,
+    expense_id: expenseId,
+    file_name: file.name,
+    storage_path: path,
+    file_size: file.size,
+    notes
+  });
+  if (insErr) { alert('Could not save document record: ' + insErr.message); return; }
+
+  document.getElementById('eventDocFile').value = '';
+  document.getElementById('eventDocNotes').value = '';
+  document.getElementById('eventDocLinkTo').value = '';
+  loadEventDetail();
+}
+
+async function viewEventDocument(path) {
+  const { data, error } = await ggClient.storage.from('event-documents').createSignedUrl(path, 300);
+  if (error || !data) { alert('Could not open file: ' + (error ? error.message : 'unknown error')); return; }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+async function deleteEventDocument(id, path) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  await ggClient.storage.from('event-documents').remove([path]);
+  const { error } = await ggClient.from('event_documents').delete().eq('id', id);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  loadEventDetail();
+}
+
 // ── UTILS ─────────────────────────────────────────────────────
 function toDateInputValue(d) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-function toTimeInputValue(d) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 function formatDateTime(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function toTimeInputValue(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

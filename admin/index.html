@@ -95,10 +95,10 @@
           <span class="nav-icon">⬒</span> Clients
         </button>
         <button class="nav-item" data-view="address-book" onclick="setView('address-book', this)">
-          <span class="nav-icon">❖</span> Address Book
+          <span class="nav-icon">☏</span> Address Book
         </button>
         <button class="nav-item" data-view="calendar" onclick="setView('calendar', this)">
-          <span class="nav-icon">▦</span> Calendar
+          <span class="nav-icon">⬒</span> Calendar
         </button>
         <a class="nav-item" href="../resources/" target="_blank" rel="noopener">
           <span class="nav-icon">◆</span> Resource Library
@@ -131,7 +131,7 @@
       <div class="view active" id="view-dashboard">
         <div class="view-header">
           <h1 class="view-title">Dashboard</h1>
-          <p class="view-sub">A quick look at what's due and what's coming up.</p>
+          <p class="view-sub"></p>
         </div>
 
         <div class="stat-cards" id="dashboardStats">
@@ -401,7 +401,8 @@
                 <option value="Gold">Gold</option>
                 <option value="Platinum">Platinum</option>
               </select>
-            </div>
+         
+           </div>
             <div class="field-group half">
               <label class="field-label" for="newCompanyMaxSeats">Max Seats</label>
               <div style="display:flex; align-items:center; gap:12px;">
@@ -570,24 +571,20 @@
               <label class="field-label" for="newEventTitle">Event Title <span class="required">*</span></label>
               <input type="text" id="newEventTitle" class="field-input" placeholder="e.g. Acme Industrial On-Site Training" />
             </div>
-            <div class="field-group third">
+            <div class="field-group half">
               <label class="field-label" for="newEventType">Event Type</label>
               <select id="newEventType" class="field-input">
                 <option value="workshop">Workshop</option>
                 <option value="travel">Travel</option>
                 <option value="meeting">Meeting</option>
+                <option value="speaking">Speaking Engagement</option>
+                <option value="training">Training</option>
                 <option value="other" selected>Other</option>
               </select>
             </div>
-            <div class="field-group third">
+            <div class="field-group half">
               <label class="field-label" for="newEventCompany">Client</label>
-              <select id="newEventCompany" class="field-input">
-                <option value="">— None —</option>
-              </select>
-            </div>
-            <div class="field-group third">
-              <label class="field-label" for="newEventWorkshop">Linked Workshop</label>
-              <select id="newEventWorkshop" class="field-input">
+              <select id="newEventCompany" class="field-input" onchange="handleClientSelectChange(this)">
                 <option value="">— None —</option>
               </select>
             </div>
@@ -596,16 +593,8 @@
               <input type="date" id="newEventStartDate" class="field-input" />
             </div>
             <div class="field-group half">
-              <label class="field-label" for="newEventStartTime">Start Time</label>
-              <input type="time" id="newEventStartTime" class="field-input" />
-            </div>
-            <div class="field-group half">
               <label class="field-label" for="newEventEndDate">End Date</label>
               <input type="date" id="newEventEndDate" class="field-input" />
-            </div>
-            <div class="field-group half">
-              <label class="field-label" for="newEventEndTime">End Time</label>
-              <input type="time" id="newEventEndTime" class="field-input" />
             </div>
             <div class="field-group half">
               <label class="field-label" for="newEventLocation">Location</label>
@@ -616,18 +605,13 @@
               <input type="number" id="newEventBudget" class="field-input" placeholder="e.g. 1500" min="0" step="1" />
             </div>
             <div class="field-group full">
-              <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted);">
-                <input type="checkbox" id="newEventAllDay" /> All-day event
-              </label>
-            </div>
-            <div class="field-group full">
               <label class="field-label" for="newEventNotes">Notes</label>
               <textarea id="newEventNotes" class="field-input" rows="3" placeholder="Any other details worth noting..."></textarea>
             </div>
           </div>
           <div class="create-form-actions">
             <button class="btn btn-ghost" onclick="hideCreateEvent()">Cancel</button>
-            <button class="btn btn-primary" onclick="createEvent()">Create Event →</button>
+            <button class="btn btn-primary" onclick="createCalendarEvent()">Create Event →</button>
           </div>
         </div>
 
@@ -708,8 +692,9 @@
 
       <div class="event-tabs">
         <button class="event-tab-btn active" id="eventTabBtnDetails" onclick="switchEventTab('details')">Details</button>
-        <button class="event-tab-btn" id="eventTabBtnTravel" onclick="switchEventTab('travel')">Travel</button>
+        <button class="event-tab-btn" id="eventTabBtnItinerary" onclick="switchEventTab('itinerary')">Itinerary</button>
         <button class="event-tab-btn" id="eventTabBtnSpending" onclick="switchEventTab('spending')">Spending</button>
+        <button class="event-tab-btn" id="eventTabBtnDocuments" onclick="switchEventTab('documents')">Documents</button>
       </div>
 
       <!-- DETAILS TAB -->
@@ -719,24 +704,20 @@
             <label class="field-label" for="editEventTitle">Event Title <span class="required">*</span></label>
             <input type="text" id="editEventTitle" class="field-input" />
           </div>
-          <div class="field-group third">
+          <div class="field-group half">
             <label class="field-label" for="editEventType">Event Type</label>
             <select id="editEventType" class="field-input">
               <option value="workshop">Workshop</option>
               <option value="travel">Travel</option>
               <option value="meeting">Meeting</option>
+              <option value="speaking">Speaking Engagement</option>
+              <option value="training">Training</option>
               <option value="other">Other</option>
             </select>
           </div>
-          <div class="field-group third">
+          <div class="field-group half">
             <label class="field-label" for="editEventCompany">Client</label>
-            <select id="editEventCompany" class="field-input">
-              <option value="">— None —</option>
-            </select>
-          </div>
-          <div class="field-group third">
-            <label class="field-label" for="editEventWorkshop">Linked Workshop</label>
-            <select id="editEventWorkshop" class="field-input">
+            <select id="editEventCompany" class="field-input" onchange="handleClientSelectChange(this)">
               <option value="">— None —</option>
             </select>
           </div>
@@ -745,16 +726,8 @@
             <input type="date" id="editEventStartDate" class="field-input" />
           </div>
           <div class="field-group half">
-            <label class="field-label" for="editEventStartTime">Start Time</label>
-            <input type="time" id="editEventStartTime" class="field-input" />
-          </div>
-          <div class="field-group half">
             <label class="field-label" for="editEventEndDate">End Date</label>
             <input type="date" id="editEventEndDate" class="field-input" />
-          </div>
-          <div class="field-group half">
-            <label class="field-label" for="editEventEndTime">End Time</label>
-            <input type="time" id="editEventEndTime" class="field-input" />
           </div>
           <div class="field-group half">
             <label class="field-label" for="editEventLocation">Location</label>
@@ -763,11 +736,6 @@
           <div class="field-group half">
             <label class="field-label" for="editEventBudget">Planned Budget (USD)</label>
             <input type="number" id="editEventBudget" class="field-input" min="0" step="1" />
-          </div>
-          <div class="field-group full">
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted);">
-              <input type="checkbox" id="editEventAllDay" /> All-day event
-            </label>
           </div>
           <div class="field-group full">
             <label class="field-label" for="editEventNotes">Notes</label>
@@ -780,72 +748,118 @@
         </div>
       </div>
 
-      <!-- TRAVEL TAB -->
-      <div class="event-tab-panel" id="eventTabPanelTravel">
-        <div id="eventTravelList"></div>
-        <div class="create-form-card" id="addTravelItemCard" style="display:none">
-          <h3 class="card-title">Add Travel Item</h3>
+      <!-- ITINERARY TAB (travel logistics + trip content, unified — fields shown depend on Type) -->
+      <div class="event-tab-panel" id="eventTabPanelItinerary">
+        <div id="eventItineraryList"></div>
+        <div class="create-form-card" id="addItineraryItemCard" style="display:none">
+          <h3 class="card-title" id="addItineraryItemCardTitle">Add Itinerary Item</h3>
           <div class="fields-grid">
             <div class="field-group third">
-              <label class="field-label" for="travelItemType">Type</label>
-              <select id="travelItemType" class="field-input">
-                <option value="flight">Flight</option>
+              <label class="field-label" for="itineraryItemType">Type</label>
+              <select id="itineraryItemType" class="field-input" onchange="updateItineraryFormFieldsForType()">
+                <option value="driving_to">Driving To</option>
+                <option value="driving_home">Driving Home</option>
+                <option value="departing_flight">Departing Flight</option>
+                <option value="return_flight">Return Flight</option>
                 <option value="hotel">Hotel</option>
                 <option value="car_rental">Car Rental</option>
+                <option value="speaking_session">Speaking Session</option>
+                <option value="training_session">Training Session</option>
                 <option value="other" selected>Other</option>
               </select>
             </div>
             <div class="field-group full">
-              <label class="field-label" for="travelItemDescription">Description <span class="required">*</span></label>
-              <input type="text" id="travelItemDescription" class="field-input" placeholder="e.g. Flight to Calgary — WestJet" />
+              <label class="field-label" for="itineraryItemTitle">Title <span class="required">*</span></label>
+              <input type="text" id="itineraryItemTitle" class="field-input" placeholder="e.g. Speaking Session — Keynote" />
             </div>
             <div class="field-group half">
-              <label class="field-label" for="travelItemProvider">Provider</label>
-              <input type="text" id="travelItemProvider" class="field-input" placeholder="e.g. WestJet, Marriott" />
+              <label class="field-label" for="itineraryItemStartDate">Start Date</label>
+              <input type="date" id="itineraryItemStartDate" class="field-input" />
             </div>
             <div class="field-group half">
-              <label class="field-label" for="travelItemConfirmation">Confirmation #</label>
-              <input type="text" id="travelItemConfirmation" class="field-input" />
+              <label class="field-label" for="itineraryItemStartTime">Start Time</label>
+              <input type="time" id="itineraryItemStartTime" class="field-input" />
             </div>
             <div class="field-group half">
-              <label class="field-label" for="travelItemDepartsDate">Departs</label>
-              <input type="date" id="travelItemDepartsDate" class="field-input" />
+              <label class="field-label" for="itineraryItemEndDate">End Date</label>
+              <input type="date" id="itineraryItemEndDate" class="field-input" />
             </div>
             <div class="field-group half">
-              <label class="field-label" for="travelItemDepartsTime">Departs Time</label>
-              <input type="time" id="travelItemDepartsTime" class="field-input" />
+              <label class="field-label" for="itineraryItemEndTime">End Time</label>
+              <input type="time" id="itineraryItemEndTime" class="field-input" />
             </div>
-            <div class="field-group half">
-              <label class="field-label" for="travelItemArrivesDate">Arrives</label>
-              <input type="date" id="travelItemArrivesDate" class="field-input" />
+            <div class="field-group full">
+              <label class="field-label" for="itineraryItemLocation">Location</label>
+              <input type="text" id="itineraryItemLocation" class="field-input" placeholder="e.g. Calgary Airport" />
+              <button type="button" class="btn-sm btn-sm-ghost" style="margin-top:6px;" onclick="toggleItineraryAddressFields()">+ Add Address</button>
+              <div id="itineraryAddressFields" style="display:none; margin-top:10px;">
+                <div class="fields-grid">
+                  <div class="field-group full">
+                    <input type="text" id="itineraryAddrStreet" class="field-input" placeholder="Street Address" />
+                  </div>
+                  <div class="field-group half">
+                    <input type="text" id="itineraryAddrCity" class="field-input" placeholder="City" />
+                  </div>
+                  <div class="field-group half">
+                    <input type="text" id="itineraryAddrRegion" class="field-input" placeholder="State / Province" />
+                  </div>
+                  <div class="field-group half">
+                    <input type="text" id="itineraryAddrPostal" class="field-input" placeholder="Postal / ZIP Code" />
+                  </div>
+                  <div class="field-group half">
+                    <input type="text" id="itineraryAddrCountry" class="field-input" placeholder="Country" />
+                  </div>
+                </div>
+                <button type="button" class="btn-sm btn-sm-ghost" onclick="applyItineraryAddress()">Use This Address</button>
+              </div>
             </div>
-            <div class="field-group half">
-              <label class="field-label" for="travelItemArrivesTime">Arrives Time</label>
-              <input type="time" id="travelItemArrivesTime" class="field-input" />
+            <div class="field-group half itin-logistics-field">
+              <label class="field-label" for="itineraryItemProvider">Provider</label>
+              <input type="text" id="itineraryItemProvider" class="field-input" placeholder="e.g. WestJet, Marriott" />
             </div>
-            <div class="field-group half">
-              <label class="field-label" for="travelItemCost">Cost (USD)</label>
-              <input type="number" id="travelItemCost" class="field-input" min="0" step="0.01" />
+            <div class="field-group half itin-logistics-field">
+              <label class="field-label" for="itineraryItemConfirmation">Confirmation #</label>
+              <input type="text" id="itineraryItemConfirmation" class="field-input" />
             </div>
-            <div class="field-group half">
-              <label class="field-label" for="travelItemStatus">Status</label>
-              <select id="travelItemStatus" class="field-input">
+            <div class="field-group half itin-logistics-field">
+              <label class="field-label" for="itineraryItemCost">Cost (USD)</label>
+              <input type="number" id="itineraryItemCost" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group half itin-logistics-field">
+              <label class="field-label" for="itineraryItemStatus">Status</label>
+              <select id="itineraryItemStatus" class="field-input">
                 <option value="planned">Planned</option>
                 <option value="booked">Booked</option>
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
+            <div class="field-group half itin-session-field">
+              <label class="field-label" for="itineraryItemCompany">Client</label>
+              <select id="itineraryItemCompany" class="field-input" onchange="handleClientSelectChange(this)">
+                <option value="">— None —</option>
+              </select>
+            </div>
+            <div class="field-group half itin-session-field">
+              <label class="field-label" for="itineraryItemIncome">Income Amount (USD)</label>
+              <input type="number" id="itineraryItemIncome" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group half itin-session-field">
+              <label class="field-label" for="itineraryItemInvoice">Linked Invoice</label>
+              <select id="itineraryItemInvoice" class="field-input">
+                <option value="">— None —</option>
+              </select>
+            </div>
             <div class="field-group full">
-              <label class="field-label" for="travelItemNotes">Notes</label>
-              <textarea id="travelItemNotes" class="field-input" rows="2"></textarea>
+              <label class="field-label" for="itineraryItemNotes">Notes</label>
+              <textarea id="itineraryItemNotes" class="field-input" rows="2"></textarea>
             </div>
           </div>
           <div class="create-form-actions">
-            <button class="btn btn-ghost" onclick="hideAddTravelItem()">Cancel</button>
-            <button class="btn btn-primary" onclick="addTravelItem()">Add Travel Item →</button>
+            <button class="btn btn-ghost" onclick="hideAddItineraryItem()">Cancel</button>
+            <button class="btn btn-primary" id="itineraryItemSubmitBtn" onclick="saveItineraryItem()">Add Itinerary Item →</button>
           </div>
         </div>
-        <button class="btn-sm btn-sm-ghost" id="showAddTravelItemBtn" onclick="showAddTravelItem()">+ Add Travel Item</button>
+        <button class="btn-sm btn-sm-ghost" id="showAddItineraryItemBtn" onclick="showAddItineraryItem()">+ Add Itinerary Item</button>
       </div>
 
       <!-- SPENDING TAB -->
@@ -886,6 +900,11 @@
               <label class="field-label" for="expenseIncurredOn">Date Incurred</label>
               <input type="date" id="expenseIncurredOn" class="field-input" />
             </div>
+            <div class="field-group full">
+              <label class="field-label" for="expenseDocFile">Attach Document (optional)</label>
+              <input type="file" id="expenseDocFile" class="field-input" />
+              <p class="field-hint">e.g. a receipt — uploaded and linked to this expense when you save it.</p>
+            </div>
           </div>
           <div class="create-form-actions">
             <button class="btn btn-ghost" onclick="hideAddExpense()">Cancel</button>
@@ -893,6 +912,33 @@
           </div>
         </div>
         <button class="btn-sm btn-sm-ghost" id="showAddExpenseBtn" onclick="showAddExpense()">+ Add Expense</button>
+      </div>
+
+      <!-- DOCUMENTS TAB -->
+      <div class="event-tab-panel" id="eventTabPanelDocuments">
+        <div id="eventDocumentsList"></div>
+        <div class="create-form-card">
+          <h3 class="card-title">Upload Document</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="eventDocFile">File</label>
+              <input type="file" id="eventDocFile" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="eventDocLinkTo">Link To</label>
+              <select id="eventDocLinkTo" class="field-input">
+                <option value="">— General (not linked) —</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="eventDocNotes">Notes</label>
+              <input type="text" id="eventDocNotes" class="field-input" placeholder="e.g. Flight confirmation" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-primary" onclick="uploadEventDocument()">+ Upload Document →</button>
+          </div>
+        </div>
       </div>
 
     </div>
