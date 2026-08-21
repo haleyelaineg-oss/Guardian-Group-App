@@ -67,7 +67,9 @@ function setView(viewName, btn) {
   if (viewName === 'registrants') loadRegistrants();
   if (viewName === 'clients') loadCompanies();
   if (viewName === 'address-book') loadAddressBook();
-  if (viewName === 'calendar') { autoCompletePastConfirmedEvents().then(loadCalendarMonth); loadTaskList(); }
+  if (viewName === 'calendar') autoCompletePastConfirmedEvents().then(loadCalendarMonth);
+  if (viewName === 'events') loadEventsListTable();
+  if (viewName === 'tasks') loadTaskList();
   if (viewName === 'quotes') loadQuoteToolFrame();
   if (viewName === 'dashboard') loadDashboardView();
   if (viewName === 'financial-overview') loadFinancialOverview();
@@ -1524,7 +1526,10 @@ async function loadClientDetail() {
     <div class="detail-section-title">Client Code</div>
     ${membershipPanel}
 
-    <div class="detail-section-title">Company Roster</div>
+    <div class="dashboard-section-header" style="margin-top:24px;">
+      <div class="detail-section-title" style="margin:0;">Company Roster</div>
+      <button class="btn-sm btn-sm-ghost" onclick="showAddRosterContact('${company.id}')">+ Create New Contact</button>
+    </div>
     <p class="view-sub" style="margin-top:-8px;">Everyone registered with this client's code. <a href="#" onclick="openAddressBookForCompany('${company.id}'); return false;">Manage contacts in Address Book →</a></p>
     <div class="responses-table-wrap">
       <table class="responses-table">
@@ -1825,6 +1830,45 @@ async function openAddressBookForCompany(companyId) {
   await loadAddressBookFilters();
   document.getElementById('abFilterCompany').value = companyId;
   loadAddressBook();
+}
+
+let addRosterContactCompanyId = null;
+
+function showAddRosterContact(companyId) {
+  addRosterContactCompanyId = companyId;
+  document.getElementById('rosterContactName').value = '';
+  document.getElementById('rosterContactEmail').value = '';
+  document.getElementById('rosterContactPhone').value = '';
+  document.getElementById('rosterContactTitle').value = '';
+  document.getElementById('rosterContactNotes').value = '';
+  document.getElementById('addRosterContactModal').style.display = 'flex';
+}
+function hideAddRosterContact() {
+  document.getElementById('addRosterContactModal').style.display = 'none';
+  addRosterContactCompanyId = null;
+}
+
+async function createRosterContact() {
+  if (!addRosterContactCompanyId) return;
+  const fullName = document.getElementById('rosterContactName').value.trim();
+  if (!fullName) { alert('Full name is required.'); return; }
+
+  const { error } = await ggClient.from('participants').insert({
+    full_name: fullName,
+    company_id: addRosterContactCompanyId,
+    email: document.getElementById('rosterContactEmail').value.trim() || null,
+    phone: document.getElementById('rosterContactPhone').value.trim() || null,
+    title: document.getElementById('rosterContactTitle').value.trim() || null,
+    notes: document.getElementById('rosterContactNotes').value.trim() || null
+  });
+
+  if (error) {
+    alert(/duplicate key|unique/i.test(error.message) ? 'That email is already on file for another contact.' : 'Could not add contact: ' + error.message);
+    return;
+  }
+
+  hideAddRosterContact();
+  loadClientDetail();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────

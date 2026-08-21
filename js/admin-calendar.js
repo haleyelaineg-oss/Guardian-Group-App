@@ -11,6 +11,7 @@
 let calendarViewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let calendarEventsCache = [];
 let calendarTasksCache = [];
+let calendarShowTasks = true;
 let allTasksCache = [];
 let cachedEventsForTasks = null;
 let editingTaskId = null;
@@ -24,6 +25,14 @@ let currentExpenses = [];
 let currentEventDocuments = [];
 
 const EVENT_TYPE_LABELS = { workshop: 'Workshop', travel: 'Travel', meeting: 'Meeting', speaking: 'Speaking Engagement', training: 'Training', other: 'Other' };
+const EVENT_STATUS_LABELS = {
+  application_sent: 'Application Sent',
+  application_denied: 'Application Denied',
+  planning: 'Planning',
+  confirmed: 'Confirmed',
+  cancelled: 'Cancelled',
+  completed: 'Completed'
+};
 const EXPENSE_CATEGORY_LABELS = { travel: 'Travel', lodging: 'Lodging', meals: 'Meals', materials: 'Materials', venue: 'Venue', other: 'Other' };
 const ITINERARY_ITEM_TYPE_LABELS = {
   driving_to: 'Driving To',
@@ -135,7 +144,7 @@ function renderCalendarGrid() {
       <div class="calendar-day-cell ${isOutside ? 'outside-month' : ''} ${isToday ? 'is-today' : ''}">
         <div class="calendar-day-number">${cellDate.getDate()}</div>
         ${dayEvents.map(ev => renderEventChip(ev)).join('')}
-        ${dayTasks.map(task => renderTaskChip(task)).join('')}
+        ${calendarShowTasks ? dayTasks.map(task => renderTaskChip(task)).join('') : ''}
       </div>
     `;
     cellDate.setDate(cellDate.getDate() + 1);
@@ -181,6 +190,55 @@ function calendarGoToday() {
   loadCalendarMonth();
 }
 
+function toggleCalendarTasks(checked) {
+  calendarShowTasks = checked;
+  renderCalendarGrid();
+}
+
+// ── EVENTS LIST ───────────────────────────────────────────────
+let allEventsListCache = [];
+
+async function loadEventsListTable() {
+  const tbody = document.getElementById('eventsListTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+
+  const { data, error } = await ggClient
+    .from('events')
+    .select('id, title, event_type, status, starts_at, ends_at, location, company_id, companies!company_id(name)')
+    .order('starts_at', { ascending: true });
+
+  if (error) { tbody.innerHTML = `<tr><td colspan="7">Error: ${escHtml(error.message)}</td></tr>`; return; }
+
+  allEventsListCache = data || [];
+  renderEventsListTable();
+}
+
+function renderEventsListTable() {
+  const tbody = document.getElementById('eventsListTableBody');
+  if (!tbody) return;
+
+  const statusFilter = document.getElementById('eventsStatusFilter').value;
+  const filtered = statusFilter === 'all' ? allEventsListCache : allEventsListCache.filter(ev => ev.status === statusFilter);
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7">No events match.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(ev => `
+    <tr class="client-list-row" onclick="showEventDetail('${ev.id}')">
+      <td>${escHtml(ev.title)}</td>
+      <td>${escHtml(EVENT_TYPE_LABELS[ev.event_type] || ev.event_type)}</td>
+      <td><span class="reg-card-status-badge">${escHtml(EVENT_STATUS_LABELS[ev.status] || ev.status)}</span></td>
+      <td>${ev.starts_at ? formatDate(toDateInputValue(new Date(ev.starts_at))) : '—'}</td>
+      <td>${ev.ends_at ? formatDate(toDateInputValue(new Date(ev.ends_at))) : '—'}</td>
+      <td>${escHtml(ev.location || '—')}</td>
+      <td>${escHtml(ev.companies?.name || '—')}</td>
+    </tr>
+  `).join('');
+}
+
 // ── TASKS ─────────────────────────────────────────────────────
 async function populateTaskEventSelect() {
   if (!cachedEventsForTasks) {
@@ -212,17 +270,18 @@ function hideCreateTask() {
   document.getElementById('createTaskCard').style.display = 'none';
 }
 
-// Ensures the Calendar view (which hosts the task form) is on screen
-// before opening it — task rows can also be clicked from the Dashboard.
-function ensureCalendarViewActive() {
-  const calendarNavBtn = document.querySelector('.nav-item[data-view="calendar"]');
-  if (calendarNavBtn && !calendarNavBtn.classList.contains('active')) {
-    setView('calendar', calendarNavBtn);
+// Ensures the Tasks view (which hosts the task form) is on screen
+// before opening it — task rows can also be clicked from the Dashboard
+// or from a task chip on the Calendar's month grid.
+function ensureTasksViewActive() {
+  const tasksNavBtn = document.querySelector('.nav-subitem[data-view="tasks"]');
+  if (tasksNavBtn && !tasksNavBtn.classList.contains('active')) {
+    setView('tasks', tasksNavBtn);
   }
 }
 
 async function editTask(taskId) {
-  ensureCalendarViewActive();
+  ensureTasksViewActive();
   await populateTaskEventSelect();
 
   // Cached rows (from the month grid, dashboard, or task list) are the

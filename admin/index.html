@@ -98,9 +98,20 @@
         <button class="nav-item" data-view="address-book" onclick="setView('address-book', this)">
           <span class="nav-icon">☏</span> Address Book
         </button>
-        <button class="nav-item" data-view="calendar" onclick="setView('calendar', this)">
-          <span class="nav-icon">⬒</span> Calendar
-        </button>
+        <div class="nav-group">
+          <div class="nav-item nav-group-toggle" id="calendarNavToggle">
+            <button type="button" class="nav-group-label" onclick="setView('calendar', document.getElementById('calendarNavToggle'))">
+              <span class="nav-icon">⬒</span> Calendar
+            </button>
+            <button type="button" class="nav-group-caret-btn" onclick="event.stopPropagation(); toggleNavGroup(document.getElementById('calendarNavToggle'))">
+              <span class="nav-group-caret">▾</span>
+            </button>
+          </div>
+          <div class="nav-submenu">
+            <button class="nav-subitem" data-view="events" onclick="setView('events', this)">Events</button>
+            <button class="nav-subitem" data-view="tasks" onclick="setView('tasks', this)">Tasks</button>
+          </div>
+        </div>
         <a class="nav-item" href="../resources/" target="_blank" rel="noopener">
           <span class="nav-icon">◆</span> Resource Library
         </a>
@@ -143,7 +154,7 @@
           <div class="dashboard-split-col">
             <div class="dashboard-section-header">
               <h2 class="detail-section-title" style="margin:0;">Upcoming Events</h2>
-              <a href="#" class="dashboard-section-link" onclick="setView('calendar', document.querySelector('[data-view=\'calendar\']')); return false;">View Calendar →</a>
+              <a href="#" class="dashboard-section-link" onclick="setView('events', document.querySelector('.nav-subitem[data-view=\'events\']')); return false;">View Events →</a>
             </div>
             <div id="dashboardUpcomingEvents">
               <p class="empty-hint">Loading…</p>
@@ -151,13 +162,15 @@
           </div>
           <div class="dashboard-split-col">
             <div class="dashboard-section-header">
-              <h2 class="detail-section-title" style="margin:0;">Tasks</h2>
-              <a href="#" class="dashboard-section-link" onclick="setView('calendar', document.querySelector('[data-view=\'calendar\']')); return false;">View Calendar →</a>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <h2 class="detail-section-title" style="margin:0;">Tasks</h2>
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gg-muted);">
+                  <input type="checkbox" id="dashboardTaskShowCompleted" onchange="renderDashboardTaskList()" /> Show completed
+                </label>
+              </div>
+              <a href="#" class="dashboard-section-link" onclick="setView('tasks', document.querySelector('.nav-subitem[data-view=\'tasks\']')); return false;">View Tasks →</a>
             </div>
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted); margin:-6px 0 12px;">
-              <input type="checkbox" id="dashboardTaskShowCompleted" onchange="renderDashboardTaskList()" /> Show completed
-            </label>
-            <div id="dashboardTaskList">
+            <div id="dashboardTaskList" style="margin-top:12px;">
               <p class="empty-hint">Loading…</p>
             </div>
           </div>
@@ -639,9 +652,13 @@
             <button class="btn-sm btn-sm-ghost" onclick="calendarNextMonth()">›</button>
             <button class="btn-sm btn-sm-ghost" onclick="calendarGoToday()">Today</button>
           </div>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-ghost" onclick="showCreateTask()">+ New Task</button>
-            <button class="btn btn-primary" onclick="showCreateEvent()">+ New Event</button>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted); white-space:nowrap;">
+              <input type="checkbox" id="calendarShowTasksToggle" checked onchange="toggleCalendarTasks(this.checked)" /> Show tasks on calendar
+            </label>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-primary" onclick="showCreateEvent()">+ New Event</button>
+            </div>
           </div>
         </div>
 
@@ -712,6 +729,46 @@
           </div>
         </div>
 
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+
+      <!-- VIEW: EVENTS ────────────────────────────────────── -->
+      <div class="view" id="view-events">
+        <div class="view-header">
+          <h1 class="view-title">Events</h1>
+          <p class="view-sub">Every event on the calendar, filterable by status.</p>
+        </div>
+
+        <div class="top-bar">
+          <div class="top-bar-left">
+            <select id="eventsStatusFilter" class="workshop-select" onchange="renderEventsListTable()">
+              <option value="all">All Statuses</option>
+              <option value="application_sent">Application Sent</option>
+              <option value="application_denied">Application Denied</option>
+              <option value="planning">Planning</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="responses-table-wrap">
+          <table class="responses-table">
+            <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Start</th><th>End</th><th>Location</th><th>Client</th></tr></thead>
+            <tbody id="eventsListTableBody"><tr><td colspan="7">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW: TASKS ─────────────────────────────────────── -->
+      <div class="view" id="view-tasks">
+        <div class="view-header">
+          <h1 class="view-title">Tasks</h1>
+          <button class="btn btn-primary" onclick="showCreateTask()">+ New Task</button>
+        </div>
+        <p class="view-sub">Every task on the calendar, with due dates and owners.</p>
+
         <!-- CREATE/EDIT TASK FORM -->
         <div class="create-form-card" id="createTaskCard" style="display:none">
           <h3 class="card-title" id="createTaskCardTitle">Create New Task</h3>
@@ -753,10 +810,7 @@
           </div>
         </div>
 
-        <div class="calendar-grid" id="calendarGrid"></div>
-
-        <div class="detail-section-title" style="margin-top:24px;">Tasks</div>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted); margin:-6px 0 12px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gg-muted); margin-bottom:12px;">
           <input type="checkbox" id="taskShowCompleted" onchange="renderTaskList()" /> Show completed
         </label>
         <div id="taskListContainer"></div>
@@ -806,6 +860,42 @@
       <div class="create-form-actions">
         <button class="btn-sm btn-sm-danger" id="abDeleteContactBtn" onclick="deleteContact()">Delete Contact</button>
         <button class="btn btn-primary" onclick="saveContactEdits()">Save Changes →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD ROSTER CONTACT MODAL -->
+  <div class="modal-overlay" id="addRosterContactModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Create New Contact</h3>
+        <button class="modal-close" onclick="hideAddRosterContact()">✕</button>
+      </div>
+      <div class="fields-grid">
+        <div class="field-group full">
+          <label class="field-label" for="rosterContactName">Full Name <span class="required">*</span></label>
+          <input type="text" id="rosterContactName" class="field-input" placeholder="Jane Smith" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="rosterContactEmail">Email</label>
+          <input type="email" id="rosterContactEmail" class="field-input" placeholder="jane@acme.com" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="rosterContactPhone">Phone</label>
+          <input type="text" id="rosterContactPhone" class="field-input" placeholder="(555) 555-5555" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="rosterContactTitle">Title</label>
+          <input type="text" id="rosterContactTitle" class="field-input" placeholder="Safety Manager" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="rosterContactNotes">Notes</label>
+          <textarea id="rosterContactNotes" class="field-input" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="create-form-actions">
+        <button class="btn btn-ghost" onclick="hideAddRosterContact()">Cancel</button>
+        <button class="btn btn-primary" onclick="createRosterContact()">Add Contact →</button>
       </div>
     </div>
   </div>
