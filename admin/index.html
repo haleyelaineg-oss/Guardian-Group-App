@@ -65,6 +65,7 @@
             <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('quote', this)">Quotes</button>
             <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('invoice', this)">Invoices</button>
             <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('receipt', this)">Receipts</button>
+            <button class="nav-subitem" data-view="expenses" onclick="setView('expenses', this)">Expenses</button>
           </div>
         </div>
         <!-- ARCHIVED 2026-08-21 — Trainings & Workshops + Surveys don't
@@ -138,12 +139,28 @@
           <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading…</div></div>
         </div>
 
-        <div class="dashboard-section-header">
-          <h2 class="detail-section-title" style="margin:0;">Upcoming Events</h2>
-          <a href="#" class="dashboard-section-link" onclick="setView('calendar', document.querySelector('[data-view=\'calendar\']')); return false;">View Calendar →</a>
-        </div>
-        <div id="dashboardUpcomingEvents">
-          <p class="empty-hint">Loading…</p>
+        <div class="dashboard-split-row">
+          <div class="dashboard-split-col">
+            <div class="dashboard-section-header">
+              <h2 class="detail-section-title" style="margin:0;">Upcoming Events</h2>
+              <a href="#" class="dashboard-section-link" onclick="setView('calendar', document.querySelector('[data-view=\'calendar\']')); return false;">View Calendar →</a>
+            </div>
+            <div id="dashboardUpcomingEvents">
+              <p class="empty-hint">Loading…</p>
+            </div>
+          </div>
+          <div class="dashboard-split-col">
+            <div class="dashboard-section-header">
+              <h2 class="detail-section-title" style="margin:0;">Tasks</h2>
+              <a href="#" class="dashboard-section-link" onclick="setView('calendar', document.querySelector('[data-view=\'calendar\']')); return false;">View Calendar →</a>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--gg-muted); margin:-6px 0 12px;">
+              <input type="checkbox" id="dashboardTaskShowCompleted" onchange="renderDashboardTaskList()" /> Show completed
+            </label>
+            <div id="dashboardTaskList">
+              <p class="empty-hint">Loading…</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -157,6 +174,8 @@
         <div class="stat-cards" id="financialOverviewStats">
           <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading…</div></div>
         </div>
+
+        <div class="stat-cards" id="financialExpenseStats" style="grid-template-columns: repeat(2, 1fr); margin-bottom:28px;"></div>
 
         <div class="detail-section-title">All Documents</div>
         <div class="dashboard-section-header" style="margin-top:0;">
@@ -186,6 +205,62 @@
           <table class="responses-table">
             <thead><tr><th>Number</th><th>Type</th><th>Client</th><th>Status</th><th>Total</th><th>Date</th></tr></thead>
             <tbody id="financialDocsTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW: EXPENSES ──────────────────────────────────── -->
+      <div class="view" id="view-expenses">
+        <div class="view-header">
+          <h1 class="view-title">Expenses</h1>
+          <button class="btn btn-primary" onclick="showCreateExpense()">+ Add Expense</button>
+        </div>
+        <p class="view-sub">General business expenses — rent, software, insurance, and the like.</p>
+
+        <div class="create-form-card" id="createExpenseCard" style="display:none">
+          <h3 class="card-title">Add Expense</h3>
+          <div class="fields-grid">
+            <div class="field-group third">
+              <label class="field-label" for="expNewCategory">Category</label>
+              <select id="expNewCategory" class="field-input">
+                <option value="software">Software</option>
+                <option value="office">Office Supplies</option>
+                <option value="marketing">Marketing</option>
+                <option value="insurance">Insurance</option>
+                <option value="professional_services">Professional Services</option>
+                <option value="travel">Travel</option>
+                <option value="meals">Meals</option>
+                <option value="equipment">Equipment</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="expNewDescription">Description <span class="required">*</span></label>
+              <input type="text" id="expNewDescription" class="field-input" placeholder="e.g. QuickBooks subscription" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="expNewAmount">Amount (USD) <span class="required">*</span></label>
+              <input type="number" id="expNewAmount" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="expNewDate">Date Incurred</label>
+              <input type="date" id="expNewDate" class="field-input" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="expNewNotes">Notes</label>
+              <textarea id="expNewNotes" class="field-input" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideCreateExpense()">Cancel</button>
+            <button class="btn btn-primary" onclick="createExpense()">Add Expense →</button>
+          </div>
+        </div>
+
+        <div class="responses-table-wrap">
+          <table class="responses-table">
+            <thead><tr><th>Category</th><th>Description</th><th>Date</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="expensesTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -465,6 +540,10 @@
               <label class="field-label" for="abNewTitle">Title</label>
               <input type="text" id="abNewTitle" class="field-input" placeholder="Safety Manager" />
             </div>
+            <div class="field-group full">
+              <label class="field-label" for="abNewNotes">Notes</label>
+              <textarea id="abNewNotes" class="field-input" rows="2"></textarea>
+            </div>
           </div>
           <div class="create-form-actions">
             <button class="btn btn-ghost" onclick="hideCreateContact()">Cancel</button>
@@ -618,6 +697,10 @@
               <label class="field-label" for="newEventBudget">Planned Budget (USD)</label>
               <input type="number" id="newEventBudget" class="field-input" placeholder="e.g. 1500" min="0" step="1" />
             </div>
+            <div class="field-group half">
+              <label class="field-label" for="newEventLink">Link</label>
+              <input type="url" id="newEventLink" class="field-input" placeholder="https://…" />
+            </div>
             <div class="field-group full">
               <label class="field-label" for="newEventNotes">Notes</label>
               <textarea id="newEventNotes" class="field-input" rows="3" placeholder="Any other details worth noting..."></textarea>
@@ -642,10 +725,22 @@
               <input type="date" id="newTaskDueDate" class="field-input" />
             </div>
             <div class="field-group half">
+              <label class="field-label" for="newTaskOwner">Task Owner</label>
+              <select id="newTaskOwner" class="field-input">
+                <option value="Unassigned" selected>Unassigned</option>
+                <option value="Dave">Dave</option>
+                <option value="Haley">Haley</option>
+              </select>
+            </div>
+            <div class="field-group half">
               <label class="field-label" for="newTaskEvent">Linked Event</label>
               <select id="newTaskEvent" class="field-input">
                 <option value="">— None —</option>
               </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="newTaskLink">Link</label>
+              <input type="url" id="newTaskLink" class="field-input" placeholder="https://…" />
             </div>
             <div class="field-group full">
               <label class="field-label" for="newTaskNotes">Notes</label>
@@ -673,6 +768,46 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- EDIT CONTACT MODAL -->
+  <div class="modal-overlay" id="editContactModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Contact</h3>
+        <button class="modal-close" onclick="hideEditContact()">✕</button>
+      </div>
+      <div class="fields-grid">
+        <div class="field-group half">
+          <label class="field-label" for="abEditName">Full Name <span class="required">*</span></label>
+          <input type="text" id="abEditName" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="abEditCompany">Company</label>
+          <select id="abEditCompany" class="field-input"><option value="">— None —</option></select>
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="abEditEmail">Email</label>
+          <input type="email" id="abEditEmail" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="abEditPhone">Phone</label>
+          <input type="text" id="abEditPhone" class="field-input" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="abEditTitle">Title</label>
+          <input type="text" id="abEditTitle" class="field-input" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="abEditNotes">Notes</label>
+          <textarea id="abEditNotes" class="field-input" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="create-form-actions">
+        <button class="btn-sm btn-sm-danger" id="abDeleteContactBtn" onclick="deleteContact()">Delete Contact</button>
+        <button class="btn btn-primary" onclick="saveContactEdits()">Save Changes →</button>
+      </div>
+    </div>
   </div>
 
   <!-- EDIT WORKSHOP MODAL -->
@@ -797,6 +932,10 @@
             <label class="field-label" for="editEventBudget">Planned Budget (USD)</label>
             <input type="number" id="editEventBudget" class="field-input" min="0" step="1" />
           </div>
+          <div class="field-group half">
+            <label class="field-label" for="editEventLink">Link</label>
+            <input type="url" id="editEventLink" class="field-input" placeholder="https://…" />
+          </div>
           <div class="field-group full">
             <label class="field-label" for="editEventNotes">Notes</label>
             <textarea id="editEventNotes" class="field-input" rows="3"></textarea>
@@ -908,6 +1047,10 @@
               <select id="itineraryItemInvoice" class="field-input" onchange="handleInvoiceSelectChange(this)">
                 <option value="">— None —</option>
               </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="itineraryItemLink">Link</label>
+              <input type="url" id="itineraryItemLink" class="field-input" placeholder="https://…" />
             </div>
             <div class="field-group full">
               <label class="field-label" for="itineraryItemNotes">Notes</label>

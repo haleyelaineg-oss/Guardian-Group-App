@@ -71,6 +71,7 @@ function setView(viewName, btn) {
   if (viewName === 'quotes') loadQuoteToolFrame();
   if (viewName === 'dashboard') loadDashboardView();
   if (viewName === 'financial-overview') loadFinancialOverview();
+  if (viewName === 'expenses') loadExpenses();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
@@ -100,6 +101,7 @@ async function loadDashboardView() {
 
   renderDashboardStats(invoices || []);
   renderDashboardEvents(events || []);
+  loadTaskList();
 }
 
 function renderDashboardStats(invoices, targetId) {
@@ -154,9 +156,9 @@ function renderDashboardStats(invoices, targetId) {
 
   statsEl.innerHTML = cards.map(c => `
     <div class="stat-card ${c.accent} clickable" onclick="${c.link}">
-      <div class="stat-value">${c.count}</div>
+      <div class="stat-value">${formatCurrency(c.sum)}</div>
       <div class="stat-label">${escHtml(c.label)}</div>
-      <div class="stat-sub">${formatCurrency(c.sum)} ${escHtml(c.sub)}</div>
+      <div class="stat-sub">${c.count} ${escHtml(c.sub)}</div>
     </div>
   `).join('');
 }
@@ -210,6 +212,116 @@ async function loadFinancialOverview() {
   financialAllDocs = data || [];
   renderDashboardStats(financialAllDocs.filter(d => d.doc_type === 'invoice'), 'financialOverviewStats');
   renderFinancialDocsTable();
+  loadFinancialExpenseStats();
+}
+
+async function loadFinancialExpenseStats() {
+  const statsEl = document.getElementById('financialExpenseStats');
+  if (!statsEl) return;
+
+  const { data, error } = await ggClient.from('expenses').select('amount, incurred_on');
+  if (error) { statsEl.innerHTML = ''; return; }
+
+  const todayStr = todayIsoDate();
+  const monthStartStr = todayStr.slice(0, 7) + '-01';
+  const yearStartStr = todayStr.slice(0, 4) + '-01-01';
+
+  let mtd = 0, ytd = 0;
+  (data || []).forEach(exp => {
+    const amount = Number(exp.amount) || 0;
+    const incurredOn = exp.incurred_on || '';
+    if (incurredOn >= yearStartStr) ytd += amount;
+    if (incurredOn >= monthStartStr) mtd += amount;
+  });
+
+  statsEl.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${formatCurrency(mtd)}</div>
+      <div class="stat-label">Expenses (MTD)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${formatCurrency(ytd)}</div>
+      <div class="stat-label">Expenses (YTD)</div>
+    </div>
+  `;
+}
+
+// ── EXPENSE TRACKER (general business expenses) ─────────────────
+const GENERAL_EXPENSE_CATEGORY_LABELS = {
+  software: 'Software', office: 'Office Supplies', marketing: 'Marketing', insurance: 'Insurance',
+  professional_services: 'Professional Services', travel: 'Travel', meals: 'Meals', equipment: 'Equipment', other: 'Other'
+};
+let allExpensesCache = [];
+
+async function loadExpenses() {
+  const tbody = document.getElementById('expensesTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+
+  const { data, error } = await ggClient.from('expenses').select('*').order('incurred_on', { ascending: false });
+  if (error) { tbody.innerHTML = `<tr><td colspan="6">Error: ${escHtml(error.message)}</td></tr>`; return; }
+
+  allExpensesCache = data || [];
+  renderExpensesTable();
+}
+
+function renderExpensesTable() {
+  const tbody = document.getElementById('expensesTableBody');
+  if (!tbody) return;
+  if (!allExpensesCache.length) { tbody.innerHTML = '<tr><td colspan="6">No expenses logged yet.</td></tr>'; return; }
+
+  tbody.innerHTML = allExpensesCache.map(exp => `
+    <tr>
+      <td>${escHtml(GENERAL_EXPENSE_CATEGORY_LABELS[exp.category] || exp.category)}</td>
+      <td>${escHtml(exp.description)}</td>
+      <td>${exp.incurred_on ? formatDate(exp.incurred_on) : '—'}</td>
+      <td>${formatCurrency(exp.amount)}</td>
+      <td>${escHtml(exp.notes || '—')}</td>
+      <td><button class="btn-sm btn-sm-danger" onclick="deleteGeneralExpense('${exp.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function showCreateExpense() {
+  document.getElementById('createExpenseCard').style.display = 'block';
+}
+function hideCreateExpense() {
+  document.getElementById('createExpenseCard').style.display = 'none';
+}
+
+async function createExpense() {
+  const description = document.getElementById('expNewDescription').value.trim();
+  const amount = document.getElementById('expNewAmount').value;
+  if (!description || !amount) { alert('Description and amount are required.'); return; }
+
+  const payload = {
+    category: document.getElementById('expNewCategory').value,
+    description,
+    amount: parseFloat(amount),
+    incurred_on: document.getElementById('expNewDate').value || todayIsoDate(),
+    notes: document.getElementById('expNewNotes').value.trim() || null
+  };
+
+  const { error } = await ggClient.from('expenses').insert(payload);
+  if (error) { alert('Could not add expense: ' + error.message); return; }
+
+  document.getElementById('expNewDescription').value = '';
+  document.getElementById('expNewAmount').value = '';
+  document.getElementById('expNewDate').value = '';
+  document.getElementById('expNewNotes').value = '';
+  document.getElementById('expNewCategory').value = 'other';
+
+  hideCreateExpense();
+  loadExpenses();
+  loadFinancialExpenseStats();
+}
+
+async function deleteGeneralExpense(expenseId) {
+  if (!confirm('Delete this expense?')) return;
+  const { error } = await ggClient.from('expenses').delete().eq('id', expenseId);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  loadExpenses();
+  loadFinancialExpenseStats();
 }
 
 function financialDocsSearchInput(value) {
@@ -994,7 +1106,7 @@ async function issueCertificate(attendanceId) {
 }
 
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount || 0);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount || 0);
 }
 
 // ── CLIENTS (compact list) ──────────────────────────────────
@@ -1050,7 +1162,7 @@ async function loadCompanies() {
                 <td>${escHtml(c.name)}</td>
                 <td>${membership ? `<span class="client-code-chip">${escHtml(membership.client_code)}</span>` : '—'}</td>
                 <td>${escHtml(membership?.membership_tier || '—')}</td>
-                <td>${membership ? (membership.max_seats === null ? `${activeCount} / Unlimited` : `${activeCount} / ${membership.max_seats}`) : '—'}</td>
+                <td>${membership ? (membership.max_seats === null ? 'Unlimited' : `${activeCount} / ${membership.max_seats}`) : '—'}</td>
                 <td style="white-space:nowrap;">
                   <button class="btn-sm btn-sm-ghost" onclick="event.stopPropagation(); showClientDetail('${c.id}')">Edit</button>
                   <button class="btn-sm btn-sm-danger" onclick="event.stopPropagation(); deleteClient('${c.id}', '${escHtml(c.name).replace(/'/g, "\\'")}')">Delete</button>
@@ -1285,13 +1397,13 @@ async function loadClientDetail() {
         <span class="client-code-chip">${escHtml(membership.client_code)}</span>
         <button class="btn-sm btn-sm-ghost" onclick="copyClientCode('${escHtml(membership.client_code)}')">Copy</button>
         <button class="btn-sm btn-sm-ghost" onclick="regenerateClientCode('${company.id}')">Regenerate</button>
-        <span class="seat-badge">${activeCount} / ${membership.max_seats === null ? 'Unlimited' : membership.max_seats} active</span>
+        <span class="seat-badge">${membership.max_seats === null ? 'Unlimited' : `${activeCount} / ${membership.max_seats} active`}</span>
       </div>
       <div class="fields-grid" style="margin-top:12px;">
         <div class="field-group half">
           <label class="field-label">Membership Tier</label>
           <select class="field-input" onchange="updateMembershipField('${company.id}', 'membership_tier', this.value)">
-            <option value="">— Select —</option>
+            <option value="">None</option>
             ${['Blue', 'Silver', 'Gold', 'Platinum'].map(t => `<option value="${t}" ${membership.membership_tier === t ? 'selected' : ''}>${t}</option>`).join('')}
           </select>
         </div>
@@ -1526,26 +1638,12 @@ async function setUnlimitedSeats(companyId, unlimited) {
   loadClientDetail();
 }
 
-async function updateContactField(participantId, field, rawValue) {
-  const { error } = await ggClient.from('participants').update({ [field]: rawValue.trim() || null }).eq('id', participantId);
-  if (error) { alert('Could not save: ' + error.message); }
-  loadAddressBook();
-}
-
-async function removeContact(participantId, name) {
-  if (!confirm(`Remove ${name} from the address book? This cannot be undone.`)) return;
-  const { error } = await ggClient.from('participants').delete().eq('id', participantId);
-  if (error) {
-    alert(/foreign key|violates/i.test(error.message)
-      ? `Can't remove ${name} — they have training or registration history on file.`
-      : 'Could not remove contact: ' + error.message);
-    return;
-  }
-  loadAddressBook();
-}
-
 // ── ADDRESS BOOK (all contacts, filterable across clients) ──────
 let addressBookCompanies = [];
+let addressBookRows = [];
+let editingContactId = null;
+let editingContactCanDelete = true;
+let editingContactName = '';
 
 async function loadAddressBookFilters() {
   const { data } = await ggClient.from('companies').select('id, name').order('name', { ascending: true });
@@ -1571,7 +1669,7 @@ async function loadAddressBook() {
 
   let query = ggClient
     .from('participants')
-    .select('id, full_name, email, phone, title, company_id, is_active, auth_user_id, companies!company_id(name, org_admin_participant_id)')
+    .select('id, full_name, email, phone, title, notes, company_id, is_active, auth_user_id, companies!company_id(name, org_admin_participant_id)')
     .order('full_name', { ascending: true });
   if (companyFilter) query = query.eq('company_id', companyFilter);
 
@@ -1592,31 +1690,23 @@ async function loadAddressBook() {
 
   if (filtered.length === 0) { container.innerHTML = '<p class="empty-hint">No contacts match.</p>'; return; }
 
+  addressBookRows = filtered;
+
   container.innerHTML = `
     <div class="responses-table-wrap">
       <table class="responses-table">
-        <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Title</th><th>Portal</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Title</th><th></th></tr></thead>
         <tbody>
           ${filtered.map(p => {
             const isOrgAdmin = p.companies?.org_admin_participant_id === p.id;
-            const hasPortalAccess = p.is_active && p.auth_user_id;
-            const canRemove = !hasPortalAccess && !isOrgAdmin;
             return `
               <tr>
                 <td>${escHtml(p.full_name || '—')}${isOrgAdmin ? ' <span class="wc-badge">Org Admin</span>' : ''}</td>
-                <td>
-                  <select class="field-input" onchange="reassignContactCompany('${p.id}', this.value)">
-                    <option value="">— None —</option>
-                    ${addressBookCompanies.map(c => `<option value="${c.id}" ${p.company_id === c.id ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('')}
-                  </select>
-                </td>
-                <td><input type="email" class="field-input" value="${escHtml(p.email || '')}" onchange="updateContactField('${p.id}', 'email', this.value)" /></td>
-                <td><input type="text" class="field-input" value="${escHtml(p.phone || '')}" onchange="updateContactField('${p.id}', 'phone', this.value)" /></td>
-                <td><input type="text" class="field-input" value="${escHtml(p.title || '')}" onchange="updateContactField('${p.id}', 'title', this.value)" /></td>
-                <td>${hasPortalAccess ? '<span class="reg-card-status-badge attended">Active</span>' : '<span class="reg-card-status-badge no_show">Not signed up</span>'}</td>
-                <td>${canRemove
-                  ? `<button class="btn-sm btn-sm-danger" onclick="removeContact('${p.id}', '${escHtml(p.full_name || 'this contact').replace(/'/g, "\\'")}')">Remove</button>`
-                  : `<span class="empty-hint" title="${isOrgAdmin ? 'Reassign the org admin first' : 'Manage portal access from their Company view in the client portal'}">Locked</span>`}
+                <td>${escHtml(p.companies?.name || '—')}</td>
+                <td>${escHtml(p.email || '—')}</td>
+                <td>${escHtml(p.phone || '—')}</td>
+                <td>${escHtml(p.title || '—')}</td>
+                <td><button class="btn-sm btn-sm-ghost" onclick="showEditContact('${p.id}')">Edit</button></td>
               </tr>
             `;
           }).join('')}
@@ -1642,7 +1732,8 @@ async function createAddressBookContact() {
     company_id: document.getElementById('abNewCompany').value || null,
     email: document.getElementById('abNewEmail').value.trim() || null,
     phone: document.getElementById('abNewPhone').value.trim() || null,
-    title: document.getElementById('abNewTitle').value.trim() || null
+    title: document.getElementById('abNewTitle').value.trim() || null,
+    notes: document.getElementById('abNewNotes').value.trim() || null
   });
 
   if (error) {
@@ -1655,13 +1746,77 @@ async function createAddressBookContact() {
   document.getElementById('abNewEmail').value = '';
   document.getElementById('abNewPhone').value = '';
   document.getElementById('abNewTitle').value = '';
+  document.getElementById('abNewNotes').value = '';
   hideCreateContact();
   loadAddressBook();
 }
 
-async function reassignContactCompany(participantId, companyId) {
-  const { error } = await ggClient.from('participants').update({ company_id: companyId || null }).eq('id', participantId);
-  if (error) { alert('Could not reassign: ' + error.message); }
+function showEditContact(participantId) {
+  const p = addressBookRows.find(r => r.id === participantId);
+  if (!p) return;
+
+  editingContactId = participantId;
+  editingContactName = p.full_name || 'this contact';
+  const isOrgAdmin = p.companies?.org_admin_participant_id === p.id;
+  const hasPortalAccess = p.is_active && p.auth_user_id;
+  editingContactCanDelete = !hasPortalAccess && !isOrgAdmin;
+
+  document.getElementById('abEditName').value = p.full_name || '';
+  document.getElementById('abEditCompany').innerHTML = '<option value="">— None —</option>' +
+    addressBookCompanies.map(c => `<option value="${c.id}" ${p.company_id === c.id ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('');
+  document.getElementById('abEditEmail').value = p.email || '';
+  document.getElementById('abEditPhone').value = p.phone || '';
+  document.getElementById('abEditTitle').value = p.title || '';
+  document.getElementById('abEditNotes').value = p.notes || '';
+
+  const deleteBtn = document.getElementById('abDeleteContactBtn');
+  deleteBtn.disabled = !editingContactCanDelete;
+  deleteBtn.style.opacity = editingContactCanDelete ? '1' : '0.5';
+  deleteBtn.style.cursor = editingContactCanDelete ? 'pointer' : 'not-allowed';
+  deleteBtn.title = editingContactCanDelete ? '' : (isOrgAdmin ? 'Reassign the org admin first' : 'Manage portal access from their Company view in the client portal');
+
+  document.getElementById('editContactModal').style.display = 'flex';
+}
+function hideEditContact() {
+  document.getElementById('editContactModal').style.display = 'none';
+  editingContactId = null;
+}
+
+async function saveContactEdits() {
+  if (!editingContactId) return;
+  const fullName = document.getElementById('abEditName').value.trim();
+  if (!fullName) { alert('Full name is required.'); return; }
+
+  const { error } = await ggClient.from('participants').update({
+    full_name: fullName,
+    company_id: document.getElementById('abEditCompany').value || null,
+    email: document.getElementById('abEditEmail').value.trim() || null,
+    phone: document.getElementById('abEditPhone').value.trim() || null,
+    title: document.getElementById('abEditTitle').value.trim() || null,
+    notes: document.getElementById('abEditNotes').value.trim() || null
+  }).eq('id', editingContactId);
+
+  if (error) {
+    alert(/duplicate key|unique/i.test(error.message) ? 'That email is already on file for another contact.' : 'Could not save: ' + error.message);
+    return;
+  }
+
+  hideEditContact();
+  loadAddressBook();
+}
+
+async function deleteContact() {
+  if (!editingContactId || !editingContactCanDelete) return;
+  if (!confirm(`Remove ${editingContactName} from the address book? This cannot be undone.`)) return;
+
+  const { error } = await ggClient.from('participants').delete().eq('id', editingContactId);
+  if (error) {
+    alert(/foreign key|violates/i.test(error.message)
+      ? `Can't remove ${editingContactName} — they have training or registration history on file.`
+      : 'Could not remove contact: ' + error.message);
+    return;
+  }
+  hideEditContact();
   loadAddressBook();
 }
 

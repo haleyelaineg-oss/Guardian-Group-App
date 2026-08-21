@@ -342,7 +342,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   margin-bottom: 8px;
 }
 .stat-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--gg-muted);
   text-transform: uppercase;
@@ -355,6 +355,14 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .stat-sub { font-size: 12px; color: var(--gg-muted); margin-top: 2px; }
 
 /* ── DASHBOARD ───────────────────────────────────────────── */
+.dashboard-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 900px) {
+  .dashboard-split-row { grid-template-columns: 1fr; }
+}
 .dashboard-section-header {
   display: flex;
   align-items: center;
@@ -942,6 +950,9 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .task-row-due { font-size: 12px; color: var(--gg-muted); white-space: nowrap; }
 .task-row-due.task-row-overdue { color: #c0392b; font-weight: 700; }
 .task-row-event { font-size: 12px; color: var(--gg-muted); white-space: nowrap; }
+.task-row-owner { font-size: 11px; font-weight: 600; color: var(--gg-steel); background: rgba(82,130,156,0.14); padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.task-row-link { font-size: 12px; color: var(--gg-mid); text-decoration: none; white-space: nowrap; }
+.task-row-link:hover { text-decoration: underline; }
 
 /* ── EVENT DETAIL MODAL TABS ─────────────────────────────── */
 .event-tabs {

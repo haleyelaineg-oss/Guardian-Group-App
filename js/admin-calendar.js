@@ -200,7 +200,9 @@ function showCreateTask() {
   document.getElementById('taskSubmitBtn').textContent = 'Create Task →';
   document.getElementById('newTaskTitle').value = '';
   document.getElementById('newTaskDueDate').value = '';
+  document.getElementById('newTaskOwner').value = 'Unassigned';
   document.getElementById('newTaskEvent').value = '';
+  document.getElementById('newTaskLink').value = '';
   document.getElementById('newTaskNotes').value = '';
   populateTaskEventSelect();
   document.getElementById('createTaskCard').style.display = 'block';
@@ -210,11 +212,21 @@ function hideCreateTask() {
   document.getElementById('createTaskCard').style.display = 'none';
 }
 
+// Ensures the Calendar view (which hosts the task form) is on screen
+// before opening it — task rows can also be clicked from the Dashboard.
+function ensureCalendarViewActive() {
+  const calendarNavBtn = document.querySelector('.nav-item[data-view="calendar"]');
+  if (calendarNavBtn && !calendarNavBtn.classList.contains('active')) {
+    setView('calendar', calendarNavBtn);
+  }
+}
+
 async function editTask(taskId) {
+  ensureCalendarViewActive();
   await populateTaskEventSelect();
 
-  // Cached rows (from the month grid or task list) are the lightweight
-  // shape (id, title, due_date, status) — fetch the full row for notes/event_id.
+  // Cached rows (from the month grid, dashboard, or task list) are the
+  // lightweight shape (id, title, due_date, status) — fetch the full row.
   const { data, error } = await ggClient.from('tasks').select('*').eq('id', taskId).single();
   if (error || !data) { alert('Could not load task.'); return; }
   populateEditTaskForm(data);
@@ -226,7 +238,9 @@ function populateEditTaskForm(task) {
   document.getElementById('taskSubmitBtn').textContent = 'Save Changes →';
   document.getElementById('newTaskTitle').value = task.title || '';
   document.getElementById('newTaskDueDate').value = task.due_date || '';
+  document.getElementById('newTaskOwner').value = task.owner || 'Unassigned';
   document.getElementById('newTaskEvent').value = task.event_id || '';
+  document.getElementById('newTaskLink').value = task.link_url || '';
   document.getElementById('newTaskNotes').value = task.notes || '';
   document.getElementById('createTaskCard').style.display = 'block';
   document.getElementById('createTaskCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -239,7 +253,9 @@ async function saveTask() {
   const payload = {
     title,
     due_date: document.getElementById('newTaskDueDate').value || null,
+    owner: document.getElementById('newTaskOwner').value,
     event_id: document.getElementById('newTaskEvent').value || null,
+    link_url: document.getElementById('newTaskLink').value.trim() || null,
     notes: document.getElementById('newTaskNotes').value.trim() || null
   };
 
@@ -272,28 +288,19 @@ async function deleteTask(taskId) {
 async function loadTaskList() {
   const { data, error } = await ggClient
     .from('tasks')
-    .select('id, title, due_date, status, event_id')
+    .select('id, title, due_date, status, owner, event_id, link_url')
     .order('due_date', { ascending: true, nullsFirst: false });
 
   allTasksCache = error ? [] : (data || []);
   renderTaskList();
+  renderDashboardTaskList();
 }
 
-function renderTaskList() {
-  const container = document.getElementById('taskListContainer');
-  if (!container) return;
-
-  const showCompleted = document.getElementById('taskShowCompleted').checked;
+function buildTaskRowsHtml(tasks) {
   const todayStr = toDateInputValue(new Date());
   const eventTitleById = Object.fromEntries((cachedEventsForTasks || []).map(ev => [ev.id, ev.title]));
 
-  const tasks = allTasksCache.filter(t => showCompleted || t.status !== 'done');
-  if (!tasks.length) {
-    container.innerHTML = '<p class="empty-hint">No tasks yet.</p>';
-    return;
-  }
-
-  container.innerHTML = tasks.map(task => {
+  return tasks.map(task => {
     const isDone = task.status === 'done';
     const isOverdue = !isDone && task.due_date && task.due_date < todayStr;
     const eventTitle = task.event_id ? (eventTitleById[task.event_id] || null) : null;
@@ -301,12 +308,33 @@ function renderTaskList() {
       <div class="task-row ${isDone ? 'task-row-done' : ''}">
         <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}', '${task.status}')" />
         <span class="task-row-title" onclick="editTask('${task.id}')" style="cursor:pointer;">${escHtml(task.title)}</span>
+        ${task.owner && task.owner !== 'Unassigned' ? `<span class="task-row-owner">${escHtml(task.owner)}</span>` : ''}
         ${eventTitle ? `<span class="task-row-event">${escHtml(eventTitle)}</span>` : ''}
+        ${task.link_url ? `<a class="task-row-link" href="${escHtml(task.link_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Link</a>` : ''}
         <span class="task-row-due ${isOverdue ? 'task-row-overdue' : ''}">${task.due_date ? formatDate(task.due_date) : 'No due date'}</span>
         <button class="btn-sm btn-sm-danger" onclick="deleteTask('${task.id}')">Delete</button>
       </div>
     `;
   }).join('');
+}
+
+function renderTaskList() {
+  const container = document.getElementById('taskListContainer');
+  if (!container) return;
+
+  const showCompleted = document.getElementById('taskShowCompleted').checked;
+  const tasks = allTasksCache.filter(t => showCompleted || t.status !== 'done');
+  container.innerHTML = tasks.length ? buildTaskRowsHtml(tasks) : '<p class="empty-hint">No tasks yet.</p>';
+}
+
+function renderDashboardTaskList() {
+  const container = document.getElementById('dashboardTaskList');
+  if (!container) return;
+
+  const checkbox = document.getElementById('dashboardTaskShowCompleted');
+  const showCompleted = checkbox && checkbox.checked;
+  const tasks = allTasksCache.filter(t => showCompleted || t.status !== 'done').slice(0, 8);
+  container.innerHTML = tasks.length ? buildTaskRowsHtml(tasks) : '<p class="empty-hint">No tasks yet.</p>';
 }
 
 // ── EVENT SELECT OPTIONS (shared by create form + edit tab) ───
@@ -450,13 +478,14 @@ async function createCalendarEvent() {
     location: document.getElementById('newEventLocation').value.trim() || null,
     company_id: document.getElementById('newEventCompany').value || null,
     budget_amount: budget ? parseFloat(budget) : null,
+    link_url: document.getElementById('newEventLink').value.trim() || null,
     notes: document.getElementById('newEventNotes').value.trim() || null
   };
 
   const { error } = await ggClient.from('events').insert(payload);
   if (error) { alert('Could not create event: ' + error.message); return; }
 
-  ['newEventTitle', 'newEventStartDate', 'newEventEndDate', 'newEventLocation', 'newEventBudget', 'newEventNotes'].forEach(id => {
+  ['newEventTitle', 'newEventStartDate', 'newEventEndDate', 'newEventLocation', 'newEventBudget', 'newEventLink', 'newEventNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('newEventType').value = 'other';
@@ -526,6 +555,7 @@ function renderEventDetailsTab(event) {
   document.getElementById('editEventCompany').value = event.company_id || '';
   document.getElementById('editEventLocation').value = event.location || '';
   document.getElementById('editEventBudget').value = event.budget_amount != null ? event.budget_amount : '';
+  document.getElementById('editEventLink').value = event.link_url || '';
   document.getElementById('editEventNotes').value = event.notes || '';
 
   document.getElementById('editEventStartDate').value = toDateInputValue(new Date(event.starts_at));
@@ -555,6 +585,7 @@ async function saveEventDetails() {
     location: document.getElementById('editEventLocation').value.trim() || null,
     company_id: document.getElementById('editEventCompany').value || null,
     budget_amount: budget ? parseFloat(budget) : null,
+    link_url: document.getElementById('editEventLink').value.trim() || null,
     notes: document.getElementById('editEventNotes').value.trim() || null
   };
 
@@ -621,7 +652,7 @@ function renderEventItineraryTab(items, documents) {
             return `
             <tr>
               <td>${escHtml(ITINERARY_ITEM_TYPE_LABELS[item.item_type] || item.item_type)}</td>
-              <td>${escHtml(item.title)}${item.confirmation_number ? `<br><span class="field-hint">Conf# ${escHtml(item.confirmation_number)}</span>` : ''}</td>
+              <td>${escHtml(item.title)}${item.link_url ? ` <a href="${escHtml(item.link_url)}" target="_blank" rel="noopener" title="Open link">🔗</a>` : ''}${item.confirmation_number ? `<br><span class="field-hint">Conf# ${escHtml(item.confirmation_number)}</span>` : ''}</td>
               <td>${item.starts_at ? formatDateTime(item.starts_at) : '—'}</td>
               <td>${item.ends_at ? formatDateTime(item.ends_at) : '—'}</td>
               <td>${item.cost != null ? formatCurrency(item.cost) : '—'}</td>
@@ -651,7 +682,7 @@ function renderEventItineraryTab(items, documents) {
 
 function resetItineraryForm() {
   ['itineraryItemTitle', 'itineraryItemStartDate', 'itineraryItemStartTime', 'itineraryItemEndDate', 'itineraryItemEndTime',
-   'itineraryItemLocation', 'itineraryItemProvider', 'itineraryItemConfirmation', 'itineraryItemCost', 'itineraryItemIncome', 'itineraryItemNotes'].forEach(id => {
+   'itineraryItemLocation', 'itineraryItemProvider', 'itineraryItemConfirmation', 'itineraryItemCost', 'itineraryItemIncome', 'itineraryItemLink', 'itineraryItemNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('itineraryItemType').value = 'other';
@@ -697,6 +728,7 @@ function editItineraryItem(itemId) {
   document.getElementById('itineraryItemCompany').value = item.company_id || '';
   document.getElementById('itineraryItemIncome').value = item.income_amount != null ? item.income_amount : '';
   document.getElementById('itineraryItemInvoice').value = item.invoice_id || '';
+  document.getElementById('itineraryItemLink').value = item.link_url || '';
   document.getElementById('itineraryItemNotes').value = item.notes || '';
   document.getElementById('itineraryAddressFields').style.display = 'none';
 
@@ -732,6 +764,7 @@ async function saveItineraryItem() {
     company_id: document.getElementById('itineraryItemCompany').value || null,
     income_amount: income ? parseFloat(income) : null,
     invoice_id: document.getElementById('itineraryItemInvoice').value || null,
+    link_url: document.getElementById('itineraryItemLink').value.trim() || null,
     notes: document.getElementById('itineraryItemNotes').value.trim() || null
   };
 
