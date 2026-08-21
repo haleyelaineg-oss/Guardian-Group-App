@@ -10,6 +10,10 @@
 
 let calendarViewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let calendarEventsCache = [];
+let calendarTasksCache = [];
+let allTasksCache = [];
+let cachedEventsForTasks = null;
+let editingTaskId = null;
 let currentEventId = null;
 let currentEventTab = 'details';
 let cachedCompaniesForEvents = null;
@@ -37,6 +41,15 @@ const ITINERARY_ITEM_TYPE_LABELS = {
 const LOGISTICS_TYPES = new Set(['driving_to', 'driving_home', 'departing_flight', 'return_flight', 'hotel', 'car_rental']);
 const SESSION_TYPES = new Set(['speaking_session', 'training_session']);
 
+// Flips any 'confirmed' event whose end date (or start date, if no
+// end date) has passed into 'completed'. Only runs when someone has
+// the Calendar view open — not a background job — so a status only
+// flips over the next time the dashboard is opened after the event ends.
+async function autoCompletePastConfirmedEvents() {
+  const { error } = await ggClient.rpc('auto_complete_confirmed_events');
+  if (error) console.error('Could not auto-complete past confirmed events:', error.message);
+}
+
 // ── MONTH GRID ────────────────────────────────────────────────
 async function loadCalendarMonth() {
   const grid = document.getElementById('calendarGrid');
@@ -54,14 +67,23 @@ async function loadCalendarMonth() {
   // An event is visible on this grid if it starts before the grid
   // ends, AND either its end date reaches into the grid, or (for
   // events with no end date) it starts within the grid.
-  const { data, error } = await ggClient
-    .from('events')
-    .select('id, title, event_type, starts_at, ends_at, all_day')
-    .lt('starts_at', gridEndIso)
-    .or(`ends_at.gte.${gridStartIso},and(ends_at.is.null,starts_at.gte.${gridStartIso})`)
-    .order('starts_at', { ascending: true });
+  const [{ data, error }, { data: taskData }] = await Promise.all([
+    ggClient
+      .from('events')
+      .select('id, title, event_type, status, starts_at, ends_at, all_day')
+      .lt('starts_at', gridEndIso)
+      .or(`ends_at.gte.${gridStartIso},and(ends_at.is.null,starts_at.gte.${gridStartIso})`)
+      .order('starts_at', { ascending: true }),
+    ggClient
+      .from('tasks')
+      .select('id, title, due_date, status')
+      .gte('due_date', toDateInputValue(gridStart))
+      .lt('due_date', toDateInputValue(gridEnd))
+      .order('due_date', { ascending: true })
+  ]);
 
   calendarEventsCache = error ? [] : (data || []);
+  calendarTasksCache = taskData || [];
   renderCalendarGrid();
 }
 
@@ -88,6 +110,14 @@ function renderCalendarGrid() {
     }
   });
 
+  const tasksByDay = {};
+  calendarTasksCache.forEach(task => {
+    if (!task.due_date) return;
+    const key = new Date(task.due_date + 'T00:00:00').toDateString();
+    if (!tasksByDay[key]) tasksByDay[key] = [];
+    tasksByDay[key].push(task);
+  });
+
   const todayKey = new Date().toDateString();
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -99,11 +129,13 @@ function renderCalendarGrid() {
     const isOutside = cellDate.getMonth() !== monthStart.getMonth();
     const isToday = key === todayKey;
     const dayEvents = eventsByDay[key] || [];
+    const dayTasks = tasksByDay[key] || [];
 
     html += `
       <div class="calendar-day-cell ${isOutside ? 'outside-month' : ''} ${isToday ? 'is-today' : ''}">
         <div class="calendar-day-number">${cellDate.getDate()}</div>
         ${dayEvents.map(ev => renderEventChip(ev)).join('')}
+        ${dayTasks.map(task => renderTaskChip(task)).join('')}
       </div>
     `;
     cellDate.setDate(cellDate.getDate() + 1);
@@ -112,9 +144,28 @@ function renderCalendarGrid() {
   grid.innerHTML = html;
 }
 
+function renderTaskChip(task) {
+  const isDone = task.status === 'done';
+  const isOverdue = !isDone && task.due_date && task.due_date < toDateInputValue(new Date());
+  const cls = isDone ? 'task-done' : (isOverdue ? 'task-overdue' : '');
+  return `<div class="calendar-task-chip ${cls}" onclick="editTask('${task.id}')" title="${escHtml(task.title)}">${isDone ? '✓ ' : '☐ '}${escHtml(task.title)}</div>`;
+}
+
+// Status takes priority over event type for chip color: completed
+// events go gray, cancelled/denied ones go light red, and
+// application-sent/planning ones go warm yellow regardless of type.
+// Only 'confirmed' (or any other status) falls through to the
+// per-event-type color.
+function eventChipColorClass(ev) {
+  if (ev.status === 'completed') return 'status-completed';
+  if (ev.status === 'cancelled' || ev.status === 'application_denied') return 'status-dead';
+  if (ev.status === 'application_sent' || ev.status === 'planning') return 'status-pending';
+  return `event-type-${ev.event_type}`;
+}
+
 function renderEventChip(ev) {
   const time = ev.all_day ? '' : new Date(ev.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' ';
-  return `<div class="calendar-event-chip event-type-${escHtml(ev.event_type)}" onclick="showEventDetail('${ev.id}')" title="${escHtml(ev.title)}">${time}${escHtml(ev.title)}</div>`;
+  return `<div class="calendar-event-chip ${eventChipColorClass(ev)}" onclick="showEventDetail('${ev.id}')" title="${escHtml(ev.title)}">${time}${escHtml(ev.title)}</div>`;
 }
 
 function calendarPrevMonth() {
@@ -128,6 +179,134 @@ function calendarNextMonth() {
 function calendarGoToday() {
   calendarViewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   loadCalendarMonth();
+}
+
+// ── TASKS ─────────────────────────────────────────────────────
+async function populateTaskEventSelect() {
+  if (!cachedEventsForTasks) {
+    const { data } = await ggClient.from('events').select('id, title, starts_at').order('starts_at', { ascending: false }).limit(100);
+    cachedEventsForTasks = data || [];
+  }
+  const select = document.getElementById('newTaskEvent');
+  const value = select.value;
+  select.innerHTML = '<option value="">— None —</option>' +
+    cachedEventsForTasks.map(ev => `<option value="${ev.id}">${escHtml(ev.title)}</option>`).join('');
+  select.value = value;
+}
+
+function showCreateTask() {
+  editingTaskId = null;
+  document.getElementById('createTaskCardTitle').textContent = 'Create New Task';
+  document.getElementById('taskSubmitBtn').textContent = 'Create Task →';
+  document.getElementById('newTaskTitle').value = '';
+  document.getElementById('newTaskDueDate').value = '';
+  document.getElementById('newTaskEvent').value = '';
+  document.getElementById('newTaskNotes').value = '';
+  populateTaskEventSelect();
+  document.getElementById('createTaskCard').style.display = 'block';
+}
+function hideCreateTask() {
+  editingTaskId = null;
+  document.getElementById('createTaskCard').style.display = 'none';
+}
+
+async function editTask(taskId) {
+  await populateTaskEventSelect();
+
+  // Cached rows (from the month grid or task list) are the lightweight
+  // shape (id, title, due_date, status) — fetch the full row for notes/event_id.
+  const { data, error } = await ggClient.from('tasks').select('*').eq('id', taskId).single();
+  if (error || !data) { alert('Could not load task.'); return; }
+  populateEditTaskForm(data);
+}
+
+function populateEditTaskForm(task) {
+  editingTaskId = task.id;
+  document.getElementById('createTaskCardTitle').textContent = 'Edit Task';
+  document.getElementById('taskSubmitBtn').textContent = 'Save Changes →';
+  document.getElementById('newTaskTitle').value = task.title || '';
+  document.getElementById('newTaskDueDate').value = task.due_date || '';
+  document.getElementById('newTaskEvent').value = task.event_id || '';
+  document.getElementById('newTaskNotes').value = task.notes || '';
+  document.getElementById('createTaskCard').style.display = 'block';
+  document.getElementById('createTaskCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function saveTask() {
+  const title = document.getElementById('newTaskTitle').value.trim();
+  if (!title) { alert('Task title is required.'); return; }
+
+  const payload = {
+    title,
+    due_date: document.getElementById('newTaskDueDate').value || null,
+    event_id: document.getElementById('newTaskEvent').value || null,
+    notes: document.getElementById('newTaskNotes').value.trim() || null
+  };
+
+  const { error } = editingTaskId
+    ? await ggClient.from('tasks').update(payload).eq('id', editingTaskId)
+    : await ggClient.from('tasks').insert({ ...payload, status: 'todo' });
+  if (error) { alert('Could not save task: ' + error.message); return; }
+
+  hideCreateTask();
+  loadCalendarMonth();
+  loadTaskList();
+}
+
+async function toggleTaskStatus(taskId, currentStatus) {
+  const newStatus = currentStatus === 'done' ? 'todo' : 'done';
+  const { error } = await ggClient.from('tasks').update({ status: newStatus }).eq('id', taskId);
+  if (error) { alert('Could not update task: ' + error.message); return; }
+  loadCalendarMonth();
+  loadTaskList();
+}
+
+async function deleteTask(taskId) {
+  if (!confirm('Delete this task?')) return;
+  const { error } = await ggClient.from('tasks').delete().eq('id', taskId);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  loadCalendarMonth();
+  loadTaskList();
+}
+
+async function loadTaskList() {
+  const { data, error } = await ggClient
+    .from('tasks')
+    .select('id, title, due_date, status, event_id')
+    .order('due_date', { ascending: true, nullsFirst: false });
+
+  allTasksCache = error ? [] : (data || []);
+  renderTaskList();
+}
+
+function renderTaskList() {
+  const container = document.getElementById('taskListContainer');
+  if (!container) return;
+
+  const showCompleted = document.getElementById('taskShowCompleted').checked;
+  const todayStr = toDateInputValue(new Date());
+  const eventTitleById = Object.fromEntries((cachedEventsForTasks || []).map(ev => [ev.id, ev.title]));
+
+  const tasks = allTasksCache.filter(t => showCompleted || t.status !== 'done');
+  if (!tasks.length) {
+    container.innerHTML = '<p class="empty-hint">No tasks yet.</p>';
+    return;
+  }
+
+  container.innerHTML = tasks.map(task => {
+    const isDone = task.status === 'done';
+    const isOverdue = !isDone && task.due_date && task.due_date < todayStr;
+    const eventTitle = task.event_id ? (eventTitleById[task.event_id] || null) : null;
+    return `
+      <div class="task-row ${isDone ? 'task-row-done' : ''}">
+        <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}', '${task.status}')" />
+        <span class="task-row-title" onclick="editTask('${task.id}')" style="cursor:pointer;">${escHtml(task.title)}</span>
+        ${eventTitle ? `<span class="task-row-event">${escHtml(eventTitle)}</span>` : ''}
+        <span class="task-row-due ${isOverdue ? 'task-row-overdue' : ''}">${task.due_date ? formatDate(task.due_date) : 'No due date'}</span>
+        <button class="btn-sm btn-sm-danger" onclick="deleteTask('${task.id}')">Delete</button>
+      </div>
+    `;
+  }).join('');
 }
 
 // ── EVENT SELECT OPTIONS (shared by create form + edit tab) ───
@@ -183,13 +362,62 @@ async function populateItineraryFormSelects() {
       .order('doc_number', { ascending: false });
     cachedInvoicesForEvents = data || [];
   }
-  const invoiceSelect = document.getElementById('itineraryItemInvoice');
-  const invoiceValue = invoiceSelect.value;
-  invoiceSelect.innerHTML = '<option value="">— None —</option>' +
+  fillInvoiceSelect();
+}
+
+function fillInvoiceSelect() {
+  const select = document.getElementById('itineraryItemInvoice');
+  const value = select.value;
+  select.innerHTML = '<option value="">— None —</option>' +
     cachedInvoicesForEvents.map(inv =>
       `<option value="${inv.id}">${escHtml(inv.doc_number)}${inv.client_name ? ' — ' + escHtml(inv.client_name) : ''} (${formatCurrency(inv.total)})</option>`
-    ).join('');
-  invoiceSelect.value = invoiceValue;
+    ).join('') +
+    '<option value="__new__">+ Create Invoice</option>';
+  select.value = value;
+}
+
+// "+ Create Invoice" in the Linked Invoice dropdown — asks for the
+// bare minimum (client name, description, amount), assigns a real
+// doc_number via the same RPC the Quote/Invoice/Receipt tool uses,
+// and creates a draft invoice you can flesh out there later.
+async function handleInvoiceSelectChange(selectEl) {
+  if (selectEl.value !== '__new__') return;
+
+  const clientName = prompt('Client name for this invoice:');
+  if (!clientName || !clientName.trim()) { selectEl.value = ''; return; }
+
+  const description = prompt('What is this invoice for?') || 'Services rendered';
+  const amountStr = prompt('Amount (USD):');
+  const amount = parseFloat(amountStr);
+  if (!amountStr || isNaN(amount) || amount <= 0) { alert('A valid amount is required.'); selectEl.value = ''; return; }
+
+  const { data: docNumber, error: numErr } = await ggClient.rpc('next_doc_number', { p_type: 'invoice' });
+  if (numErr) { alert('Could not create invoice: ' + numErr.message); selectEl.value = ''; return; }
+
+  const payload = {
+    doc_type: 'invoice',
+    doc_number: docNumber,
+    status: 'draft',
+    client_name: clientName.trim(),
+    company_id: document.getElementById('itineraryItemCompany').value || null,
+    doc_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    due_terms: 'Net 14',
+    items: [{ id: 1, date: '', description: description.trim(), type: 'flat', qty: '1', rate: String(amount) }],
+    discount_type: '$',
+    discount_value: 0,
+    subtotal: amount,
+    discount_amount: 0,
+    total: amount,
+    amount_paid: 0,
+    balance: amount
+  };
+
+  const { data, error } = await ggClient.from('documents').insert(payload).select('id, doc_number, client_name, total').single();
+  if (error) { alert('Could not create invoice: ' + error.message); selectEl.value = ''; return; }
+
+  cachedInvoicesForEvents = [data, ...(cachedInvoicesForEvents || [])];
+  fillInvoiceSelect();
+  selectEl.value = data.id;
 }
 
 // ── CREATE EVENT ────────────────────────────────────────────────
@@ -215,6 +443,7 @@ async function createCalendarEvent() {
   const payload = {
     title,
     event_type: document.getElementById('newEventType').value,
+    status: document.getElementById('newEventStatus').value,
     starts_at: new Date(`${startDate}T00:00:00`).toISOString(),
     ends_at: endDate ? new Date(`${endDate}T00:00:00`).toISOString() : null,
     all_day: true,
@@ -231,6 +460,7 @@ async function createCalendarEvent() {
     document.getElementById(id).value = '';
   });
   document.getElementById('newEventType').value = 'other';
+  document.getElementById('newEventStatus').value = 'planning';
   document.getElementById('newEventCompany').value = '';
 
   hideCreateEvent();
@@ -292,6 +522,7 @@ async function loadEventDetail() {
 function renderEventDetailsTab(event) {
   document.getElementById('editEventTitle').value = event.title || '';
   document.getElementById('editEventType').value = event.event_type || 'other';
+  document.getElementById('editEventStatus').value = event.status || 'planning';
   document.getElementById('editEventCompany').value = event.company_id || '';
   document.getElementById('editEventLocation').value = event.location || '';
   document.getElementById('editEventBudget').value = event.budget_amount != null ? event.budget_amount : '';
@@ -317,6 +548,7 @@ async function saveEventDetails() {
   const payload = {
     title,
     event_type: document.getElementById('editEventType').value,
+    status: document.getElementById('editEventStatus').value,
     starts_at: new Date(`${startDate}T00:00:00`).toISOString(),
     ends_at: endDate ? new Date(`${endDate}T00:00:00`).toISOString() : null,
     all_day: true,
@@ -376,14 +608,11 @@ function renderEventItineraryTab(items, documents) {
     return;
   }
 
-  const companyById = Object.fromEntries((cachedCompaniesForEvents || []).map(c => [c.id, c.name]));
-  const invoiceById = Object.fromEntries((cachedInvoicesForEvents || []).map(i => [i.id, i.doc_number]));
-
   container.innerHTML = `
     <div class="responses-table-wrap">
       <table class="responses-table">
         <thead>
-          <tr><th>Type</th><th>Title</th><th>Provider</th><th>Client</th><th>Starts</th><th>Ends</th><th>Location</th><th>Cost</th><th>Status</th><th>Income</th><th>Invoice</th><th></th></tr>
+          <tr><th>Type</th><th>Title</th><th>Starts</th><th>Ends</th><th>Cost</th><th>Status</th><th>Income</th><th></th></tr>
         </thead>
         <tbody>
           ${items.map(item => {
@@ -393,15 +622,19 @@ function renderEventItineraryTab(items, documents) {
             <tr>
               <td>${escHtml(ITINERARY_ITEM_TYPE_LABELS[item.item_type] || item.item_type)}</td>
               <td>${escHtml(item.title)}${item.confirmation_number ? `<br><span class="field-hint">Conf# ${escHtml(item.confirmation_number)}</span>` : ''}</td>
-              <td>${escHtml(item.provider || '—')}</td>
-              <td>${item.company_id ? escHtml(companyById[item.company_id] || '—') : '—'}</td>
               <td>${item.starts_at ? formatDateTime(item.starts_at) : '—'}</td>
               <td>${item.ends_at ? formatDateTime(item.ends_at) : '—'}</td>
-              <td>${escHtml(item.location || '—')}</td>
               <td>${item.cost != null ? formatCurrency(item.cost) : '—'}</td>
-              <td>${isLogistics ? escHtml(item.status || 'planned') : '—'}</td>
+              <td>
+                ${isLogistics ? `
+                  <select class="attendance-status-select" onchange="updateItineraryItemField('${item.id}', 'status', this.value)">
+                    <option value="planned" ${item.status === 'planned' ? 'selected' : ''}>Planned</option>
+                    <option value="booked" ${item.status === 'booked' ? 'selected' : ''}>Booked</option>
+                    <option value="cancelled" ${item.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                  </select>
+                ` : '—'}
+              </td>
               <td>${item.income_amount != null ? formatCurrency(item.income_amount) : '—'}</td>
-              <td>${item.invoice_id ? escHtml(invoiceById[item.invoice_id] || '—') : '—'}</td>
               <td>
                 <button class="btn-sm btn-sm-ghost" onclick="editItineraryItem('${item.id}')">Edit</button>
                 <button class="btn-sm btn-sm-ghost" onclick="openDocumentsForItineraryItem('${item.id}')">Docs${docCount ? ' (' + docCount + ')' : ''}</button>
@@ -509,6 +742,12 @@ async function saveItineraryItem() {
 
   editingItineraryItemId = null;
   hideAddItineraryItem();
+  loadEventDetail();
+}
+
+async function updateItineraryItemField(itemId, field, value) {
+  const { error } = await ggClient.from('event_itinerary_items').update({ [field]: value }).eq('id', itemId);
+  if (error) { alert('Could not save: ' + error.message); }
   loadEventDetail();
 }
 

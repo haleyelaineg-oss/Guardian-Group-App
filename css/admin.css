@@ -377,7 +377,10 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   padding: 14px 16px;
   margin-bottom: 8px;
   box-shadow: 0 2px 8px rgba(22,67,91,0.05);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
 }
+.dashboard-event-row:hover { box-shadow: 0 2px 12px rgba(22,67,91,0.12); }
 .dashboard-event-title { font-size: 14px; font-weight: 600; color: var(--gg-dark); }
 .dashboard-event-meta { font-size: 12px; color: var(--gg-muted); margin-top: 2px; }
 
@@ -831,7 +834,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   line-height: 1;
 }
 .modal-close:hover { background: var(--gg-pale); color: var(--gg-dark); }
-.modal-card-wide { max-width: 760px; }
+.modal-card-wide { max-width: 1100px; }
 
 /* ── CALENDAR ────────────────────────────────────────────── */
 .calendar-toolbar {
@@ -899,8 +902,46 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .calendar-event-chip.event-type-workshop { background: rgba(82,130,156,0.18); color: var(--gg-steel); }
 .calendar-event-chip.event-type-travel   { background: rgba(46,125,79,0.12); color: #2e7d4f; }
 .calendar-event-chip.event-type-meeting  { background: rgba(192,141,43,0.14); color: #a56a1a; }
-.calendar-event-chip.event-type-speaking { background: rgba(124,77,175,0.14); color: #6a3fa0; }
-.calendar-event-chip.event-type-training { background: rgba(15,125,138,0.14); color: #0f7d8a; }
+.calendar-event-chip.event-type-speaking { background: rgba(42,92,118,0.14); color: var(--gg-mid); }
+.calendar-event-chip.event-type-training { background: rgba(22,67,91,0.18); color: var(--gg-dark); }
+
+/* Status overrides — take priority over the event-type colors above. */
+.calendar-event-chip.status-completed { background: var(--gg-off); color: var(--gg-muted); }
+.calendar-event-chip.status-pending   { background: rgba(217,184,41,0.20); color: #8a7212; }
+.calendar-event-chip.status-dead      { background: rgba(224,122,112,0.16); color: #b0463c; }
+
+.calendar-task-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(192,141,43,0.10);
+  color: #8a5a12;
+  border: 1px dashed rgba(192,141,43,0.4);
+}
+.calendar-task-chip:hover { filter: brightness(0.95); }
+.calendar-task-chip.task-done { background: var(--gg-off); color: var(--gg-muted); border-color: var(--gg-pale); text-decoration: line-through; }
+.calendar-task-chip.task-overdue { background: rgba(192,57,43,0.10); color: #c0392b; border-color: rgba(192,57,43,0.35); }
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--gg-pale);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.task-row.task-row-done { opacity: 0.6; }
+.task-row.task-row-done .task-row-title { text-decoration: line-through; }
+.task-row-title { font-weight: 600; color: var(--gg-dark); flex: 1; min-width: 160px; }
+.task-row-due { font-size: 12px; color: var(--gg-muted); white-space: nowrap; }
+.task-row-due.task-row-overdue { color: #c0392b; font-weight: 700; }
+.task-row-event { font-size: 12px; color: var(--gg-muted); white-space: nowrap; }
 
 /* ── EVENT DETAIL MODAL TABS ─────────────────────────────── */
 .event-tabs {

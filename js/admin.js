@@ -67,7 +67,7 @@ function setView(viewName, btn) {
   if (viewName === 'registrants') loadRegistrants();
   if (viewName === 'clients') loadCompanies();
   if (viewName === 'address-book') loadAddressBook();
-  if (viewName === 'calendar') loadCalendarMonth();
+  if (viewName === 'calendar') { autoCompletePastConfirmedEvents().then(loadCalendarMonth); loadTaskList(); }
   if (viewName === 'quotes') loadQuoteToolFrame();
   if (viewName === 'dashboard') loadDashboardView();
   if (viewName === 'financial-overview') loadFinancialOverview();
@@ -168,7 +168,7 @@ function renderDashboardEvents(events) {
     return;
   }
   eventsEl.innerHTML = events.map(ev => `
-    <div class="dashboard-event-row">
+    <div class="dashboard-event-row" onclick="showEventDetail('${ev.id}')">
       <span class="calendar-event-chip event-type-${escHtml(ev.event_type || 'other')}">${escHtml(EVENT_TYPE_LABELS[ev.event_type] || 'Other')}</span>
       <div>
         <div class="dashboard-event-title">${escHtml(ev.title)}</div>
