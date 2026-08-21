@@ -54,6 +54,9 @@ function setView(viewName, btn) {
   document.getElementById(`view-${viewName}`).classList.add('active');
   btn.classList.add('active');
 
+  const viewsWithWorkshopBar = ['overview', 'responses', 'registrants', 'survey-builder'];
+  document.getElementById('workshopTopBar').style.display = viewsWithWorkshopBar.includes(viewName) ? 'flex' : 'none';
+
   const parentGroup = btn.closest('.nav-group');
   if (parentGroup) {
     parentGroup.classList.add('expanded');
@@ -65,6 +68,19 @@ function setView(viewName, btn) {
   if (viewName === 'clients') loadCompanies();
   if (viewName === 'address-book') loadAddressBook();
   if (viewName === 'calendar') loadCalendarMonth();
+  if (viewName === 'quotes') loadQuoteToolFrame();
+}
+
+// ── QUOTE / INVOICE / RECEIPT TOOL (embedded) ──────────────────
+function loadQuoteToolFrame() {
+  const frame = document.getElementById('quoteToolFrame');
+  if (frame.src === 'about:blank' || !frame.src) frame.src = frame.dataset.src;
+}
+
+function openQuoteDocument(docId) {
+  setView('quotes', document.querySelector('[data-view="quotes"]'));
+  const frame = document.getElementById('quoteToolFrame');
+  frame.src = '../quote-tool/index.html?doc=' + encodeURIComponent(docId);
 }
 
 function toggleNavGroup(toggleBtn) {
@@ -1155,7 +1171,7 @@ async function loadClientDetail() {
       <td><span class="reg-card-status-badge">${escHtml(d.status)}</span></td>
       <td>${formatCurrency(d.total)}</td>
       <td>${escHtml(d.doc_date || '—')}</td>
-      <td><a class="btn-sm btn-sm-ghost" href="../quote-tool/index.html?doc=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">View →</a></td>
+      <td><button type="button" class="btn-sm btn-sm-ghost" onclick="openQuoteDocument('${escHtml(d.id)}')">View →</button></td>
     </tr>
   `).join('');
 

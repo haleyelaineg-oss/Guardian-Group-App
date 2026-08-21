@@ -77,9 +77,9 @@
         <button class="nav-item" data-view="calendar" onclick="setView('calendar', this)">
           <span class="nav-icon">▦</span> Calendar
         </button>
-        <a class="nav-item" href="../quote-tool/index.html" target="_blank" rel="noopener">
+        <button class="nav-item" data-view="quotes" onclick="setView('quotes', this)">
           <span class="nav-icon">▤</span> Quote / Invoice / Receipt
-        </a>
+        </button>
         <a class="nav-item" href="../resources/" target="_blank" rel="noopener">
           <span class="nav-icon">◆</span> Resource Library
         </a>
@@ -93,7 +93,7 @@
     <main class="dash-main">
 
       <!-- WORKSHOP SELECTOR -->
-      <div class="top-bar">
+      <div class="top-bar" id="workshopTopBar" style="display:none">
         <div class="top-bar-left">
           <label class="top-bar-label">Workshop</label>
           <select id="workshopSelect" class="workshop-select" onchange="loadWorkshopData()">
@@ -549,6 +549,11 @@
         </div>
 
         <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+
+      <!-- VIEW: QUOTE / INVOICE / RECEIPT ────────────────────── -->
+      <div class="view" id="view-quotes" style="padding:0;">
+        <iframe id="quoteToolFrame" src="about:blank" data-src="../quote-tool/index.html" title="Quote / Invoice / Receipt Tool" style="display:block; width:100%; height:calc(100vh - 1px); border:none;"></iframe>
       </div>
 
     </main>

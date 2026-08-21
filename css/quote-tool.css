@@ -198,7 +198,12 @@ select.qt-select {
 .qt-party-name { font-size: 16px; font-weight: 700; color: var(--gg-dark); margin-top: 8px; }
 .qt-party input.qt-field-line { display: block; margin-top: 3px; font-size: 13px; color: var(--gg-text); width: 100%; box-sizing: border-box; }
 .qt-party input.qt-field-line.first { margin-top: 6px; }
-.qt-party input.qt-field-line.company { margin-top: 8px; font-size: 16px; font-weight: 700; color: var(--gg-dark); }
+.qt-party input.qt-field-line.company,
+.qt-party select.qt-field-line.company { margin-top: 8px; font-size: 16px; font-weight: 700; color: var(--gg-dark); }
+.qt-party select.qt-field-line.company { width: 100%; box-sizing: border-box; cursor: pointer; border-bottom: 1px dotted transparent; }
+.qt-party select.qt-field-line.company:hover { border-bottom-color: var(--gg-pale); }
+.qt-client-new-row { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; }
+.qt-client-new-row input.qt-field-line.company { margin-top: 0; }
 
 .qt-items-wrap { padding-top: 20px; overflow-x: auto; }
 .qt-item-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--gg-off); min-width: 560px; }

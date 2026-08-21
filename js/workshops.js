@@ -30,7 +30,7 @@
   // ── Load seat counts for all workshops ───────────────────
   const workshopIds = workshops.map(w => w.id);
   const { data: seatData } = await supabase
-    .from('registrations')
+    .from('registration_seat_counts')
     .select('workshop_id, seats_purchased')
     .in('workshop_id', workshopIds);
 

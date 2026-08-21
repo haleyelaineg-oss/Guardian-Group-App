@@ -80,6 +80,7 @@ let state = {
   clientPersonName: '',
   clientEmail: '',
   clientPhone: '',
+  clientEntryMode: 'select',
   items: [
     { id: 1, date: '', description: 'Safety & Leadership Workshop (full day)', type: 'flat', qty: '1', rate: '0' }
   ],
@@ -217,7 +218,7 @@ async function init() {
   buildClient();
 
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = '/admin/'; return; }
+  if (!session) { (window.top || window).location.href = '/admin/'; return; }
 
   render();
   let biz = {};
@@ -274,24 +275,37 @@ function qtBackToEditor() {
 
 // ── Client / catalog interactions ───────────────────────────
 
-function qtClientCompanyInput(value) {
-  state.clientCompany = value;
-  const match = state.clients.find(c => c.name.toLowerCase() === value.trim().toLowerCase());
-  state.clientId = match ? match.id : null;
-  if (match) {
-    if (!state.clientPersonName && match.contact_name) {
-      state.clientPersonName = match.contact_name;
-      const el = document.getElementById('qtClientPersonName'); if (el) el.value = match.contact_name;
-    }
-    if (!state.clientPhone && match.phone) {
-      state.clientPhone = match.phone;
-      const el = document.getElementById('qtClientPhone'); if (el) el.value = match.phone;
-    }
-    if (!state.clientEmail && match.email) {
-      state.clientEmail = match.email;
-      const el = document.getElementById('qtClientEmail'); if (el) el.value = match.email;
-    }
+function qtSelectClientOption(value) {
+  if (value === '__new__') {
+    state.clientEntryMode = 'new';
+    state.clientId = null;
+    state.clientCompany = '';
+    state.clientPersonName = '';
+    state.clientEmail = '';
+    state.clientPhone = '';
+    render();
+    return;
   }
+  const client = state.clients.find(c => String(c.id) === String(value));
+  state.clientId = client ? client.id : null;
+  state.clientCompany = client ? client.name : '';
+  state.clientPersonName = client ? (client.contact_name || '') : '';
+  state.clientEmail = client ? (client.email || '') : '';
+  state.clientPhone = client ? (client.phone || '') : '';
+  render();
+}
+function qtBackToClientSelect() {
+  state.clientEntryMode = 'select';
+  state.clientId = null;
+  state.clientCompany = '';
+  state.clientPersonName = '';
+  state.clientEmail = '';
+  state.clientPhone = '';
+  render();
+}
+function qtNewClientNameInput(value) {
+  state.clientCompany = value;
+  state.clientId = null;
 }
 
 function qtPickCatalogItem(value) {
@@ -444,6 +458,7 @@ async function qtOpenDocument(id) {
     clientPersonName: data.client_person_name || '',
     clientEmail: data.client_email || '',
     clientPhone: data.client_phone || '',
+    clientEntryMode: 'select',
     items: items,
     discountType: data.discount_type || '$',
     discountValue: String(data.discount_value != null ? data.discount_value : 0),
@@ -571,6 +586,7 @@ function resetToBlank(mode) {
     clientPersonName: '',
     clientEmail: '',
     clientPhone: '',
+    clientEntryMode: 'select',
     items: [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }],
     discountType: '$',
     discountValue: '0',
@@ -788,10 +804,20 @@ function renderEditorView() {
       </div>
       <div class="qt-party">
         <div class="qt-eyebrow">${esc(billToLabel)}</div>
-        <input class="qt-field-line company" list="qtClientNamesList" value="${escAttr(s.clientCompany)}" placeholder="Company name" oninput="qtClientCompanyInput(this.value)">
-        <datalist id="qtClientNamesList">
-          ${s.clients.map(c => `<option value="${escAttr(c.name)}"></option>`).join('')}
-        </datalist>
+        ${s.clientEntryMode === 'new' ? `
+        <div class="qt-client-new-row" data-noprint>
+          <input class="qt-field-line company" style="flex:1;" value="${escAttr(s.clientCompany)}" placeholder="New client — company name" oninput="qtNewClientNameInput(this.value)">
+          ${s.clients.length ? `<button type="button" class="qt-btn-text" onclick="qtBackToClientSelect()">Choose existing →</button>` : ''}
+        </div>
+        <div class="qt-field-line company" data-printonly style="display:none;">${esc(s.clientCompany || 'New client')}</div>
+        ` : `
+        <select class="qt-field-line company" data-noprint onchange="qtSelectClientOption(this.value)">
+          <option value="">— Select client —</option>
+          ${s.clients.map(c => `<option value="${escAttr(String(c.id))}" ${String(s.clientId) === String(c.id) ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          <option value="__new__">+ Create New Client</option>
+        </select>
+        <div class="qt-field-line company" data-printonly style="display:none;">${esc(s.clientCompany || '—')}</div>
+        `}
         <input class="qt-field-line first" id="qtClientPersonName" value="${escAttr(s.clientPersonName)}" placeholder="Contact name" oninput="qtSetField('clientPersonName', this.value)">
         <input class="qt-field-line" id="qtClientPhone" value="${escAttr(s.clientPhone)}" placeholder="Phone" oninput="qtSetField('clientPhone', this.value)">
         <input class="qt-field-line" id="qtClientEmail" value="${escAttr(s.clientEmail)}" placeholder="Email" oninput="qtSetField('clientEmail', this.value)">
