@@ -364,7 +364,7 @@ async function loadIncomeView() {
       expectedOn: inv.due_date || null,
       amount: Number(inv.balance) || 0,
       status: 'expected',
-      statusLabel: capWords(inv.status),
+      statusLabel: inv.status === 'sent' ? 'Pending Payment' : capWords(inv.status),
       onClick: `openQuoteDocument('${inv.id}')`
     });
   });
@@ -378,7 +378,7 @@ async function loadIncomeView() {
       expectedOn: ev.starts_at ? ev.starts_at.slice(0, 10) : null,
       amount: Number(ev.income_amount) || 0,
       status: 'expected',
-      statusLabel: 'Expected',
+      statusLabel: 'Pending Payment',
       onClick: `showEventDetail('${ev.id}')`
     });
   });
@@ -392,7 +392,7 @@ async function loadIncomeView() {
       expectedOn: item.starts_at ? item.starts_at.slice(0, 10) : null,
       amount: Number(item.income_amount) || 0,
       status: 'expected',
-      statusLabel: 'Expected',
+      statusLabel: 'Pending Payment',
       onClick: `showEventDetail('${item.event_id}')`
     });
   });
