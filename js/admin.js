@@ -74,6 +74,7 @@ function setView(viewName, btn) {
   if (viewName === 'dashboard') loadDashboardView();
   if (viewName === 'financial-overview') loadFinancialOverview();
   if (viewName === 'expenses') loadExpenses();
+  if (viewName === 'income') loadIncomeView();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
@@ -173,11 +174,11 @@ function renderDashboardEvents(events) {
   }
   eventsEl.innerHTML = events.map(ev => `
     <div class="dashboard-event-row" onclick="showEventDetail('${ev.id}')">
-      <span class="calendar-event-chip event-type-${escHtml(ev.event_type || 'other')}">${escHtml(EVENT_TYPE_LABELS[ev.event_type] || 'Other')}</span>
-      <div>
+      <div class="dashboard-event-main">
         <div class="dashboard-event-title">${escHtml(ev.title)}</div>
         <div class="dashboard-event-meta">${formatEventWhen(ev)}${ev.location ? ' · ' + escHtml(ev.location) : ''}</div>
       </div>
+      <span class="calendar-event-chip event-type-${escHtml(ev.event_type || 'other')}">${escHtml(EVENT_TYPE_LABELS[ev.event_type] || 'Other')}</span>
     </div>
   `).join('');
 }
@@ -324,6 +325,204 @@ async function deleteGeneralExpense(expenseId) {
   if (error) { alert('Could not delete: ' + error.message); return; }
   loadExpenses();
   loadFinancialExpenseStats();
+}
+
+// ── INCOME (open invoices + event/itinerary income + manual log) ────
+const INCOME_CATEGORY_LABELS = {
+  speaking: 'Speaking', training: 'Training', retainer: 'Retainer', grant: 'Grant', consulting: 'Consulting', other: 'Other'
+};
+let allIncomeCache = [];       // manual `income` table rows only
+let allIncomeRollupItems = []; // normalized items from every source, for the combined table/stats
+
+function capWords(str) {
+  return (str || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+async function loadIncomeView() {
+  const tbody = document.getElementById('incomeTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+
+  const [{ data: invoices }, { data: events }, { data: itineraryItems }, { data: manual, error }] = await Promise.all([
+    ggClient.from('documents').select('id, doc_number, client_name, status, balance, due_date').eq('doc_type', 'invoice').gt('balance', 0),
+    ggClient.from('events').select('id, title, status, starts_at, income_amount').not('income_amount', 'is', null),
+    ggClient.from('event_itinerary_items').select('id, title, income_amount, income_source, starts_at, event_id, events!event_id(title, status)').not('income_amount', 'is', null),
+    ggClient.from('income').select('*').order('expected_on', { ascending: true })
+  ]);
+
+  if (error) { tbody.innerHTML = `<tr><td colspan="6">Error: ${escHtml(error.message)}</td></tr>`; return; }
+
+  allIncomeCache = manual || [];
+
+  const items = [];
+
+  (invoices || []).forEach(inv => {
+    items.push({
+      source: 'invoice',
+      sourceLabel: 'Invoice',
+      description: inv.doc_number ? `${inv.doc_number} — ${inv.client_name || 'Unnamed client'}` : (inv.client_name || 'Unnamed client'),
+      expectedOn: inv.due_date || null,
+      amount: Number(inv.balance) || 0,
+      status: 'expected',
+      statusLabel: capWords(inv.status),
+      onClick: `openQuoteDocument('${inv.id}')`
+    });
+  });
+
+  (events || []).forEach(ev => {
+    if (ev.status === 'cancelled') return;
+    items.push({
+      source: 'event',
+      sourceLabel: 'Event',
+      description: ev.title,
+      expectedOn: ev.starts_at ? ev.starts_at.slice(0, 10) : null,
+      amount: Number(ev.income_amount) || 0,
+      status: 'expected',
+      statusLabel: 'Expected',
+      onClick: `showEventDetail('${ev.id}')`
+    });
+  });
+
+  (itineraryItems || []).forEach(item => {
+    if (item.events?.status === 'cancelled') return;
+    items.push({
+      source: 'event',
+      sourceLabel: 'Itinerary',
+      description: item.income_source ? `${item.title} — ${item.income_source}` : item.title,
+      expectedOn: item.starts_at ? item.starts_at.slice(0, 10) : null,
+      amount: Number(item.income_amount) || 0,
+      status: 'expected',
+      statusLabel: 'Expected',
+      onClick: `showEventDetail('${item.event_id}')`
+    });
+  });
+
+  allIncomeCache.forEach(inc => {
+    items.push({
+      id: inc.id,
+      source: 'manual',
+      sourceLabel: INCOME_CATEGORY_LABELS[inc.category] || 'Other',
+      description: inc.description,
+      expectedOn: inc.expected_on,
+      amount: Number(inc.amount) || 0,
+      status: inc.status,
+      statusLabel: inc.status === 'received' ? 'Received' : 'Expected',
+      manual: true
+    });
+  });
+
+  items.sort((a, b) => (a.expectedOn || '9999-99-99') < (b.expectedOn || '9999-99-99') ? -1 : 1);
+
+  allIncomeRollupItems = items;
+  renderIncomeStats();
+  renderIncomeTable();
+}
+
+function renderIncomeStats() {
+  const statsEl = document.getElementById('incomeStats');
+  if (!statsEl) return;
+
+  const items = allIncomeRollupItems;
+  const totalExpected = items.filter(it => it.status !== 'received').reduce((sum, it) => sum + it.amount, 0);
+  const fromInvoices = items.filter(it => it.source === 'invoice').reduce((sum, it) => sum + it.amount, 0);
+  const fromEvents = items.filter(it => it.source === 'event').reduce((sum, it) => sum + it.amount, 0);
+  const manualExpected = items.filter(it => it.source === 'manual' && it.status !== 'received').reduce((sum, it) => sum + it.amount, 0);
+
+  statsEl.innerHTML = `
+    <div class="stat-card accent">
+      <div class="stat-value">${formatCurrency(totalExpected)}</div>
+      <div class="stat-label">Total Expected Income</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${formatCurrency(fromInvoices)}</div>
+      <div class="stat-label">From Open Invoices</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${formatCurrency(fromEvents)}</div>
+      <div class="stat-label">From Events &amp; Itinerary</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${formatCurrency(manualExpected)}</div>
+      <div class="stat-label">Manually Logged</div>
+    </div>
+  `;
+}
+
+function renderIncomeTable() {
+  const tbody = document.getElementById('incomeTableBody');
+  if (!tbody) return;
+
+  const sourceFilter = document.getElementById('incomeSourceFilter').value;
+  const showReceived = document.getElementById('incomeShowReceived').checked;
+
+  let items = allIncomeRollupItems;
+  if (sourceFilter !== 'all') items = items.filter(it => it.source === sourceFilter);
+  if (!showReceived) items = items.filter(it => it.status !== 'received');
+
+  if (!items.length) { tbody.innerHTML = '<tr><td colspan="6">No expected income to show.</td></tr>'; return; }
+
+  tbody.innerHTML = items.map(it => `
+    <tr>
+      <td>${escHtml(it.sourceLabel)}</td>
+      <td>${escHtml(it.description || '—')}</td>
+      <td>${it.expectedOn ? formatDate(it.expectedOn) : '—'}</td>
+      <td>${formatCurrency(it.amount)}</td>
+      <td>${escHtml(it.statusLabel)}</td>
+      <td>
+        ${it.manual
+          ? `<button class="btn-sm btn-sm-ghost" onclick="toggleIncomeStatus('${it.id}', '${it.status}')">${it.status === 'received' ? 'Mark Expected' : 'Mark Received'}</button>
+             <button class="btn-sm btn-sm-danger" onclick="deleteIncome('${it.id}')">Delete</button>`
+          : (it.onClick ? `<button class="btn-sm btn-sm-ghost" onclick="${it.onClick}">View</button>` : '')}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function showCreateIncome() {
+  document.getElementById('createIncomeCard').style.display = 'block';
+}
+function hideCreateIncome() {
+  document.getElementById('createIncomeCard').style.display = 'none';
+}
+
+async function createIncome() {
+  const description = document.getElementById('incNewDescription').value.trim();
+  const amount = document.getElementById('incNewAmount').value;
+  if (!description || !amount) { alert('Description and amount are required.'); return; }
+
+  const payload = {
+    category: document.getElementById('incNewCategory').value,
+    description,
+    amount: parseFloat(amount),
+    expected_on: document.getElementById('incNewDate').value || todayIsoDate(),
+    notes: document.getElementById('incNewNotes').value.trim() || null
+  };
+
+  const { error } = await ggClient.from('income').insert(payload);
+  if (error) { alert('Could not add income: ' + error.message); return; }
+
+  document.getElementById('incNewDescription').value = '';
+  document.getElementById('incNewAmount').value = '';
+  document.getElementById('incNewDate').value = '';
+  document.getElementById('incNewNotes').value = '';
+  document.getElementById('incNewCategory').value = 'other';
+
+  hideCreateIncome();
+  loadIncomeView();
+}
+
+async function toggleIncomeStatus(incomeId, currentStatus) {
+  const newStatus = currentStatus === 'received' ? 'expected' : 'received';
+  const { error } = await ggClient.from('income').update({ status: newStatus }).eq('id', incomeId);
+  if (error) { alert('Could not update: ' + error.message); return; }
+  loadIncomeView();
+}
+
+async function deleteIncome(incomeId) {
+  if (!confirm('Delete this income entry?')) return;
+  const { error } = await ggClient.from('income').delete().eq('id', incomeId);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  loadIncomeView();
 }
 
 function financialDocsSearchInput(value) {

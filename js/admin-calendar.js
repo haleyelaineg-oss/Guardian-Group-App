@@ -256,6 +256,7 @@ function showCreateTask() {
   editingTaskId = null;
   document.getElementById('createTaskCardTitle').textContent = 'Create New Task';
   document.getElementById('taskSubmitBtn').textContent = 'Create Task →';
+  document.getElementById('taskDeleteBtn').style.display = 'none';
   document.getElementById('newTaskTitle').value = '';
   document.getElementById('newTaskDueDate').value = '';
   document.getElementById('newTaskOwner').value = 'Unassigned';
@@ -302,6 +303,7 @@ function populateEditTaskForm(task) {
   editingTaskId = task.id;
   document.getElementById('createTaskCardTitle').textContent = 'Edit Task';
   document.getElementById('taskSubmitBtn').textContent = 'Save Changes →';
+  document.getElementById('taskDeleteBtn').style.display = '';
   document.getElementById('newTaskTitle').value = task.title || '';
   document.getElementById('newTaskDueDate').value = task.due_date || '';
   document.getElementById('newTaskOwner').value = task.owner || 'Unassigned';
@@ -347,6 +349,7 @@ async function deleteTask(taskId) {
   if (!confirm('Delete this task?')) return;
   const { error } = await ggClient.from('tasks').delete().eq('id', taskId);
   if (error) { alert('Could not delete: ' + error.message); return; }
+  if (taskId === editingTaskId) hideCreateTask();
   loadCalendarMonth();
   loadTaskList();
 }
@@ -393,6 +396,37 @@ function renderTaskList() {
   container.innerHTML = tasks.length ? buildTaskRowsHtml(tasks) : '<p class="empty-hint">No tasks yet.</p>';
 }
 
+// Dashboard's mini Tasks list has its own layout (title, then due
+// date/owner/event on the line below) so it matches the Upcoming
+// Events card next to it — reuses .dashboard-event-title/-meta
+// directly rather than approximating their font/size separately.
+function buildDashboardTaskRowsHtml(tasks) {
+  const todayStr = toDateInputValue(new Date());
+  const eventTitleById = Object.fromEntries((cachedEventsForTasks || []).map(ev => [ev.id, ev.title]));
+
+  return tasks.map(task => {
+    const isDone = task.status === 'done';
+    const isOverdue = !isDone && task.due_date && task.due_date < todayStr;
+    const eventTitle = task.event_id ? (eventTitleById[task.event_id] || null) : null;
+    const metaParts = [
+      task.due_date ? formatDate(task.due_date) : 'No due date',
+      eventTitle,
+      (task.owner && task.owner !== 'Unassigned') ? task.owner : null
+    ].filter(Boolean).map(escHtml);
+
+    return `
+      <div class="task-row ${isDone ? 'task-row-done' : ''}">
+        <div class="dashboard-event-main" onclick="editTask('${task.id}')" style="cursor:pointer;">
+          <div class="dashboard-event-title">${escHtml(task.title)}</div>
+          <div class="dashboard-event-meta ${isOverdue ? 'task-row-overdue' : ''}">${metaParts.join(' · ')}</div>
+        </div>
+        ${task.link_url ? `<a class="task-row-link" href="${escHtml(task.link_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗</a>` : ''}
+        <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}', '${task.status}')" />
+      </div>
+    `;
+  }).join('');
+}
+
 function renderDashboardTaskList() {
   const container = document.getElementById('dashboardTaskList');
   if (!container) return;
@@ -400,7 +434,7 @@ function renderDashboardTaskList() {
   const checkbox = document.getElementById('dashboardTaskShowCompleted');
   const showCompleted = checkbox && checkbox.checked;
   const tasks = allTasksCache.filter(t => showCompleted || t.status !== 'done').slice(0, 8);
-  container.innerHTML = tasks.length ? buildTaskRowsHtml(tasks) : '<p class="empty-hint">No tasks yet.</p>';
+  container.innerHTML = tasks.length ? buildDashboardTaskRowsHtml(tasks) : '<p class="empty-hint">No tasks yet.</p>';
 }
 
 // ── EVENT SELECT OPTIONS (shared by create form + edit tab) ───

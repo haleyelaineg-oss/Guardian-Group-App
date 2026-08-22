@@ -406,8 +406,23 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   transition: box-shadow 0.15s;
 }
 .dashboard-event-row:hover { box-shadow: 0 2px 12px rgba(22,67,91,0.12); }
+.dashboard-event-main { flex: 1; min-width: 0; }
 .dashboard-event-title { font-size: 14px; font-weight: 600; color: var(--gg-dark); }
 .dashboard-event-meta { font-size: 12px; color: var(--gg-muted); margin-top: 2px; }
+
+/* Dashboard's mini Tasks list reuses .task-row (shared with the full
+   Tasks view) but matches the Upcoming Events card styling here, so
+   the two dashboard lists read as one consistent set. */
+#dashboardTaskList .task-row {
+  background: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(22,67,91,0.05);
+  transition: box-shadow 0.15s;
+}
+#dashboardTaskList .task-row:hover { box-shadow: 0 2px 12px rgba(22,67,91,0.12); }
 
 /* ── CHARTS ──────────────────────────────────────────────── */
 .charts-row {
@@ -1015,7 +1030,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .task-row.task-row-done .task-row-title { text-decoration: line-through; }
 .task-row-title { font-weight: 600; color: var(--gg-dark); flex: 1; min-width: 160px; }
 .task-row-due { font-size: 12px; color: var(--gg-muted); white-space: nowrap; }
-.task-row-due.task-row-overdue { color: #c0392b; font-weight: 700; }
+.task-row-overdue { color: #c0392b; font-weight: 700; }
 .task-row-event { font-size: 12px; color: var(--gg-muted); white-space: nowrap; }
 .task-row-owner { font-size: 11px; font-weight: 600; color: var(--gg-steel); background: rgba(82,130,156,0.14); padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
 .task-row-link { font-size: 12px; color: var(--gg-mid); text-decoration: none; white-space: nowrap; }
