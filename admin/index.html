@@ -475,13 +475,10 @@
               <label class="field-label" for="newCompanyName">Client Name <span class="required">*</span></label>
               <input type="text" id="newCompanyName" class="field-input" placeholder="e.g. Acme Industrial" />
             </div>
-            <div class="field-group half">
-              <label class="field-label" for="newCompanyContactName">Contact Name</label>
-              <input type="text" id="newCompanyContactName" class="field-input" placeholder="e.g. Jane Smith" />
-            </div>
-            <div class="field-group half">
-              <label class="field-label" for="newCompanyContactEmail">Contact Email</label>
-              <input type="email" id="newCompanyContactEmail" class="field-input" placeholder="jane@acme.com" />
+            <div class="field-group full">
+              <label class="field-label">Contacts</label>
+              <div id="newCompanyContacts"></div>
+              <button type="button" class="btn-add-dashed" onclick="addNewCompanyContactRow()">+ Add another contact</button>
             </div>
             <div class="field-group full">
               <label class="field-label" for="newCompanyBillingAddress">Billing Address</label>
@@ -501,7 +498,7 @@
             <div class="field-group half">
               <label class="field-label" for="newCompanyMaxSeats">Max Seats</label>
               <div style="display:flex; align-items:center; gap:12px;">
-                <input type="number" id="newCompanyMaxSeats" class="field-input" placeholder="5" min="0" step="1" />
+                <input type="number" id="newCompanyMaxSeats" class="field-input" placeholder="0" min="0" step="1" />
                 <label style="display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:13px; color:var(--gg-muted);">
                   <input type="checkbox" id="newCompanyUnlimitedSeats" onchange="document.getElementById('newCompanyMaxSeats').disabled = this.checked" />
                   Unlimited
@@ -553,12 +550,13 @@
               <input type="email" id="abNewEmail" class="field-input" placeholder="jane@acme.com" />
             </div>
             <div class="field-group half">
-              <label class="field-label" for="abNewPhone">Phone</label>
-              <input type="text" id="abNewPhone" class="field-input" placeholder="(555) 555-5555" />
-            </div>
-            <div class="field-group half">
               <label class="field-label" for="abNewTitle">Title</label>
               <input type="text" id="abNewTitle" class="field-input" placeholder="Safety Manager" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label">Phone Numbers</label>
+              <div id="phoneRows_abNew"></div>
+              <button type="button" class="btn-sm btn-sm-ghost" onclick="addContactPhoneRow('abNew')">+ Add Phone Number</button>
             </div>
             <div class="field-group full">
               <label class="field-label" for="abNewNotes">Notes</label>
@@ -664,6 +662,7 @@
               <input type="checkbox" id="calendarShowTasksToggle" checked onchange="toggleCalendarTasks(this.checked)" /> Show tasks on calendar
             </label>
             <div style="display:flex; gap:10px;">
+              <button class="btn btn-ghost" onclick="showCreateTaskFromCalendar()">+ New Task</button>
               <button class="btn btn-primary" onclick="showCreateEvent()">+ New Event</button>
             </div>
           </div>
@@ -831,6 +830,42 @@
     </main>
   </div>
 
+  <!-- VIEW CONTACT MODAL -->
+  <div class="modal-overlay" id="viewContactModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="viewContactTitle">Contact</h3>
+        <button class="modal-close" onclick="hideViewContact()">✕</button>
+      </div>
+      <div class="fields-grid">
+        <div class="field-group half">
+          <div class="detail-label">Company</div>
+          <div class="detail-value" id="viewContactCompany">—</div>
+        </div>
+        <div class="field-group half">
+          <div class="detail-label">Title</div>
+          <div class="detail-value" id="viewContactRole">—</div>
+        </div>
+        <div class="field-group full">
+          <div class="detail-label">Email</div>
+          <div class="detail-value" id="viewContactEmail">—</div>
+        </div>
+        <div class="field-group full">
+          <div class="detail-label">Phone Numbers</div>
+          <div class="detail-value" id="viewContactPhones">—</div>
+        </div>
+        <div class="field-group full">
+          <div class="detail-label">Notes</div>
+          <div class="detail-value" id="viewContactNotes">—</div>
+        </div>
+      </div>
+      <div class="create-form-actions">
+        <button class="btn btn-ghost" onclick="hideViewContact()">Close</button>
+        <button class="btn btn-primary" onclick="editFromViewContact()">Edit →</button>
+      </div>
+    </div>
+  </div>
+
   <!-- EDIT CONTACT MODAL -->
   <div class="modal-overlay" id="editContactModal" style="display:none" onclick="handleModalOverlayClick(event)">
     <div class="modal-card">
@@ -851,13 +886,14 @@
           <label class="field-label" for="abEditEmail">Email</label>
           <input type="email" id="abEditEmail" class="field-input" />
         </div>
-        <div class="field-group half">
-          <label class="field-label" for="abEditPhone">Phone</label>
-          <input type="text" id="abEditPhone" class="field-input" />
-        </div>
         <div class="field-group full">
           <label class="field-label" for="abEditTitle">Title</label>
           <input type="text" id="abEditTitle" class="field-input" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label">Phone Numbers</label>
+          <div id="phoneRows_abEdit"></div>
+          <button type="button" class="btn-sm btn-sm-ghost" onclick="addContactPhoneRow('abEdit')">+ Add Phone Number</button>
         </div>
         <div class="field-group full">
           <label class="field-label" for="abEditNotes">Notes</label>

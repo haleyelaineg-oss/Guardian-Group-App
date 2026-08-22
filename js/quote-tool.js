@@ -1108,9 +1108,10 @@ function renderItemRow(it) {
       ${!isFlat
         ? `<div class="qt-item-col-qty"><span class="qt-item-label">${qtyLabel}</span><input class="qt-field-line" style="text-align:center;" value="${escAttr(it.qty)}" oninput="qtSetItemField(${it.id}, 'qty', this.value)"></div>`
         : `<div style="width:50px;flex-shrink:0;"></div>`}
-      <div class="qt-item-col-rate" data-noprint>
+      <div class="qt-item-col-rate">
         <span class="qt-item-label">${rateLabel}</span>
-        <input class="qt-field-line" style="text-align:right;" value="${escAttr(it.rate)}" oninput="qtSetItemField(${it.id}, 'rate', this.value)">
+        <input class="qt-field-line" data-noprint style="text-align:right;" value="${escAttr(it.rate)}" oninput="qtSetItemField(${it.id}, 'rate', this.value)">
+        ${!isFlat ? `<span class="qt-field-line" data-printonly style="display:none;text-align:right;">${fmt(rate)}</span>` : ''}
       </div>
       <div class="qt-item-col-amount" id="qtAmt${it.id}">${fmt(amount)}</div>
       <button class="qt-item-remove" data-noprint onclick="qtRemoveItem(${it.id})">&times;</button>

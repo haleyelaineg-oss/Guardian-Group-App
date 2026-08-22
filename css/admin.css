@@ -332,6 +332,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   font-size: 14px;
   color: var(--gg-muted);
   margin-top: 4px;
+  margin-bottom: 10px;
 }
 
 /* ── STAT CARDS ──────────────────────────────────────────── */
@@ -672,6 +673,52 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   color: var(--gg-dark);
   margin-bottom: 20px;
 }
+.contact-row {
+  background: var(--gg-off);
+  border: 1px solid var(--gg-pale);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.contact-row-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gg-steel);
+  margin-bottom: 12px;
+}
+.contact-row-remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--gg-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.contact-row-remove:hover { color: #c0392b; }
+.btn-add-dashed {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  border: 1px dashed var(--gg-pale);
+  background: transparent;
+  color: var(--gg-steel);
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+  margin-top: 4px;
+}
+.btn-add-dashed:hover { border-color: var(--gg-steel); color: var(--gg-dark); }
+
 .create-form-actions {
   display: flex;
   gap: 12px;

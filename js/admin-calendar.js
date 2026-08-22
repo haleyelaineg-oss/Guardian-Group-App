@@ -280,6 +280,13 @@ function ensureTasksViewActive() {
   }
 }
 
+// "+ New Task" on the Calendar view — jumps to Tasks (which hosts the
+// form) and opens it, same as clicking a task chip on the month grid.
+function showCreateTaskFromCalendar() {
+  ensureTasksViewActive();
+  showCreateTask();
+}
+
 async function editTask(taskId) {
   ensureTasksViewActive();
   await populateTaskEventSelect();
