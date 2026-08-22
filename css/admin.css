@@ -917,7 +917,10 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   flex-wrap: wrap;
   gap: 12px;
 }
-.calendar-nav { display: flex; align-items: center; gap: 12px; }
+.calendar-nav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.calendar-toolbar-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.calendar-tasks-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gg-muted); white-space: nowrap; }
+.calendar-toolbar-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 .calendar-month-label {
   font-family: var(--font-display);
   font-size: 18px;

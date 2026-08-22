@@ -533,6 +533,7 @@ async function createCalendarEvent() {
 
   const endDate = document.getElementById('newEventEndDate').value;
   const budget = document.getElementById('newEventBudget').value;
+  const income = document.getElementById('newEventIncome').value;
 
   const payload = {
     title,
@@ -544,6 +545,7 @@ async function createCalendarEvent() {
     location: document.getElementById('newEventLocation').value.trim() || null,
     company_id: document.getElementById('newEventCompany').value || null,
     budget_amount: budget ? parseFloat(budget) : null,
+    income_amount: income ? parseFloat(income) : null,
     link_url: document.getElementById('newEventLink').value.trim() || null,
     notes: document.getElementById('newEventNotes').value.trim() || null
   };
@@ -551,7 +553,7 @@ async function createCalendarEvent() {
   const { error } = await ggClient.from('events').insert(payload);
   if (error) { alert('Could not create event: ' + error.message); return; }
 
-  ['newEventTitle', 'newEventStartDate', 'newEventEndDate', 'newEventLocation', 'newEventBudget', 'newEventLink', 'newEventNotes'].forEach(id => {
+  ['newEventTitle', 'newEventStartDate', 'newEventEndDate', 'newEventLocation', 'newEventBudget', 'newEventIncome', 'newEventLink', 'newEventNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('newEventType').value = 'other';
@@ -621,6 +623,7 @@ function renderEventDetailsTab(event) {
   document.getElementById('editEventCompany').value = event.company_id || '';
   document.getElementById('editEventLocation').value = event.location || '';
   document.getElementById('editEventBudget').value = event.budget_amount != null ? event.budget_amount : '';
+  document.getElementById('editEventIncome').value = event.income_amount != null ? event.income_amount : '';
   document.getElementById('editEventLink').value = event.link_url || '';
   document.getElementById('editEventNotes').value = event.notes || '';
 
@@ -640,6 +643,7 @@ async function saveEventDetails() {
 
   const endDate = document.getElementById('editEventEndDate').value;
   const budget = document.getElementById('editEventBudget').value;
+  const income = document.getElementById('editEventIncome').value;
 
   const payload = {
     title,
@@ -651,6 +655,7 @@ async function saveEventDetails() {
     location: document.getElementById('editEventLocation').value.trim() || null,
     company_id: document.getElementById('editEventCompany').value || null,
     budget_amount: budget ? parseFloat(budget) : null,
+    income_amount: income ? parseFloat(income) : null,
     link_url: document.getElementById('editEventLink').value.trim() || null,
     notes: document.getElementById('editEventNotes').value.trim() || null
   };
@@ -864,7 +869,8 @@ function renderEventSpendingTab(event, expenses, itineraryItems) {
   const bookedItems = (itineraryItems || []).filter(item => item.status === 'booked' && item.cost != null && parseFloat(item.cost) > 0);
   const bookedTotal = bookedItems.reduce((sum, item) => sum + parseFloat(item.cost), 0);
   const totalSpend = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0) + bookedTotal;
-  const totalIncome = (itineraryItems || []).reduce((sum, item) => sum + (parseFloat(item.income_amount) || 0), 0);
+  const totalIncome = (parseFloat(event.income_amount) || 0) +
+    (itineraryItems || []).reduce((sum, item) => sum + (parseFloat(item.income_amount) || 0), 0);
   const budget = event.budget_amount != null ? parseFloat(event.budget_amount) : null;
 
   let statsHtml = `
