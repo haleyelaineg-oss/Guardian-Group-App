@@ -724,7 +724,7 @@ function renderEventItineraryTab(items, documents) {
                   </select>
                 ` : '—'}
               </td>
-              <td>${item.income_amount != null ? formatCurrency(item.income_amount) : '—'}</td>
+              <td>${item.income_amount != null ? formatCurrency(item.income_amount) : '—'}${item.income_source ? `<br><span class="field-hint">${escHtml(item.income_source)}</span>` : ''}</td>
               <td>
                 <button class="btn-sm btn-sm-ghost" onclick="editItineraryItem('${item.id}')">Edit</button>
                 <button class="btn-sm btn-sm-ghost" onclick="openDocumentsForItineraryItem('${item.id}')">Docs${docCount ? ' (' + docCount + ')' : ''}</button>
@@ -741,7 +741,7 @@ function renderEventItineraryTab(items, documents) {
 
 function resetItineraryForm() {
   ['itineraryItemTitle', 'itineraryItemStartDate', 'itineraryItemStartTime', 'itineraryItemEndDate', 'itineraryItemEndTime',
-   'itineraryItemLocation', 'itineraryItemProvider', 'itineraryItemConfirmation', 'itineraryItemCost', 'itineraryItemIncome', 'itineraryItemLink', 'itineraryItemNotes'].forEach(id => {
+   'itineraryItemLocation', 'itineraryItemProvider', 'itineraryItemConfirmation', 'itineraryItemCost', 'itineraryItemIncome', 'itineraryItemIncomeSource', 'itineraryItemLink', 'itineraryItemNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('itineraryItemType').value = 'other';
@@ -786,6 +786,7 @@ function editItineraryItem(itemId) {
   document.getElementById('itineraryItemStatus').value = item.status || 'planned';
   document.getElementById('itineraryItemCompany').value = item.company_id || '';
   document.getElementById('itineraryItemIncome').value = item.income_amount != null ? item.income_amount : '';
+  document.getElementById('itineraryItemIncomeSource').value = item.income_source || '';
   document.getElementById('itineraryItemInvoice').value = item.invoice_id || '';
   document.getElementById('itineraryItemLink').value = item.link_url || '';
   document.getElementById('itineraryItemNotes').value = item.notes || '';
@@ -822,6 +823,7 @@ async function saveItineraryItem() {
     status: document.getElementById('itineraryItemStatus').value,
     company_id: document.getElementById('itineraryItemCompany').value || null,
     income_amount: income ? parseFloat(income) : null,
+    income_source: document.getElementById('itineraryItemIncomeSource').value.trim() || null,
     invoice_id: document.getElementById('itineraryItemInvoice').value || null,
     link_url: document.getElementById('itineraryItemLink').value.trim() || null,
     notes: document.getElementById('itineraryItemNotes').value.trim() || null

@@ -50,15 +50,29 @@
       </div>
       <nav class="sidebar-nav">
         <button class="nav-item active" data-view="dashboard" onclick="setView('dashboard', this)">
-          <span class="nav-icon">◉</span> Dashboard
+          <i data-lucide="shield-check" class="lucide-nav-icon"></i> Dashboard
         </button>
+        <div class="nav-group">
+          <div class="nav-item nav-group-toggle" id="calendarNavToggle">
+            <button type="button" class="nav-group-label" onclick="setView('calendar', document.getElementById('calendarNavToggle'))">
+              <i data-lucide="calendar-days" class="lucide-nav-icon"></i> Calendar
+            </button>
+            <button type="button" class="nav-group-caret-btn" onclick="event.stopPropagation(); toggleNavGroup(document.getElementById('calendarNavToggle'))">
+              <i data-lucide="chevron-down" class="nav-group-caret"></i>
+            </button>
+          </div>
+          <div class="nav-submenu">
+            <button class="nav-subitem" data-view="events" onclick="setView('events', this)">Events</button>
+            <button class="nav-subitem" data-view="tasks" onclick="setView('tasks', this)">Tasks</button>
+          </div>
+        </div>
         <div class="nav-group">
           <div class="nav-item nav-group-toggle" id="financialNavToggle">
             <button type="button" class="nav-group-label" onclick="setView('financial-overview', document.getElementById('financialNavToggle'))">
-              <span class="nav-icon">▤</span> Financial
+              <i data-lucide="receipt" class="lucide-nav-icon"></i> Financial
             </button>
             <button type="button" class="nav-group-caret-btn" onclick="event.stopPropagation(); toggleNavGroup(document.getElementById('financialNavToggle'))">
-              <span class="nav-group-caret">▾</span>
+              <i data-lucide="chevron-down" class="nav-group-caret"></i>
             </button>
           </div>
           <div class="nav-submenu">
@@ -66,6 +80,19 @@
             <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('invoice', this)">Invoices</button>
             <button class="nav-subitem" data-view="quotes" onclick="openFinancialList('receipt', this)">Receipts</button>
             <button class="nav-subitem" data-view="expenses" onclick="setView('expenses', this)">Expenses</button>
+          </div>
+        </div>
+        <div class="nav-group">
+          <div class="nav-item nav-group-toggle" id="clientsNavToggle">
+            <button type="button" class="nav-group-label" onclick="setView('clients', document.getElementById('clientsNavToggle'))">
+              <i data-lucide="users-round" class="lucide-nav-icon"></i> Clients
+            </button>
+            <button type="button" class="nav-group-caret-btn" onclick="event.stopPropagation(); toggleNavGroup(document.getElementById('clientsNavToggle'))">
+              <i data-lucide="chevron-down" class="nav-group-caret"></i>
+            </button>
+          </div>
+          <div class="nav-submenu">
+            <button class="nav-subitem" data-view="address-book" onclick="setView('address-book', this)">Address Book</button>
           </div>
         </div>
         <!-- ARCHIVED 2026-08-21 — Trainings & Workshops + Surveys don't
@@ -92,28 +119,8 @@
             <button class="nav-subitem" data-view="responses" onclick="setView('responses', this)">Survey Responses</button>
           </div>
         </div>
-        <button class="nav-item" data-view="clients" onclick="setView('clients', this)">
-          <span class="nav-icon">⬒</span> Clients
-        </button>
-        <button class="nav-item" data-view="address-book" onclick="setView('address-book', this)">
-          <span class="nav-icon">☏</span> Address Book
-        </button>
-        <div class="nav-group">
-          <div class="nav-item nav-group-toggle" id="calendarNavToggle">
-            <button type="button" class="nav-group-label" onclick="setView('calendar', document.getElementById('calendarNavToggle'))">
-              <span class="nav-icon">⬒</span> Calendar
-            </button>
-            <button type="button" class="nav-group-caret-btn" onclick="event.stopPropagation(); toggleNavGroup(document.getElementById('calendarNavToggle'))">
-              <span class="nav-group-caret">▾</span>
-            </button>
-          </div>
-          <div class="nav-submenu">
-            <button class="nav-subitem" data-view="events" onclick="setView('events', this)">Events</button>
-            <button class="nav-subitem" data-view="tasks" onclick="setView('tasks', this)">Tasks</button>
-          </div>
-        </div>
         <a class="nav-item" href="../resources/" target="_blank" rel="noopener">
-          <span class="nav-icon">◆</span> Resource Library
+          <i data-lucide="library-big" class="lucide-nav-icon"></i> Resource Library
         </a>
       </nav>
       <div class="sidebar-footer">
@@ -153,7 +160,7 @@
         <div class="dashboard-split-row">
           <div class="dashboard-split-col">
             <div class="dashboard-section-header">
-              <h2 class="detail-section-title" style="margin:0;">Upcoming Events</h2>
+              <h2 class="detail-section-title">Upcoming Events</h2>
               <a href="#" class="dashboard-section-link" onclick="setView('events', document.querySelector('.nav-subitem[data-view=\'events\']')); return false;">View Events →</a>
             </div>
             <div id="dashboardUpcomingEvents">
@@ -163,7 +170,7 @@
           <div class="dashboard-split-col">
             <div class="dashboard-section-header">
               <div style="display:flex; align-items:center; gap:14px;">
-                <h2 class="detail-section-title" style="margin:0;">Tasks</h2>
+                <h2 class="detail-section-title">Tasks</h2>
                 <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gg-muted);">
                   <input type="checkbox" id="dashboardTaskShowCompleted" onchange="renderDashboardTaskList()" /> Show completed
                 </label>
@@ -1133,6 +1140,11 @@
               <input type="number" id="itineraryItemIncome" class="field-input" min="0" step="0.01" />
             </div>
             <div class="field-group half itin-session-field">
+              <label class="field-label" for="itineraryItemIncomeSource">Income Source</label>
+              <input type="text" id="itineraryItemIncomeSource" class="field-input" placeholder="e.g. Speaking Stipend, Honorarium" />
+              <p class="field-hint">Optional — a linked invoice isn't required to log income here.</p>
+            </div>
+            <div class="field-group half itin-session-field">
               <label class="field-label" for="itineraryItemInvoice">Linked Invoice</label>
               <select id="itineraryItemInvoice" class="field-input" onchange="handleInvoiceSelectChange(this)">
                 <option value="">— None —</option>
@@ -1239,7 +1251,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="../js/admin.js"></script>
   <script src="../js/admin-calendar.js"></script>
+
 </body>
 </html>

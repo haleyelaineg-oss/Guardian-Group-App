@@ -1330,7 +1330,7 @@ function showClientDetail(companyId) {
 }
 
 function backToClients() {
-  setView('clients', document.querySelector('[data-view="clients"]'));
+  setView('clients', document.getElementById('clientsNavToggle'));
 }
 
 let editingPhones = [];
@@ -1902,6 +1902,7 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+lucide.createIcons();
 
 // ── INIT ──────────────────────────────────────────────────────
 checkSession();
