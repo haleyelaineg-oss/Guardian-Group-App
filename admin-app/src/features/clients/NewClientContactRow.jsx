@@ -1,10 +1,11 @@
 import PhoneNumbersField from '../../components/PhoneNumbersField.jsx';
 
-// One row of the New Client form's contact list. `companyId` lets this
-// particular contact be filed under a different, already-existing company
-// instead of the one being created — same "— This Client —" escape hatch
-// the vanilla newCompanyContactRowTpl() offered.
-export default function NewClientContactRow({ contact, companyOptions, onChange, onRemove, canRemove }) {
+// One row of the New Client form's contact list. Every contact created
+// here belongs to the client being created — no "assign to a different
+// existing company" escape hatch (the vanilla form had one; Haley asked
+// for it to be removed since reassigning a contact to a different company
+// belongs in Address Book's edit-contact flow instead).
+export default function NewClientContactRow({ contact, onChange, onRemove, canRemove }) {
   function setField(field, value) {
     onChange({ ...contact, [field]: value });
   }
@@ -18,13 +19,6 @@ export default function NewClientContactRow({ contact, companyOptions, onChange,
         <div className="field-group half">
           <label className="field-label">Full Name</label>
           <input type="text" className="field-input" placeholder="Jane Smith" value={contact.name} onChange={(e) => setField('name', e.target.value)} />
-        </div>
-        <div className="field-group half">
-          <label className="field-label">Company</label>
-          <select className="field-input" value={contact.companyId} onChange={(e) => setField('companyId', e.target.value)}>
-            <option value="">— This Client —</option>
-            {companyOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
         </div>
         <div className="field-group half">
           <label className="field-label">Email</label>

@@ -6,8 +6,14 @@ export function useClientDetail(companyId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // `reload` itself never touches `loading` on entry — only the effect
+  // below does, and only when `companyId` actually changes (i.e. `reload`
+  // gets a new identity). Mutation handlers call this same `reload()`
+  // directly without going through that effect, so a save/upload/etc.
+  // updates `detail` in place instead of unmounting the whole page while
+  // it refetches — that unmount was breaking things like the document
+  // upload's file-input ref (see ClientDocumentsSection).
   const reload = useCallback(async () => {
-    setLoading(true);
     try {
       const result = await clientsService.fetchClientDetail(companyId);
       setDetail(result);
@@ -19,7 +25,11 @@ export function useClientDetail(companyId) {
     }
   }, [companyId]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    setLoading(true);
+    setDetail(null);
+    reload();
+  }, [reload]);
 
   async function saveOverview(values) {
     await clientsService.saveClientOverview(companyId, {
@@ -39,13 +49,8 @@ export function useClientDetail(companyId) {
     await reload();
   }
 
-  async function updateMembershipField(field, rawValue) {
-    await clientsService.updateMembershipField(companyId, field, rawValue);
-    await reload();
-  }
-
-  async function setUnlimitedSeats(unlimited) {
-    await clientsService.setUnlimitedSeats(companyId, unlimited);
+  async function saveMembership(values) {
+    await clientsService.saveMembership(companyId, values);
     await reload();
   }
 
@@ -77,8 +82,7 @@ export function useClientDetail(companyId) {
     saveOverview,
     setOrgAdmin,
     enableMembership,
-    updateMembershipField,
-    setUnlimitedSeats,
+    saveMembership,
     regenerateClientCode,
     createRosterContact,
     uploadDocument,

@@ -10,8 +10,10 @@ export function useAddressBook(companyFilter) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // See useClientDetail.js for why `reload` itself never sets loading=true
+  // — only the effect below does, and only when companyFilter changes
+  // (a new `reload` identity), not on every create/edit/delete refresh.
   const reload = useCallback(async () => {
-    setLoading(true);
     try {
       const rows = await addressBookService.fetchContacts(companyFilter || null);
       setContacts(rows);
@@ -23,7 +25,10 @@ export function useAddressBook(companyFilter) {
     }
   }, [companyFilter]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    setLoading(true);
+    reload();
+  }, [reload]);
   useEffect(() => { fetchCompaniesForSelect().then(setCompanyOptions); }, []);
 
   async function createContact(payload) {

@@ -1,8 +1,27 @@
+import { useEffect, useState } from 'react';
+
 const TIERS = ['Blue', 'Silver', 'Gold', 'Platinum'];
 
-// Every field here saves immediately on change — no separate Save button,
-// same as the vanilla membershipPanel markup in loadClientDetail().
-export default function ClientMembershipPanel({ membership, activeCount, onCopyCode, onRegenerateCode, onUpdateField, onSetUnlimited, onEnableMembership }) {
+// Tier/seats/unlimited are buffered in local state and only sent on
+// "Save Membership" — Haley asked for this after finding the vanilla-style
+// per-field immediate save (with a full-page reload on every change) too
+// disruptive. Copy and Regenerate stay immediate actions, since those
+// don't have anything to "buffer" — same as the vanilla app.
+export default function ClientMembershipPanel({ membership, activeCount, onCopyCode, onRegenerateCode, onSaveMembership, onEnableMembership }) {
+  const [tier, setTier] = useState(membership?.membership_tier || '');
+  const [maxSeats, setMaxSeats] = useState(membership?.max_seats ?? '');
+  const [unlimited, setUnlimited] = useState(membership?.max_seats === null);
+
+  useEffect(() => {
+    setTier(membership?.membership_tier || '');
+    setMaxSeats(membership?.max_seats ?? '');
+    setUnlimited(membership?.max_seats === null);
+  }, [membership]);
+
+  function handleSave() {
+    onSaveMembership({ tier, maxSeats, unlimited });
+  }
+
   return (
     <>
       <div className="detail-section-title">Client Code</div>
@@ -19,7 +38,7 @@ export default function ClientMembershipPanel({ membership, activeCount, onCopyC
           <div className="fields-grid" style={{ marginTop: 12 }}>
             <div className="field-group half">
               <label className="field-label">Membership Tier</label>
-              <select className="field-input" value={membership.membership_tier || ''} onChange={(e) => onUpdateField('membership_tier', e.target.value)}>
+              <select className="field-input" value={tier} onChange={(e) => setTier(e.target.value)}>
                 <option value="">None</option>
                 {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -29,16 +48,19 @@ export default function ClientMembershipPanel({ membership, activeCount, onCopyC
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <input
                   type="number" className="field-input" min="0" step="1"
-                  value={membership.max_seats === null ? '' : membership.max_seats}
-                  disabled={membership.max_seats === null}
-                  onChange={(e) => onUpdateField('max_seats', e.target.value)}
+                  value={unlimited ? '' : maxSeats}
+                  disabled={unlimited}
+                  onChange={(e) => setMaxSeats(e.target.value)}
                 />
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', fontSize: 13, color: 'var(--gg-muted)' }}>
-                  <input type="checkbox" checked={membership.max_seats === null} onChange={(e) => onSetUnlimited(e.target.checked)} />
+                  <input type="checkbox" checked={unlimited} onChange={(e) => setUnlimited(e.target.checked)} />
                   Unlimited
                 </label>
               </div>
             </div>
+          </div>
+          <div className="create-form-actions" style={{ justifyContent: 'flex-start' }}>
+            <button className="btn btn-primary" onClick={handleSave}>Save Membership →</button>
           </div>
         </div>
       ) : (

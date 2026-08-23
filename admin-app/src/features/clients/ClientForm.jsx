@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import NewClientContactRow from './NewClientContactRow.jsx';
-import * as clientsService from './clientsService.js';
 
-const BLANK_CONTACT = () => ({ key: crypto.randomUUID(), name: '', companyId: '', email: '', phones: [], title: '', notes: '' });
+const BLANK_CONTACT = () => ({ key: crypto.randomUUID(), name: '', email: '', phones: [], title: '', notes: '' });
 
-// 1:1 with #createCompanyCard + createCompany() in admin.js.
+// 1:1 with #createCompanyCard + createCompany() in admin.js, minus the
+// per-contact "assign to a different company" select the vanilla form had
+// — every contact created here belongs to the client being created.
 export default function ClientForm({ onSubmit, onCancel }) {
   const [name, setName] = useState('');
   const [contacts, setContacts] = useState([BLANK_CONTACT()]);
@@ -12,11 +13,6 @@ export default function ClientForm({ onSubmit, onCancel }) {
   const [tier, setTier] = useState('');
   const [maxSeats, setMaxSeats] = useState('');
   const [unlimitedSeats, setUnlimitedSeats] = useState(false);
-  const [companyOptions, setCompanyOptions] = useState([]);
-
-  useEffect(() => {
-    clientsService.fetchCompaniesForSelect().then(setCompanyOptions);
-  }, []);
 
   function updateContact(index, updated) {
     setContacts((prev) => prev.map((c, i) => (i === index ? updated : c)));
@@ -35,7 +31,6 @@ export default function ClientForm({ onSubmit, onCancel }) {
     const rawContacts = contacts
       .map((c) => ({
         name: c.name.trim(),
-        companyId: c.companyId || null,
         email: c.email.trim() || null,
         phones: (c.phones || []).filter((p) => p.number && p.number.trim()),
         title: c.title.trim() || null,
@@ -75,7 +70,6 @@ export default function ClientForm({ onSubmit, onCancel }) {
               <NewClientContactRow
                 key={c.key}
                 contact={c}
-                companyOptions={companyOptions}
                 onChange={(updated) => updateContact(i, updated)}
                 onRemove={() => removeContact(i)}
                 canRemove={contacts.length > 1}

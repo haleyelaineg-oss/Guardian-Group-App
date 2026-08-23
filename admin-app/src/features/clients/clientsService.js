@@ -46,15 +46,18 @@ export async function fetchClientsList() {
   return { companies, participantsByCompany, membershipByCompany };
 }
 
-// Multi-step create — mirrors createCompany() in admin.js exactly,
-// including that it does NOT roll back the company row if a later step
-// (contacts, membership) fails; it reports each failure as a warning and
+// Multi-step create — mirrors createCompany() in admin.js, minus its
+// per-contact "assign to a different existing company" option (removed
+// per Haley's request — every contact created here belongs to this new
+// client; reassigning a contact to a different company is an Address Book
+// edit-contact concern now). The first named contact is the primary
+// contact; it does NOT roll back the company row if a later step
+// (contacts, membership) fails — reports each failure as a warning and
 // still leaves the company created. Only a failure on the initial
 // `companies` insert itself aborts and throws.
 export async function createCompany({ name, contacts, billingAddress, tier, maxSeats, unlimitedSeats }) {
-  const primaryIndex = contacts.findIndex((c) => !c.companyId);
-  const primary = primaryIndex > -1 ? contacts[primaryIndex] : null;
-  const others = contacts.filter((_, i) => i !== primaryIndex);
+  const primary = contacts[0] || null;
+  const others = contacts.slice(1);
 
   const { data: co, error } = await supabase.from('companies').insert({
     name,
@@ -86,7 +89,7 @@ export async function createCompany({ name, contacts, billingAddress, tier, maxS
   if (!contactErr && others.length) {
     const { error: err } = await supabase.from('participants').insert(others.map((c) => ({
       full_name: c.name,
-      company_id: c.companyId || co.id,
+      company_id: co.id,
       email: c.email,
       phone: c.phones[0]?.number || null,
       phones: c.phones,
@@ -193,14 +196,14 @@ export async function enableMembership(companyId) {
   if (error) throw new Error('Could not enable membership: ' + error.message);
 }
 
-export async function updateMembershipField(companyId, field, rawValue) {
-  const value = field === 'max_seats' ? (parseInt(rawValue, 10) || 0) : (rawValue.trim() || null);
-  const { error } = await supabase.from('company_membership').update({ [field]: value }).eq('company_id', companyId);
-  if (error) throw new Error('Could not save: ' + error.message);
-}
-
-export async function setUnlimitedSeats(companyId, unlimited) {
-  const { error } = await supabase.from('company_membership').update({ max_seats: unlimited ? null : 5 }).eq('company_id', companyId);
+// Batched save for the whole membership panel (tier, seats, unlimited) —
+// one "Save Membership" click, not a per-field immediate save. Only Copy
+// and Regenerate stay immediate, per Haley's request.
+export async function saveMembership(companyId, { tier, maxSeats, unlimited }) {
+  const { error } = await supabase.from('company_membership').update({
+    membership_tier: tier?.trim() || null,
+    max_seats: unlimited ? null : (parseInt(maxSeats, 10) || 0),
+  }).eq('company_id', companyId);
   if (error) throw new Error('Could not save: ' + error.message);
 }
 

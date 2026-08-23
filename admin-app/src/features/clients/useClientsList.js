@@ -8,8 +8,12 @@ export function useClientsList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Doesn't set loading=true on entry — only the initial mount (loading
+  // starts true) shows the full-page loading state; a delete-triggered
+  // reload just swaps the table's data in place. See useClientDetail.js
+  // for the fuller version of this — this hook has no changing "id" to
+  // reset on, so it doesn't need the extra effect that one has.
   const reload = useCallback(async () => {
-    setLoading(true);
     try {
       const result = await clientsService.fetchClientsList();
       setCompanies(result.companies);

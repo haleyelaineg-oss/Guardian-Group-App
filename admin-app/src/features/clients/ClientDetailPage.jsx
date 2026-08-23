@@ -14,8 +14,8 @@ export default function ClientDetailPage() {
   const { id } = useParams();
   const {
     detail, loading, error,
-    saveOverview, setOrgAdmin, enableMembership, updateMembershipField,
-    setUnlimitedSeats, regenerateClientCode, createRosterContact,
+    saveOverview, setOrgAdmin, enableMembership, saveMembership,
+    regenerateClientCode, createRosterContact,
     uploadDocument, deleteDocument,
   } = useClientDetail(id);
 
@@ -86,8 +86,7 @@ export default function ClientDetailPage() {
         activeCount={activeCount}
         onCopyCode={handleCopyCode}
         onRegenerateCode={handleRegenerateCode}
-        onUpdateField={(field, value) => guard(updateMembershipField, field, value)}
-        onSetUnlimited={(unlimited) => guard(setUnlimitedSeats, unlimited)}
+        onSaveMembership={(values) => guard(saveMembership, values)}
         onEnableMembership={() => guard(enableMembership)}
       />
 
