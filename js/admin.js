@@ -98,65 +98,118 @@ async function loadDashboardView() {
   const eventsEl = document.getElementById('dashboardUpcomingEvents');
   if (!statsEl || !eventsEl) return;
 
-  const [{ data: invoices }, { data: events }] = await Promise.all([
-    ggClient.from('documents').select('id,doc_number,client_name,status,total,balance,doc_date,due_date,date_paid').eq('doc_type', 'invoice'),
+  const [{ data: invoices }, { data: events }, { data: revenueEvents }, { data: itineraryItems }, { data: manualIncome }] = await Promise.all([
+    ggClient.from('documents').select('id,doc_number,client_name,status,total,balance,amount_paid,doc_date,due_date,date_paid').eq('doc_type', 'invoice'),
     ggClient.from('events').select('id,title,event_type,starts_at,all_day,location')
-      .gte('starts_at', new Date().toISOString()).order('starts_at', { ascending: true }).limit(8)
+      .gte('starts_at', new Date().toISOString()).order('starts_at', { ascending: true }).limit(8),
+    ggClient.from('events').select('id,status,income_amount').not('income_amount', 'is', null),
+    ggClient.from('event_itinerary_items').select('id,income_amount,events!event_id(status)').not('income_amount', 'is', null),
+    ggClient.from('income').select('amount,status')
   ]);
 
-  renderDashboardStats(invoices || []);
+  renderRevenueStats(invoices || [], revenueEvents || [], itineraryItems || [], manualIncome || [], 'dashboardStats');
   renderDashboardEvents(events || []);
   loadTaskList();
 }
 
-function renderDashboardStats(invoices, targetId) {
-  const statsEl = document.getElementById(targetId || 'dashboardStats');
+// Revenue waterfall: Booked (everything committed, all sources) ⊇ Earned
+// (service completed or invoice sent) ⊇ { Collected (cash actually in hand),
+// Accounts Receivable (invoiced balance still owed) }. Shared by the
+// Dashboard and Financial Overview stat-card rows.
+function renderRevenueStats(invoices, events, itineraryItems, manualIncome, targetId) {
+  const statsEl = document.getElementById(targetId);
   if (!statsEl) return;
-  const todayStr = todayIsoDate();
-  const in7Str = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
-  const monthStartStr = todayStr.slice(0, 7) + '-01';
 
-  const open = { count: 0, sum: 0 };
-  const pastDue = { count: 0, sum: 0 };
-  const dueSoon = { count: 0, sum: 0 };
-  const paidThisMonth = { count: 0, sum: 0 };
+  let booked = 0, earned = 0, ar = 0, collected = 0;
 
   invoices.forEach(inv => {
+    const total = Number(inv.total) || 0;
+    booked += total;
+    collected += Number(inv.amount_paid) || 0;
+    if (inv.status !== 'draft') earned += total;
+    if (inv.status !== 'paid') ar += Number(inv.balance) || 0;
+  });
+
+  events.forEach(ev => {
+    if (ev.status === 'cancelled' || ev.status === 'application_denied') return;
+    const amt = Number(ev.income_amount) || 0;
+    booked += amt;
+    if (ev.status === 'completed') earned += amt;
+  });
+
+  itineraryItems.forEach(item => {
+    const evStatus = item.events?.status;
+    if (evStatus === 'cancelled' || evStatus === 'application_denied') return;
+    const amt = Number(item.income_amount) || 0;
+    booked += amt;
+    if (evStatus === 'completed') earned += amt;
+  });
+
+  manualIncome.forEach(inc => {
+    const amt = Number(inc.amount) || 0;
+    booked += amt;
+    if (inc.status === 'received') { earned += amt; collected += amt; }
+  });
+
+  const cards = [
+    { label: 'Booked Revenue', sum: booked, sub: 'all sources', accent: '' },
+    { label: 'Earned Revenue', sum: earned, sub: 'completed / invoiced', accent: '' },
+    { label: 'Accounts Receivable', sum: ar, sub: 'open invoices', accent: ar ? 'accent-danger' : '' },
+    { label: 'Collected Revenue', sum: collected, sub: 'received', accent: 'accent' }
+  ];
+
+  statsEl.innerHTML = cards.map(c => `
+    <div class="stat-card ${c.accent}">
+      <div class="stat-value">${formatCurrency(c.sum)}</div>
+      <div class="stat-label">${escHtml(c.label)}</div>
+      <div class="stat-sub">${escHtml(c.sub)}</div>
+    </div>
+  `).join('');
+}
+
+// A/R aging summary (Financial Overview only) — invoice-only, since only
+// invoices carry due dates. "Due within" buckets are cumulative from today
+// and exclude anything already past due (that's its own bucket).
+function renderARSummary(invoices, targetId) {
+  const statsEl = document.getElementById(targetId);
+  if (!statsEl) return;
+
+  const todayStr = todayIsoDate();
+  const inNDaysStr = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const due7 = inNDaysStr(7), due14 = inNDaysStr(14), due30 = inNDaysStr(30);
+
+  const open = { count: 0, sum: 0 };
+  const within7 = { count: 0, sum: 0 };
+  const within14 = { count: 0, sum: 0 };
+  const within30 = { count: 0, sum: 0 };
+  const pastDue = { count: 0, sum: 0 };
+
+  invoices.forEach(inv => {
+    if (inv.status === 'paid') return;
     const balance = Number(inv.balance) || 0;
-    if (inv.status === 'paid') {
-      // date_paid is only populated going forward — older paid invoices
-      // fall back to doc_date so they still show up somewhere sensible.
-      const paidStr = inv.date_paid || inv.doc_date;
-      const paidDate = paidStr ? new Date(paidStr) : null;
-      if (paidDate && !isNaN(paidDate.getTime())) {
-        const paidIso = `${paidDate.getFullYear()}-${String(paidDate.getMonth() + 1).padStart(2, '0')}-${String(paidDate.getDate()).padStart(2, '0')}`;
-        if (paidIso >= monthStartStr) {
-          paidThisMonth.count++;
-          paidThisMonth.sum += Number(inv.total) || 0;
-        }
-      }
-      return;
-    }
     open.count++;
     open.sum += balance;
+
     if (inv.due_date && inv.due_date < todayStr) {
       pastDue.count++;
       pastDue.sum += balance;
-    } else if (inv.due_date && inv.due_date >= todayStr && inv.due_date <= in7Str) {
-      dueSoon.count++;
-      dueSoon.sum += balance;
+      return;
     }
+    if (inv.due_date && inv.due_date <= due7) { within7.count++; within7.sum += balance; }
+    if (inv.due_date && inv.due_date <= due14) { within14.count++; within14.sum += balance; }
+    if (inv.due_date && inv.due_date <= due30) { within30.count++; within30.sum += balance; }
   });
 
   const cards = [
     { label: 'Open Invoices', ...open, sub: 'outstanding', accent: '', link: "openFinancialList('invoice')" },
-    { label: 'Past Due', ...pastDue, sub: 'overdue', accent: pastDue.count ? 'accent-danger' : '', link: "openFinancialList('invoice', null, 'past_due')" },
-    { label: 'Due Within 7 Days', ...dueSoon, sub: 'coming due', accent: '', link: "openFinancialList('invoice')" },
-    { label: 'Paid This Month', ...paidThisMonth, sub: 'received', accent: 'accent', link: "openFinancialList('invoice', null, 'paid')" }
+    { label: 'Due Within 7 Days', ...within7, sub: 'coming due', accent: '', link: "openFinancialList('invoice')" },
+    { label: 'Due Within 14 Days', ...within14, sub: 'coming due', accent: '', link: "openFinancialList('invoice')" },
+    { label: 'Due Within 30 Days', ...within30, sub: 'coming due', accent: '', link: "openFinancialList('invoice')" },
+    { label: 'Past Due Invoices', ...pastDue, sub: 'overdue', accent: pastDue.count ? 'accent-danger' : '', link: "openFinancialList('invoice', null, 'past_due')" }
   ];
 
   statsEl.innerHTML = cards.map(c => `
@@ -211,11 +264,18 @@ let financialDocsFilter = { search: '', type: 'all', status: 'all' };
 async function loadFinancialOverview() {
   const statsEl = document.getElementById('financialOverviewStats');
   if (!statsEl) return;
-  const { data } = await ggClient.from('documents')
-    .select('id,doc_type,doc_number,client_name,status,total,balance,doc_date,due_date,date_paid,company_id')
-    .order('created_at', { ascending: false });
+  const [{ data }, { data: revenueEvents }, { data: itineraryItems }, { data: manualIncome }] = await Promise.all([
+    ggClient.from('documents')
+      .select('id,doc_type,doc_number,client_name,status,total,balance,amount_paid,doc_date,due_date,date_paid,company_id')
+      .order('created_at', { ascending: false }),
+    ggClient.from('events').select('id,status,income_amount').not('income_amount', 'is', null),
+    ggClient.from('event_itinerary_items').select('id,income_amount,events!event_id(status)').not('income_amount', 'is', null),
+    ggClient.from('income').select('amount,status')
+  ]);
   financialAllDocs = data || [];
-  renderDashboardStats(financialAllDocs.filter(d => d.doc_type === 'invoice'), 'financialOverviewStats');
+  const invoiceDocs = financialAllDocs.filter(d => d.doc_type === 'invoice');
+  renderRevenueStats(invoiceDocs, revenueEvents || [], itineraryItems || [], manualIncome || [], 'financialOverviewStats');
+  renderARSummary(invoiceDocs, 'financialARSummary');
   renderFinancialDocsTable();
   loadFinancialExpenseStats();
 }

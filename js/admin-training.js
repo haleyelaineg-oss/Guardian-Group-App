@@ -327,7 +327,7 @@ function renderTrainingOverviewTab(engagement) {
   document.getElementById('trnEditContactParticipant').value = engagement.contact_participant_id || '';
   document.getElementById('trnEditTitle').value = engagement.title || '';
   document.getElementById('trnEditTrainingType').value = engagement.training_type || '';
-  document.getElementById('trnEditInstructors').value = peopleArrayToText(engagement.instructors);
+  renderInstructorPills('trnInstructorPills', 'trnEditInstructors', peopleArrayToText(engagement.instructors));
   document.getElementById('trnEditStatus').value = engagement.status || 'inquiry';
   document.getElementById('trnEditStartDate').value = engagement.starts_at ? toDateInputValue(new Date(engagement.starts_at)) : '';
   document.getElementById('trnEditStartTime').value = engagement.starts_at ? toTimeInputValue(new Date(engagement.starts_at)) : '';

@@ -671,6 +671,35 @@ function selectSpeakerPill(btn, hiddenInputId) {
 }
 
 // ============================================================
+// INSTRUCTOR PILL SELECTOR (Training Overview tab) — unlike the
+// Speaker pills above, this is a true multi-select (Haley, Dave,
+// or both, independently toggleable). Backed by the same
+// comma-string <-> jsonb-array convention via peopleArrayToText/
+// textToPeopleArray, so the hidden input's value round-trips
+// through the existing instructors payload code unchanged.
+// ============================================================
+const INSTRUCTOR_PILL_OPTIONS = ['Haley', 'Dave'];
+
+function renderInstructorPills(containerId, hiddenInputId, selectedText) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const selected = new Set(textToPeopleArray(selectedText));
+  container.innerHTML = INSTRUCTOR_PILL_OPTIONS.map(opt => `
+    <button type="button" class="pill-btn ${selected.has(opt) ? 'active' : ''}" onclick="toggleInstructorPill(this, '${hiddenInputId}')">${escHtml(opt)}</button>
+  `).join('');
+  const hidden = document.getElementById(hiddenInputId);
+  if (hidden) hidden.value = selectedText || '';
+}
+
+function toggleInstructorPill(btn, hiddenInputId) {
+  btn.classList.toggle('active');
+  const selected = Array.from(btn.parentElement.children)
+    .filter(el => el.classList.contains('active'))
+    .map(el => el.textContent);
+  document.getElementById(hiddenInputId).value = selected.join(', ');
+}
+
+// ============================================================
 // ADDRESS BOOK CONTACT PICKER — a small modal for filling a
 // Name/Email/Phone trio from an existing participants row instead
 // of retyping it. Read-only lookup; picking a contact does not
@@ -729,30 +758,30 @@ function pickContactFromPicker(participantId) {
 }
 
 // ============================================================
-// FINANCIALS TAB — reads the SAME event_expenses rows the linked
-// event's own Spending tab manages, with an inline reimbursement-
-// status quick-edit. Adding a brand-new expense is done on that
-// full Spending tab (jump-out link below) rather than duplicating
-// a second create form + file-upload flow here.
+// FINANCIALS TAB — full expense CRUD against event_expenses,
+// living directly on the Speaking/Training modal instead of
+// jumping out to the linked event's old Spending tab. KIND_PREFIX
+// maps 'speaking'/'training' to the id prefix ('spk'/'trn') each
+// modal's form fields use, so one set of functions serves both.
 // ============================================================
+const KIND_PREFIX = { speaking: 'spk', training: 'trn' };
 const FINANCIALS_UI_IDS = {
-  speaking: { stats: 'spkFinancialsStats', list: 'spkFinancialsExpensesList' },
-  training: { stats: 'trnFinancialsStats', list: 'trnFinancialsExpensesList' }
+  speaking: { stats: 'spkFinancialsStats', list: 'spkFinancialsExpensesList', addBtn: 'spkShowAddExpenseBtn', addCard: 'spkAddExpenseCard' },
+  training: { stats: 'trnFinancialsStats', list: 'trnFinancialsExpensesList', addBtn: 'trnShowAddExpenseBtn', addCard: 'trnAddExpenseCard' }
 };
 const REIMBURSEMENT_STATUS_OPTIONS = ['not_submitted', 'submitted', 'reimbursed', 'denied'];
-
-function jumpToEventTab(kind, eventId, tabName) {
-  const hideFn = kind === 'speaking' ? 'hideSpeakingDetail' : 'hideTrainingDetail';
-  return `${hideFn}(); showEventDetail('${eventId}'); switchEventTab('${tabName}'); return false;`;
-}
+const EXPENSE_STATUS_OPTIONS = ['planned', 'paid', 'reimbursed'];
 
 async function loadFinancialsPanel(kind, eventId) {
   const ids = FINANCIALS_UI_IDS[kind];
   if (!eventId) {
     document.getElementById(ids.stats).innerHTML = '';
     document.getElementById(ids.list).innerHTML = '<p class="empty-hint">Financials are tracked on the linked Calendar event once this engagement is linked.</p>';
+    document.getElementById(ids.addBtn).style.display = 'none';
+    hideAddExpenseForm(kind);
     return;
   }
+  document.getElementById(ids.addBtn).style.display = '';
 
   const [{ data: event }, { data: expenses }] = await Promise.all([
     ggClient.from('events').select('income_amount').eq('id', eventId).single(),
@@ -777,16 +806,15 @@ function renderFinancialsPanel(kind, eventId, event, expenses) {
   `;
 
   const list = document.getElementById(ids.list);
-  const jumpLink = jumpToEventTab(kind, eventId, 'spending');
   if (!expenses.length) {
-    list.innerHTML = `<p class="empty-hint">No expenses logged yet. <a href="#" onclick="${jumpLink}">Open the full Spending tab to add one →</a></p>`;
+    list.innerHTML = '<p class="empty-hint">No expenses logged yet.</p>';
     return;
   }
 
   list.innerHTML = `
     <div class="responses-table-wrap">
       <table class="responses-table">
-        <thead><tr><th>Category</th><th>Description</th><th>Vendor</th><th>Amount</th><th>Reimbursement</th></tr></thead>
+        <thead><tr><th>Category</th><th>Description</th><th>Vendor</th><th>Amount</th><th>Status</th><th>Reimbursement</th><th></th></tr></thead>
         <tbody>
           ${expenses.map(exp => `
             <tr>
@@ -795,49 +823,139 @@ function renderFinancialsPanel(kind, eventId, event, expenses) {
               <td>${escHtml(exp.vendor || '—')}</td>
               <td>${formatCurrency(exp.amount)}</td>
               <td>
+                <select class="field-input" style="max-width:130px;" onchange="updateEngagementExpenseField('${kind}', '${eventId}', '${exp.id}', 'status', this.value)">
+                  ${EXPENSE_STATUS_OPTIONS.map(s => `<option value="${s}" ${exp.status === s ? 'selected' : ''}>${capWords(s)}</option>`).join('')}
+                </select>
+              </td>
+              <td>
                 ${exp.reimbursable
-                  ? `<select class="field-input" style="max-width:150px;" onchange="updateExpenseReimbursementStatus('${exp.id}', '${kind}', '${eventId}', this.value)">
+                  ? `<select class="field-input" style="max-width:150px;" onchange="updateEngagementExpenseField('${kind}', '${eventId}', '${exp.id}', 'reimbursement_status', this.value)">
                       ${REIMBURSEMENT_STATUS_OPTIONS.map(s => `<option value="${s}" ${exp.reimbursement_status === s ? 'selected' : ''}>${capWords(s)}</option>`).join('')}
                      </select>`
                   : '<span class="field-hint">Not reimbursable</span>'}
               </td>
+              <td><button class="btn-sm btn-sm-danger" onclick="deleteEngagementExpense('${kind}', '${eventId}', '${exp.id}')" title="Delete">🗑️</button></td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     </div>
-    <p class="field-hint" style="margin-top:10px;"><a href="#" onclick="${jumpLink}">+ Add an expense on the full Spending tab →</a></p>
   `;
 }
 
-async function updateExpenseReimbursementStatus(expenseId, kind, eventId, value) {
-  const { error } = await ggClient.from('event_expenses').update({ reimbursement_status: value }).eq('id', expenseId);
+function showAddExpenseForm(kind) {
+  const p = KIND_PREFIX[kind];
+  document.getElementById(`${p}AddExpenseCard`).style.display = 'block';
+  document.getElementById(`${p}ShowAddExpenseBtn`).style.display = 'none';
+}
+function hideAddExpenseForm(kind) {
+  const p = KIND_PREFIX[kind];
+  document.getElementById(`${p}AddExpenseCard`).style.display = 'none';
+  document.getElementById(`${p}ShowAddExpenseBtn`).style.display = 'inline-block';
+}
+function updateEngagementExpenseReimbursementFieldVisibility(kind) {
+  const p = KIND_PREFIX[kind];
+  document.getElementById(`${p}ExpenseReimbursementStatusGroup`).style.display =
+    document.getElementById(`${p}ExpenseReimbursable`).checked ? '' : 'none';
+}
+
+async function addEngagementExpense(kind, eventId) {
+  const p = KIND_PREFIX[kind];
+  const description = document.getElementById(`${p}ExpenseDescription`).value.trim();
+  const amount = document.getElementById(`${p}ExpenseAmount`).value;
+  if (!description || !amount) { alert('Description and amount are required.'); return; }
+
+  const reimbursable = document.getElementById(`${p}ExpenseReimbursable`).checked;
+  const payload = {
+    event_id: eventId,
+    category: document.getElementById(`${p}ExpenseCategory`).value,
+    description,
+    amount: parseFloat(amount),
+    status: document.getElementById(`${p}ExpenseStatus`).value,
+    incurred_on: document.getElementById(`${p}ExpenseIncurredOn`).value || null,
+    vendor: document.getElementById(`${p}ExpenseVendor`).value.trim() || null,
+    reimbursable,
+    reimbursement_status: reimbursable ? document.getElementById(`${p}ExpenseReimbursementStatus`).value : 'not_applicable'
+  };
+
+  const { data, error } = await ggClient.from('event_expenses').insert(payload).select().single();
+  if (error) { alert('Could not add expense: ' + error.message); return; }
+
+  const fileInput = document.getElementById(`${p}ExpenseDocFile`);
+  const file = fileInput.files[0];
+  let uploadedDoc = false;
+  if (file) {
+    const path = `${eventId}/${crypto.randomUUID()}-${file.name}`;
+    const { error: upErr } = await ggClient.storage.from('event-documents').upload(path, file);
+    if (upErr) {
+      alert('Expense was saved, but the document upload failed: ' + upErr.message);
+    } else {
+      const { error: docErr } = await ggClient.from('event_documents').insert({
+        event_id: eventId, expense_id: data.id, file_name: file.name, storage_path: path, file_size: file.size
+      });
+      if (docErr) alert('Expense was saved, but the document record failed to save: ' + docErr.message);
+      else uploadedDoc = true;
+    }
+  }
+
+  document.getElementById(`${p}ExpenseDescription`).value = '';
+  document.getElementById(`${p}ExpenseAmount`).value = '';
+  document.getElementById(`${p}ExpenseIncurredOn`).value = '';
+  document.getElementById(`${p}ExpenseCategory`).value = 'other';
+  document.getElementById(`${p}ExpenseStatus`).value = 'planned';
+  document.getElementById(`${p}ExpenseVendor`).value = '';
+  document.getElementById(`${p}ExpenseReimbursable`).checked = false;
+  document.getElementById(`${p}ExpenseReimbursementStatus`).value = 'not_submitted';
+  updateEngagementExpenseReimbursementFieldVisibility(kind);
+  fileInput.value = '';
+
+  hideAddExpenseForm(kind);
+  await loadFinancialsPanel(kind, eventId);
+  if (uploadedDoc) await loadDocumentsPanel(kind, eventId);
+}
+
+async function updateEngagementExpenseField(kind, eventId, expenseId, field, value) {
+  const { error } = await ggClient.from('event_expenses').update({ [field]: value }).eq('id', expenseId);
   if (error) { alert('Could not save: ' + error.message); return; }
   await loadFinancialsPanel(kind, eventId);
 }
 
+async function deleteEngagementExpense(kind, eventId, expenseId) {
+  if (!confirm('Delete this expense?')) return;
+  const { error } = await ggClient.from('event_expenses').delete().eq('id', expenseId);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  await loadFinancialsPanel(kind, eventId);
+}
+
 // ============================================================
-// DOCUMENTS TAB — same event_documents rows the linked event's
-// own Documents tab manages. Uploading is done there (jump-out
-// link) rather than duplicating the storage-upload flow here;
-// this tab is view + delete only.
+// DOCUMENTS TAB — full upload/view/delete against event_documents,
+// living directly on the Speaking/Training modal instead of
+// jumping out to the linked event's old Documents tab.
 // ============================================================
-const DOCUMENTS_UI_IDS = { speaking: 'spkDocumentsList', training: 'trnDocumentsList' };
+const DOCUMENTS_UI_IDS = {
+  speaking: { list: 'spkDocumentsList', addBtn: 'spkShowUploadDocBtn', addCard: 'spkUploadDocCard' },
+  training: { list: 'trnDocumentsList', addBtn: 'trnShowUploadDocBtn', addCard: 'trnUploadDocCard' }
+};
 
 async function loadDocumentsPanel(kind, eventId) {
-  const listEl = document.getElementById(DOCUMENTS_UI_IDS[kind]);
-  if (!eventId) { listEl.innerHTML = '<p class="empty-hint">Documents are stored on the linked Calendar event once this engagement is linked.</p>'; return; }
+  const ids = DOCUMENTS_UI_IDS[kind];
+  if (!eventId) {
+    document.getElementById(ids.list).innerHTML = '<p class="empty-hint">Documents are stored on the linked Calendar event once this engagement is linked.</p>';
+    document.getElementById(ids.addBtn).style.display = 'none';
+    hideUploadDocumentForm(kind);
+    return;
+  }
+  document.getElementById(ids.addBtn).style.display = '';
 
   const { data, error } = await ggClient.from('event_documents').select('*').eq('event_id', eventId).order('created_at', { ascending: false });
   renderDocumentsPanel(kind, eventId, error ? [] : (data || []));
 }
 
 function renderDocumentsPanel(kind, eventId, documents) {
-  const listEl = document.getElementById(DOCUMENTS_UI_IDS[kind]);
-  const jumpLink = jumpToEventTab(kind, eventId, 'documents');
+  const listEl = document.getElementById(DOCUMENTS_UI_IDS[kind].list);
 
   if (!documents.length) {
-    listEl.innerHTML = `<p class="empty-hint">No documents uploaded yet. <a href="#" onclick="${jumpLink}">Open the full Documents tab to upload →</a></p>`;
+    listEl.innerHTML = '<p class="empty-hint">No documents uploaded yet.</p>';
     return;
   }
 
@@ -861,8 +979,40 @@ function renderDocumentsPanel(kind, eventId, documents) {
         </tbody>
       </table>
     </div>
-    <p class="field-hint" style="margin-top:10px;"><a href="#" onclick="${jumpLink}">+ Upload another document on the full Documents tab →</a></p>
   `;
+}
+
+function showUploadDocumentForm(kind) {
+  const p = KIND_PREFIX[kind];
+  document.getElementById(`${p}UploadDocCard`).style.display = 'block';
+  document.getElementById(`${p}ShowUploadDocBtn`).style.display = 'none';
+}
+function hideUploadDocumentForm(kind) {
+  const p = KIND_PREFIX[kind];
+  document.getElementById(`${p}UploadDocCard`).style.display = 'none';
+  document.getElementById(`${p}ShowUploadDocBtn`).style.display = 'inline-block';
+}
+
+async function uploadEngagementDocument(kind, eventId) {
+  const p = KIND_PREFIX[kind];
+  const fileInput = document.getElementById(`${p}DocFile`);
+  const file = fileInput.files[0];
+  if (!file) { alert('Choose a file first.'); return; }
+
+  const notes = document.getElementById(`${p}DocNotes`).value.trim() || null;
+  const path = `${eventId}/${crypto.randomUUID()}-${file.name}`;
+  const { error: upErr } = await ggClient.storage.from('event-documents').upload(path, file);
+  if (upErr) { alert('Upload failed: ' + upErr.message); return; }
+
+  const { error: insErr } = await ggClient.from('event_documents').insert({
+    event_id: eventId, file_name: file.name, storage_path: path, file_size: file.size, notes
+  });
+  if (insErr) { alert('Could not save document record: ' + insErr.message); return; }
+
+  document.getElementById(`${p}DocFile`).value = '';
+  document.getElementById(`${p}DocNotes`).value = '';
+  hideUploadDocumentForm(kind);
+  await loadDocumentsPanel(kind, eventId);
 }
 
 async function deleteEngagementDocument(docId, storagePath, kind, eventId) {

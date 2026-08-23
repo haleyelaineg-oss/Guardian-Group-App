@@ -202,6 +202,11 @@
           <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading…</div></div>
         </div>
 
+        <div class="detail-section-title">Accounts Receivable Summary</div>
+        <div class="stat-cards stat-cards-compact" id="financialARSummary" style="margin-bottom:28px;">
+          <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading…</div></div>
+        </div>
+
         <div class="stat-cards" id="financialExpenseStats" style="grid-template-columns: repeat(2, 1fr); margin-bottom:28px;"></div>
 
         <div class="detail-section-title">All Documents</div>
@@ -1021,6 +1026,7 @@
         <h3 class="modal-title" id="viewContactTitle">Contact</h3>
         <button class="modal-close" onclick="hideViewContact()">✕</button>
       </div>
+      <div class="modal-body">
       <div class="fields-grid">
         <div class="field-group half">
           <div class="detail-label">Company</div>
@@ -1047,6 +1053,7 @@
         <button class="btn btn-ghost" onclick="hideViewContact()">Close</button>
         <button class="btn btn-primary" onclick="editFromViewContact()">Edit →</button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -1057,6 +1064,7 @@
         <h3 class="modal-title">Edit Contact</h3>
         <button class="modal-close" onclick="hideEditContact()">✕</button>
       </div>
+      <div class="modal-body">
       <div class="fields-grid">
         <div class="field-group half">
           <label class="field-label" for="abEditName">Full Name <span class="required">*</span></label>
@@ -1088,6 +1096,7 @@
         <button class="btn-sm btn-sm-danger" id="abDeleteContactBtn" onclick="deleteContact()" title="Delete">🗑️</button>
         <button class="btn btn-primary" onclick="saveContactEdits()">Save Changes →</button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -1098,6 +1107,7 @@
         <h3 class="modal-title">Create New Contact</h3>
         <button class="modal-close" onclick="hideAddRosterContact()">✕</button>
       </div>
+      <div class="modal-body">
       <div class="fields-grid">
         <div class="field-group full">
           <label class="field-label" for="rosterContactName">Full Name <span class="required">*</span></label>
@@ -1124,6 +1134,7 @@
         <button class="btn btn-ghost" onclick="hideAddRosterContact()">Cancel</button>
         <button class="btn btn-primary" onclick="createRosterContact()">Add Contact →</button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -1134,6 +1145,7 @@
         <h3 class="modal-title">Edit Workshop</h3>
         <button class="modal-close" onclick="hideEditWorkshop()">✕</button>
       </div>
+      <div class="modal-body">
       <div class="fields-grid">
         <div class="field-group full">
           <label class="field-label" for="editTitle">Workshop Title <span class="required">*</span></label>
@@ -1180,6 +1192,7 @@
         <button class="btn btn-ghost" onclick="hideEditWorkshop()">Cancel</button>
         <button class="btn btn-primary" onclick="saveWorkshop()">Save Changes →</button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -1200,6 +1213,7 @@
         </div>
         <button class="modal-close" onclick="hideEventDetail()">✕</button>
       </div>
+      <div class="modal-body">
 
       <div class="event-tabs">
         <button class="event-tab-btn active" id="eventTabBtnDetails" onclick="switchEventTab('details')">Details</button>
@@ -1498,6 +1512,7 @@
         </div>
       </div>
 
+      </div>
     </div>
   </div>
 
@@ -1508,6 +1523,7 @@
         <h3 class="modal-title">Add Speaking Engagement</h3>
         <button class="modal-close" onclick="hideCreateSpeaking()">✕</button>
       </div>
+      <div class="modal-body">
       <div class="fields-grid">
         <div class="field-group full">
           <label class="field-label" for="spkNewEventName">Event Name <span class="required">*</span></label>
@@ -1593,6 +1609,7 @@
         <button class="btn btn-ghost" onclick="hideCreateSpeaking()">Cancel</button>
         <button class="btn btn-primary" onclick="createSpeakingEngagement()">Save</button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -1603,6 +1620,7 @@
         <h3 class="modal-title">Add Training Engagement</h3>
         <button class="modal-close" onclick="hideCreateTraining()">✕</button>
       </div>
+      <div class="modal-body">
       <div class="fields-grid">
         <div class="field-group half">
           <label class="field-label" for="trnNewCompany">Client <span class="required">*</span></label>
@@ -1664,6 +1682,7 @@
         <button class="btn btn-ghost" onclick="hideCreateTraining()">Cancel</button>
         <button class="btn btn-primary" onclick="createTrainingEngagement()">Save</button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -1692,6 +1711,7 @@
         </div>
         <button class="modal-close" onclick="hideSpeakingDetail()">✕</button>
       </div>
+      <div class="modal-body">
 
       <div class="event-tabs">
         <button class="event-tab-btn active" id="spkTabBtnOverview" onclick="switchSpeakingTab('overview')">Overview</button>
@@ -1999,11 +2019,103 @@
       <div class="event-tab-panel" id="spkTabPanelFinancials">
         <div class="stat-cards stat-cards-compact" id="spkFinancialsStats"></div>
         <div id="spkFinancialsExpensesList"></div>
+        <div class="create-form-card" id="spkAddExpenseCard" style="display:none">
+          <h3 class="card-title">Add Expense</h3>
+          <div class="fields-grid">
+            <div class="field-group third">
+              <label class="field-label" for="spkExpenseCategory">Category</label>
+              <select id="spkExpenseCategory" class="field-input">
+                <option value="airfare">Airfare</option>
+                <option value="lodging">Lodging</option>
+                <option value="rental_car">Rental Car</option>
+                <option value="mileage">Mileage</option>
+                <option value="parking">Parking</option>
+                <option value="baggage">Baggage</option>
+                <option value="ground_transportation">Ground Transportation</option>
+                <option value="meals">Meals</option>
+                <option value="registration">Registration</option>
+                <option value="childcare">Childcare</option>
+                <option value="pet_care">Pet Care</option>
+                <option value="printing">Printing</option>
+                <option value="shipping">Shipping</option>
+                <option value="materials">Materials</option>
+                <option value="venue">Venue</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkExpenseDescription">Description <span class="required">*</span></label>
+              <input type="text" id="spkExpenseDescription" class="field-input" placeholder="e.g. Rental car deposit" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="spkExpenseAmount">Amount (USD) <span class="required">*</span></label>
+              <input type="number" id="spkExpenseAmount" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="spkExpenseStatus">Status</label>
+              <select id="spkExpenseStatus" class="field-input">
+                <option value="planned">Planned</option>
+                <option value="paid">Paid</option>
+                <option value="reimbursed">Reimbursed</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="spkExpenseIncurredOn">Date Incurred</label>
+              <input type="date" id="spkExpenseIncurredOn" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkExpenseVendor">Vendor</label>
+              <input type="text" id="spkExpenseVendor" class="field-input" placeholder="e.g. Marriott, Delta" />
+            </div>
+            <div class="field-group half">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gg-muted); margin-top:22px;">
+                <input type="checkbox" id="spkExpenseReimbursable" onchange="updateEngagementExpenseReimbursementFieldVisibility('speaking')" /> Reimbursable
+              </label>
+            </div>
+            <div class="field-group half" id="spkExpenseReimbursementStatusGroup" style="display:none;">
+              <label class="field-label" for="spkExpenseReimbursementStatus">Reimbursement Status</label>
+              <select id="spkExpenseReimbursementStatus" class="field-input">
+                <option value="not_submitted">Not Submitted</option>
+                <option value="submitted">Submitted</option>
+                <option value="reimbursed">Reimbursed</option>
+                <option value="denied">Denied</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkExpenseDocFile">Attach Document (optional)</label>
+              <input type="file" id="spkExpenseDocFile" class="field-input" />
+              <p class="field-hint">e.g. a receipt — uploaded and linked to this expense when you save it.</p>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideAddExpenseForm('speaking')">Cancel</button>
+            <button class="btn btn-primary" onclick="addEngagementExpense('speaking', currentSpeakingEngagement.event_id)">Add Expense →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="spkShowAddExpenseBtn" onclick="showAddExpenseForm('speaking')">+ Add Expense</button>
       </div>
 
       <!-- DOCUMENTS TAB -->
       <div class="event-tab-panel" id="spkTabPanelDocuments">
         <div id="spkDocumentsList"></div>
+        <div class="create-form-card" id="spkUploadDocCard" style="display:none">
+          <h3 class="card-title">Upload Document</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="spkDocFile">File</label>
+              <input type="file" id="spkDocFile" class="field-input" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkDocNotes">Notes</label>
+              <input type="text" id="spkDocNotes" class="field-input" placeholder="e.g. Signed contract" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideUploadDocumentForm('speaking')">Cancel</button>
+            <button class="btn btn-primary" onclick="uploadEngagementDocument('speaking', currentSpeakingEngagement.event_id)">+ Upload Document →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="spkShowUploadDocBtn" onclick="showUploadDocumentForm('speaking')">+ Upload Document</button>
       </div>
 
       <!-- POST-EVENT TAB -->
@@ -2025,6 +2137,7 @@
         <div class="create-form-actions">
           <button class="btn btn-primary" onclick="saveSpeakingPostEvent()">Save Post-Event Notes →</button>
         </div>
+      </div>
       </div>
     </div>
   </div>
@@ -2051,6 +2164,7 @@
         </div>
         <button class="modal-close" onclick="hideTrainingDetail()">✕</button>
       </div>
+      <div class="modal-body">
 
       <div class="event-tabs">
         <button class="event-tab-btn active" id="trnTabBtnOverview" onclick="switchTrainingTab('overview')">Overview</button>
@@ -2087,8 +2201,9 @@
             <input type="text" id="trnEditTrainingType" class="field-input" />
           </div>
           <div class="field-group half">
-            <label class="field-label" for="trnEditInstructors">Instructor(s)</label>
-            <input type="text" id="trnEditInstructors" class="field-input" placeholder="Comma-separated, e.g. Haley Vincent, Dave Vincent" />
+            <label class="field-label">Instructor(s)</label>
+            <div class="pill-group" id="trnInstructorPills"></div>
+            <input type="hidden" id="trnEditInstructors" />
           </div>
           <div class="field-group half">
             <label class="field-label" for="trnEditStartDate">Start Date</label>
@@ -2299,11 +2414,103 @@
       <div class="event-tab-panel" id="trnTabPanelFinancials">
         <div class="stat-cards stat-cards-compact" id="trnFinancialsStats"></div>
         <div id="trnFinancialsExpensesList"></div>
+        <div class="create-form-card" id="trnAddExpenseCard" style="display:none">
+          <h3 class="card-title">Add Expense</h3>
+          <div class="fields-grid">
+            <div class="field-group third">
+              <label class="field-label" for="trnExpenseCategory">Category</label>
+              <select id="trnExpenseCategory" class="field-input">
+                <option value="airfare">Airfare</option>
+                <option value="lodging">Lodging</option>
+                <option value="rental_car">Rental Car</option>
+                <option value="mileage">Mileage</option>
+                <option value="parking">Parking</option>
+                <option value="baggage">Baggage</option>
+                <option value="ground_transportation">Ground Transportation</option>
+                <option value="meals">Meals</option>
+                <option value="registration">Registration</option>
+                <option value="childcare">Childcare</option>
+                <option value="pet_care">Pet Care</option>
+                <option value="printing">Printing</option>
+                <option value="shipping">Shipping</option>
+                <option value="materials">Materials</option>
+                <option value="venue">Venue</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="trnExpenseDescription">Description <span class="required">*</span></label>
+              <input type="text" id="trnExpenseDescription" class="field-input" placeholder="e.g. Rental car deposit" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="trnExpenseAmount">Amount (USD) <span class="required">*</span></label>
+              <input type="number" id="trnExpenseAmount" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="trnExpenseStatus">Status</label>
+              <select id="trnExpenseStatus" class="field-input">
+                <option value="planned">Planned</option>
+                <option value="paid">Paid</option>
+                <option value="reimbursed">Reimbursed</option>
+              </select>
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="trnExpenseIncurredOn">Date Incurred</label>
+              <input type="date" id="trnExpenseIncurredOn" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnExpenseVendor">Vendor</label>
+              <input type="text" id="trnExpenseVendor" class="field-input" placeholder="e.g. Marriott, Delta" />
+            </div>
+            <div class="field-group half">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gg-muted); margin-top:22px;">
+                <input type="checkbox" id="trnExpenseReimbursable" onchange="updateEngagementExpenseReimbursementFieldVisibility('training')" /> Reimbursable
+              </label>
+            </div>
+            <div class="field-group half" id="trnExpenseReimbursementStatusGroup" style="display:none;">
+              <label class="field-label" for="trnExpenseReimbursementStatus">Reimbursement Status</label>
+              <select id="trnExpenseReimbursementStatus" class="field-input">
+                <option value="not_submitted">Not Submitted</option>
+                <option value="submitted">Submitted</option>
+                <option value="reimbursed">Reimbursed</option>
+                <option value="denied">Denied</option>
+              </select>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="trnExpenseDocFile">Attach Document (optional)</label>
+              <input type="file" id="trnExpenseDocFile" class="field-input" />
+              <p class="field-hint">e.g. a receipt — uploaded and linked to this expense when you save it.</p>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideAddExpenseForm('training')">Cancel</button>
+            <button class="btn btn-primary" onclick="addEngagementExpense('training', currentTrainingEngagement.event_id)">Add Expense →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="trnShowAddExpenseBtn" onclick="showAddExpenseForm('training')">+ Add Expense</button>
       </div>
 
       <!-- DOCUMENTS TAB -->
       <div class="event-tab-panel" id="trnTabPanelDocuments">
         <div id="trnDocumentsList"></div>
+        <div class="create-form-card" id="trnUploadDocCard" style="display:none">
+          <h3 class="card-title">Upload Document</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="trnDocFile">File</label>
+              <input type="file" id="trnDocFile" class="field-input" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="trnDocNotes">Notes</label>
+              <input type="text" id="trnDocNotes" class="field-input" placeholder="e.g. Signed contract" />
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideUploadDocumentForm('training')">Cancel</button>
+            <button class="btn btn-primary" onclick="uploadEngagementDocument('training', currentTrainingEngagement.event_id)">+ Upload Document →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="trnShowUploadDocBtn" onclick="showUploadDocumentForm('training')">+ Upload Document</button>
       </div>
 
       <!-- COMPLETION TAB -->
@@ -2322,6 +2529,7 @@
           <button class="btn btn-primary" onclick="saveTrainingCompletion()">Save Completion Notes →</button>
         </div>
       </div>
+      </div>
     </div>
   </div>
 
@@ -2332,8 +2540,10 @@
         <h3 class="modal-title">Choose a Contact</h3>
         <button class="modal-close" onclick="closeContactPicker()">✕</button>
       </div>
+      <div class="modal-body">
       <input type="text" id="contactPickerSearch" class="field-input" placeholder="Search name or email…" oninput="searchContactPicker()" style="margin-bottom:14px;" />
       <div id="contactPickerResults"></div>
+      </div>
     </div>
   </div>
 

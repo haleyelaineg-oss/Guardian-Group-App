@@ -890,11 +890,12 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .modal-card {
   background: white;
   border-radius: 14px;
-  padding: 36px;
+  padding: 0;
   width: 100%;
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   box-shadow: 0 16px 48px rgba(10,30,50,0.22);
 }
 .modal-header {
@@ -905,9 +906,11 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   top: 0;
   z-index: 2;
   background: var(--gg-white);
-  margin: -36px -36px 24px -36px;
   padding: 36px 36px 16px;
   border-bottom: 1px solid var(--gg-pale);
+}
+.modal-body {
+  padding: 24px 36px 36px;
 }
 .modal-title {
   font-family: var(--font-display);
