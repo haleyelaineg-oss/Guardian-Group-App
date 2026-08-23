@@ -45,13 +45,17 @@ const TRAINING_STATUS_LABELS = {
 
 const STATUS_BADGE_TONES = {
   // Speaking
-  opportunity: 'neutral', preparing_submission: 'neutral', applied: 'info', under_review: 'info',
-  selected: 'open', contracting: 'open', payment_pending: 'info', closed: 'steel',
+  opportunity: 'neutral', preparing_submission: 'neutral', applied: 'pending', under_review: 'pending',
+  selected: 'steel', contracting: 'steel', payment_pending: 'pending', closed: 'open',
   declined: 'danger', withdrawn: 'danger',
   // Training
-  inquiry: 'neutral', proposal_sent: 'info', contract_pending: 'info', scheduled: 'open', paid: 'steel',
-  // Shared by both lifecycles
-  planning: 'open', ready: 'open', completed: 'steel', cancelled: 'danger'
+  inquiry: 'neutral', proposal_sent: 'pending', contract_pending: 'pending', scheduled: 'steel', paid: 'open',
+  invoice_pending: 'pending',
+  // Events-only
+  application_sent: 'pending', application_denied: 'danger', confirmed: 'steel',
+  // Shared across lifecycles — planning/confirmed are "underway" (blue),
+  // ready/completed/closed/paid are done-or-ready (green)
+  planning: 'steel', ready: 'open', completed: 'open', cancelled: 'danger'
 };
 
 function renderStatusBadge(statusKey, labelMap) {

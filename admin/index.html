@@ -1187,7 +1187,17 @@
   <div class="modal-overlay" id="eventDetailModal" style="display:none" onclick="handleModalOverlayClick(event)">
     <div class="modal-card modal-card-wide">
       <div class="modal-header">
-        <h3 class="modal-title" id="eventDetailTitle">Event</h3>
+        <div class="modal-header-title-group">
+          <h3 class="modal-title" id="eventDetailTitle">Event</h3>
+          <select id="editEventStatus" class="field-input modal-header-status" aria-label="Status">
+            <option value="application_sent">Application Sent</option>
+            <option value="application_denied">Application Denied</option>
+            <option value="planning">Planning</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
         <button class="modal-close" onclick="hideEventDetail()">✕</button>
       </div>
 
@@ -1220,17 +1230,6 @@
             <label class="field-label" for="editEventCompany">Client</label>
             <select id="editEventCompany" class="field-input" onchange="handleClientSelectChange(this)">
               <option value="">— None —</option>
-            </select>
-          </div>
-          <div class="field-group half">
-            <label class="field-label" for="editEventStatus">Status</label>
-            <select id="editEventStatus" class="field-input">
-              <option value="application_sent">Application Sent</option>
-              <option value="application_denied">Application Denied</option>
-              <option value="planning">Planning</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
             </select>
           </div>
           <div class="field-group half">
@@ -1672,7 +1671,25 @@
   <div class="modal-overlay" id="speakingDetailModal" style="display:none" onclick="handleModalOverlayClick(event)">
     <div class="modal-card modal-card-wide">
       <div class="modal-header">
-        <h3 class="modal-title" id="speakingDetailTitle">Speaking Engagement</h3>
+        <div class="modal-header-title-group">
+          <h3 class="modal-title" id="speakingDetailTitle">Speaking Engagement</h3>
+          <select id="spkEditStatus" class="field-input modal-header-status" aria-label="Status">
+            <option value="opportunity">Opportunity</option>
+            <option value="preparing_submission">Preparing Submission</option>
+            <option value="applied">Applied</option>
+            <option value="under_review">Under Review</option>
+            <option value="selected">Selected</option>
+            <option value="contracting">Contracting</option>
+            <option value="planning">Planning</option>
+            <option value="ready">Ready</option>
+            <option value="completed">Completed</option>
+            <option value="payment_pending">Payment Pending</option>
+            <option value="closed">Closed</option>
+            <option value="declined">Declined</option>
+            <option value="withdrawn">Withdrawn</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
         <button class="modal-close" onclick="hideSpeakingDetail()">✕</button>
       </div>
 
@@ -1784,25 +1801,6 @@
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gg-muted);">
               <input type="checkbox" id="spkEditTravelReimbursementOffered" /> Travel reimbursement offered
             </label>
-          </div>
-          <div class="field-group half">
-            <label class="field-label" for="spkEditStatus">Status</label>
-            <select id="spkEditStatus" class="field-input">
-              <option value="opportunity">Opportunity</option>
-              <option value="preparing_submission">Preparing Submission</option>
-              <option value="applied">Applied</option>
-              <option value="under_review">Under Review</option>
-              <option value="selected">Selected</option>
-              <option value="contracting">Contracting</option>
-              <option value="planning">Planning</option>
-              <option value="ready">Ready</option>
-              <option value="completed">Completed</option>
-              <option value="payment_pending">Payment Pending</option>
-              <option value="closed">Closed</option>
-              <option value="declined">Declined</option>
-              <option value="withdrawn">Withdrawn</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
           </div>
           <div class="field-group full">
             <label class="field-label" for="spkEditNotes">Notes</label>
@@ -2035,7 +2033,22 @@
   <div class="modal-overlay" id="trainingDetailModal" style="display:none" onclick="handleModalOverlayClick(event)">
     <div class="modal-card modal-card-wide">
       <div class="modal-header">
-        <h3 class="modal-title" id="trainingDetailTitle">Training Engagement</h3>
+        <div class="modal-header-title-group">
+          <h3 class="modal-title" id="trainingDetailTitle">Training Engagement</h3>
+          <select id="trnEditStatus" class="field-input modal-header-status" aria-label="Status">
+            <option value="inquiry">Inquiry</option>
+            <option value="proposal_sent">Proposal Sent</option>
+            <option value="contract_pending">Contract Pending</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="planning">Planning</option>
+            <option value="ready">Ready</option>
+            <option value="completed">Completed</option>
+            <option value="invoice_pending">Invoice Pending</option>
+            <option value="payment_pending">Payment Pending</option>
+            <option value="paid">Paid</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
         <button class="modal-close" onclick="hideTrainingDetail()">✕</button>
       </div>
 
@@ -2076,22 +2089,6 @@
           <div class="field-group half">
             <label class="field-label" for="trnEditInstructors">Instructor(s)</label>
             <input type="text" id="trnEditInstructors" class="field-input" placeholder="Comma-separated, e.g. Haley Vincent, Dave Vincent" />
-          </div>
-          <div class="field-group half">
-            <label class="field-label" for="trnEditStatus">Status</label>
-            <select id="trnEditStatus" class="field-input">
-              <option value="inquiry">Inquiry</option>
-              <option value="proposal_sent">Proposal Sent</option>
-              <option value="contract_pending">Contract Pending</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="planning">Planning</option>
-              <option value="ready">Ready</option>
-              <option value="completed">Completed</option>
-              <option value="invoice_pending">Invoice Pending</option>
-              <option value="payment_pending">Payment Pending</option>
-              <option value="paid">Paid</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
           </div>
           <div class="field-group half">
             <label class="field-label" for="trnEditStartDate">Start Date</label>

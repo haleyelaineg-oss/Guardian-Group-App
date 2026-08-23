@@ -272,7 +272,7 @@ function renderEventsListTable() {
     <tr class="client-list-row" onclick="openEventOrEngagement('${ev.id}', '${ev.event_type}')">
       <td>${escHtml(ev.title)}</td>
       <td>${escHtml(EVENT_TYPE_LABELS[ev.event_type] || ev.event_type)}</td>
-      <td><span class="reg-card-status-badge">${escHtml(EVENT_STATUS_LABELS[ev.status] || ev.status)}</span></td>
+      <td>${renderStatusBadge(ev.status, EVENT_STATUS_LABELS)}</td>
       <td>${ev.starts_at ? formatDate(toDateInputValue(new Date(ev.starts_at))) : '—'}</td>
       <td>${ev.ends_at ? formatDate(toDateInputValue(new Date(ev.ends_at))) : '—'}</td>
       <td>${escHtml(ev.location || '—')}</td>
