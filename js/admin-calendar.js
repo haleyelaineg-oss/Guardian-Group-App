@@ -33,7 +33,15 @@ const EVENT_STATUS_LABELS = {
   cancelled: 'Cancelled',
   completed: 'Completed'
 };
-const EXPENSE_CATEGORY_LABELS = { travel: 'Travel', lodging: 'Lodging', meals: 'Meals', materials: 'Materials', venue: 'Venue', other: 'Other' };
+// 'travel' is kept only so historical rows still render a label — the
+// Add Expense dropdown offers the richer, more specific categories below
+// instead (airfare/rental_car/mileage/etc. cover what 'travel' used to).
+const EXPENSE_CATEGORY_LABELS = {
+  travel: 'Travel', airfare: 'Airfare', lodging: 'Lodging', rental_car: 'Rental Car', mileage: 'Mileage',
+  parking: 'Parking', baggage: 'Baggage', ground_transportation: 'Ground Transportation', meals: 'Meals',
+  registration: 'Registration', childcare: 'Childcare', pet_care: 'Pet Care', printing: 'Printing',
+  shipping: 'Shipping', materials: 'Materials', venue: 'Venue', other: 'Other'
+};
 const ITINERARY_ITEM_TYPE_LABELS = {
   driving_to: 'Driving To',
   driving_home: 'Driving Home',
@@ -98,15 +106,17 @@ async function loadCalendarMonth() {
 
 function renderCalendarGrid() {
   const grid = document.getElementById('calendarGrid');
-  const label = document.getElementById('calendarMonthLabel');
   const monthStart = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth(), 1);
-  label.textContent = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  populateCalendarMonthYearSelects();
 
   const gridStart = new Date(monthStart);
   gridStart.setDate(gridStart.getDate() - gridStart.getDay());
 
+  const statusFilter = document.getElementById('calendarStatusFilter').value;
+  const visibleEvents = statusFilter === 'all' ? calendarEventsCache : calendarEventsCache.filter(ev => ev.status === statusFilter);
+
   const eventsByDay = {};
-  calendarEventsCache.forEach(ev => {
+  visibleEvents.forEach(ev => {
     const start = new Date(ev.starts_at);
     const end = ev.ends_at ? new Date(ev.ends_at) : start;
     const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
@@ -174,7 +184,7 @@ function eventChipColorClass(ev) {
 
 function renderEventChip(ev) {
   const time = ev.all_day ? '' : new Date(ev.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' ';
-  return `<div class="calendar-event-chip ${eventChipColorClass(ev)}" onclick="showEventDetail('${ev.id}')" title="${escHtml(ev.title)}">${time}${escHtml(ev.title)}</div>`;
+  return `<div class="calendar-event-chip ${eventChipColorClass(ev)}" onclick="openEventOrEngagement('${ev.id}', '${ev.event_type}')" title="${escHtml(ev.title)}">${time}${escHtml(ev.title)}</div>`;
 }
 
 function calendarPrevMonth() {
@@ -187,6 +197,38 @@ function calendarNextMonth() {
 }
 function calendarGoToday() {
   calendarViewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  loadCalendarMonth();
+}
+
+const CALENDAR_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+// Rebuilds the month/year <select> option lists and syncs their
+// selected values to calendarViewDate — called on every render (not
+// just once) so the year list always includes whatever year is
+// currently in view, even after paging with ‹ / › past its default
+// +/-10 year window.
+function populateCalendarMonthYearSelects() {
+  const monthSelect = document.getElementById('calendarMonthSelect');
+  const yearSelect = document.getElementById('calendarYearSelect');
+  const viewYear = calendarViewDate.getFullYear();
+  const viewMonth = calendarViewDate.getMonth();
+
+  monthSelect.innerHTML = CALENDAR_MONTH_NAMES.map((name, i) => `<option value="${i}" ${i === viewMonth ? 'selected' : ''}>${name}</option>`).join('');
+
+  const nowYear = new Date().getFullYear();
+  const fromYear = Math.min(nowYear - 5, viewYear);
+  const toYear = Math.max(nowYear + 10, viewYear);
+  let yearOptions = '';
+  for (let y = fromYear; y <= toYear; y++) {
+    yearOptions += `<option value="${y}" ${y === viewYear ? 'selected' : ''}>${y}</option>`;
+  }
+  yearSelect.innerHTML = yearOptions;
+}
+
+function calendarJumpToMonthYear() {
+  const month = parseInt(document.getElementById('calendarMonthSelect').value, 10);
+  const year = parseInt(document.getElementById('calendarYearSelect').value, 10);
+  calendarViewDate = new Date(year, month, 1);
   loadCalendarMonth();
 }
 
@@ -227,7 +269,7 @@ function renderEventsListTable() {
   }
 
   tbody.innerHTML = filtered.map(ev => `
-    <tr class="client-list-row" onclick="showEventDetail('${ev.id}')">
+    <tr class="client-list-row" onclick="openEventOrEngagement('${ev.id}', '${ev.event_type}')">
       <td>${escHtml(ev.title)}</td>
       <td>${escHtml(EVENT_TYPE_LABELS[ev.event_type] || ev.event_type)}</td>
       <td><span class="reg-card-status-badge">${escHtml(EVENT_STATUS_LABELS[ev.status] || ev.status)}</span></td>
@@ -286,6 +328,22 @@ function ensureTasksViewActive() {
 function showCreateTaskFromCalendar() {
   ensureTasksViewActive();
   showCreateTask();
+}
+
+// "+ New Speaking Engagement" / "+ New Training" on the Calendar view —
+// same idea as the New Task shortcut above: jump to the page that
+// actually hosts the create form (Speaking/Training have their own
+// full planning lifecycle, so there's no quick-create on the Calendar
+// itself) and open it there.
+function goToNewSpeakingFromCalendar() {
+  const speakingNavBtn = document.querySelector('.nav-item[data-view="speaking"]');
+  if (speakingNavBtn) setView('speaking', speakingNavBtn);
+  showCreateSpeaking();
+}
+function goToNewTrainingFromCalendar() {
+  const trainingNavBtn = document.querySelector('.nav-item[data-view="training"]');
+  if (trainingNavBtn) setView('training', trainingNavBtn);
+  showCreateTraining();
 }
 
 async function editTask(taskId) {
@@ -381,7 +439,7 @@ function buildTaskRowsHtml(tasks) {
         ${eventTitle ? `<span class="task-row-event">${escHtml(eventTitle)}</span>` : ''}
         ${task.link_url ? `<a class="task-row-link" href="${escHtml(task.link_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Link</a>` : ''}
         <span class="task-row-due ${isOverdue ? 'task-row-overdue' : ''}">${task.due_date ? formatDate(task.due_date) : 'No due date'}</span>
-        <button class="btn-sm btn-sm-danger" onclick="deleteTask('${task.id}')">Delete</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteTask('${task.id}')" title="Delete">🗑️</button>
       </div>
     `;
   }).join('');
@@ -468,7 +526,7 @@ async function handleClientSelectChange(selectEl) {
   if (error) { alert('Could not create client: ' + error.message); selectEl.value = ''; return; }
 
   cachedCompaniesForEvents = [...(cachedCompaniesForEvents || []), data].sort((a, b) => a.name.localeCompare(b.name));
-  ['newEventCompany', 'editEventCompany', 'itineraryItemCompany'].forEach(id => {
+  ['newEventCompany', 'editEventCompany', 'itineraryItemCompany', 'trnNewCompany', 'trnEditCompany'].forEach(id => {
     if (document.getElementById(id)) fillCompanySelect(id);
   });
   selectEl.value = data.id;
@@ -774,7 +832,7 @@ function renderEventItineraryTab(items, documents) {
               <td>
                 <button class="btn-sm btn-sm-ghost" onclick="editItineraryItem('${item.id}')">Edit</button>
                 <button class="btn-sm btn-sm-ghost" onclick="openDocumentsForItineraryItem('${item.id}')">Docs${docCount ? ' (' + docCount + ')' : ''}</button>
-                <button class="btn-sm btn-sm-danger" onclick="deleteItineraryItem('${item.id}')">Delete</button>
+                <button class="btn-sm btn-sm-danger" onclick="deleteItineraryItem('${item.id}')" title="Delete">🗑️</button>
               </td>
             </tr>
           `;
@@ -943,6 +1001,7 @@ function renderEventSpendingTab(event, expenses, itineraryItems) {
     <tr>
       <td>${escHtml(EXPENSE_CATEGORY_LABELS[exp.category] || exp.category)}</td>
       <td>${escHtml(exp.description)}</td>
+      <td>${escHtml(exp.vendor || '—')}</td>
       <td>${exp.incurred_on ? formatDate(exp.incurred_on) : '—'}</td>
       <td>${formatCurrency(exp.amount)}</td>
       <td>
@@ -953,8 +1012,15 @@ function renderEventSpendingTab(event, expenses, itineraryItems) {
         </select>
       </td>
       <td>
+        ${exp.reimbursable
+          ? `<select class="attendance-status-select" onchange="updateExpenseField('${exp.id}', 'reimbursement_status', this.value)">
+              ${['not_submitted', 'submitted', 'reimbursed', 'denied'].map(s => `<option value="${s}" ${exp.reimbursement_status === s ? 'selected' : ''}>${capWords(s)}</option>`).join('')}
+             </select>`
+          : '<span class="field-hint">—</span>'}
+      </td>
+      <td>
         <button class="btn-sm btn-sm-ghost" onclick="openDocumentsForExpense('${exp.id}')">Docs</button>
-        <button class="btn-sm btn-sm-danger" onclick="deleteExpense('${exp.id}')">Delete</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteExpense('${exp.id}')" title="Delete">🗑️</button>
       </td>
     </tr>
   `).join('');
@@ -963,9 +1029,11 @@ function renderEventSpendingTab(event, expenses, itineraryItems) {
     <tr>
       <td>${escHtml(ITINERARY_ITEM_TYPE_LABELS[item.item_type] || item.item_type)} (Booked)</td>
       <td>${escHtml(item.title)} <span class="field-hint">via Itinerary</span></td>
+      <td>${escHtml(item.provider || '—')}</td>
       <td>${item.starts_at ? formatDateTime(item.starts_at) : '—'}</td>
       <td>${formatCurrency(item.cost)}</td>
       <td>Booked</td>
+      <td class="field-hint">—</td>
       <td class="field-hint">Edit on Itinerary</td>
     </tr>
   `).join('');
@@ -974,7 +1042,7 @@ function renderEventSpendingTab(event, expenses, itineraryItems) {
     <div class="responses-table-wrap">
       <table class="responses-table">
         <thead>
-          <tr><th>Category</th><th>Description</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr>
+          <tr><th>Category</th><th>Description</th><th>Vendor</th><th>Date</th><th>Amount</th><th>Status</th><th>Reimbursement</th><th></th></tr>
         </thead>
         <tbody>
           ${expenseRowsHtml}${bookedRowsHtml}
@@ -993,18 +1061,27 @@ function hideAddExpense() {
   document.getElementById('showAddExpenseBtn').style.display = 'inline-block';
 }
 
+function updateExpenseReimbursementFieldVisibility() {
+  document.getElementById('expenseReimbursementStatusGroup').style.display =
+    document.getElementById('expenseReimbursable').checked ? '' : 'none';
+}
+
 async function addExpense() {
   const description = document.getElementById('expenseDescription').value.trim();
   const amount = document.getElementById('expenseAmount').value;
   if (!description || !amount) { alert('Description and amount are required.'); return; }
 
+  const reimbursable = document.getElementById('expenseReimbursable').checked;
   const payload = {
     event_id: currentEventId,
     category: document.getElementById('expenseCategory').value,
     description,
     amount: parseFloat(amount),
     status: document.getElementById('expenseStatus').value,
-    incurred_on: document.getElementById('expenseIncurredOn').value || null
+    incurred_on: document.getElementById('expenseIncurredOn').value || null,
+    vendor: document.getElementById('expenseVendor').value.trim() || null,
+    reimbursable,
+    reimbursement_status: reimbursable ? document.getElementById('expenseReimbursementStatus').value : 'not_applicable'
   };
 
   const { data, error } = await ggClient.from('event_expenses').insert(payload).select().single();
@@ -1030,6 +1107,10 @@ async function addExpense() {
   document.getElementById('expenseIncurredOn').value = '';
   document.getElementById('expenseCategory').value = 'other';
   document.getElementById('expenseStatus').value = 'planned';
+  document.getElementById('expenseVendor').value = '';
+  document.getElementById('expenseReimbursable').checked = false;
+  document.getElementById('expenseReimbursementStatus').value = 'not_submitted';
+  updateExpenseReimbursementFieldVisibility();
   fileInput.value = '';
 
   hideAddExpense();
@@ -1099,7 +1180,7 @@ function renderEventDocumentsTab(documents, itineraryItems, expenses) {
               <td>${escHtml(doc.notes || '—')}</td>
               <td>
                 <button class="btn-sm btn-sm-ghost" onclick="viewEventDocument('${escHtml(doc.storage_path)}')">View</button>
-                <button class="btn-sm btn-sm-danger" onclick="deleteEventDocument('${doc.id}', '${escHtml(doc.storage_path)}')">Delete</button>
+                <button class="btn-sm btn-sm-danger" onclick="deleteEventDocument('${doc.id}', '${escHtml(doc.storage_path)}')" title="Delete">🗑️</button>
               </td>
             </tr>
           `;

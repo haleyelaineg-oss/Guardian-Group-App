@@ -933,20 +933,47 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   gap: 12px;
 }
 .calendar-nav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.calendar-toolbar-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.calendar-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  /* Pins this block to the toolbar's right edge even when it wraps
+     onto its own line below .calendar-nav — a lone item on a wrapped
+     flex line ignores the parent's justify-content:space-between
+     (there's nothing to "space between" against), so margin-left:auto
+     is needed to actually push it right in that case. */
+  margin-left: auto;
+}
 .calendar-tasks-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gg-muted); white-space: nowrap; }
-.calendar-toolbar-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-.calendar-month-label {
+/* 2x2 grid, filled left-to-right/top-to-bottom by DOM order — Speaking
+   Engagement/Training in the left column, Task/Event in the right.
+   grid-template-columns: repeat(2, auto) sizes each column to its OWN
+   content, so the short "New Task"/"New Event" column stayed narrower
+   than "New Speaking Engagement" — min-width below forces every button
+   to the same floor so both columns end up equal width. */
+.calendar-toolbar-buttons { display: grid; grid-template-columns: repeat(2, auto); gap: 10px; }
+.calendar-toolbar-buttons .btn { min-width: 250px; text-align: center; }
+.calendar-month-select {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
   color: var(--gg-dark);
-  min-width: 170px;
-  text-align: center;
+  background: white;
+  border: 1.5px solid var(--gg-pale);
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
 }
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  /* minmax(0, 1fr), not bare 1fr — a grid track's implicit minimum is
+     "auto" (its content's min-content width), so a long, unbroken
+     event/task title in one cell would otherwise stretch that whole
+     column wider than the rest instead of being clipped by the chip's
+     own text-overflow:ellipsis. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 1px;
   background: var(--gg-pale);
   border: 1px solid var(--gg-pale);
@@ -966,6 +993,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .calendar-day-cell {
   background: white;
   min-height: 108px;
+  min-width: 0;
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -1063,6 +1091,68 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 
 .stat-cards-compact { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 20px; }
 .stat-card.over-budget .stat-value { color: #c0392b; }
+
+/* ── STATUS BADGE (Speaking / Training lifecycle statuses) ──
+   Generalized, tone-based badge for the ~13 statuses each of the
+   Speaking and Training lifecycles use — .reg-card-status-badge's
+   3 hardcoded modifiers don't scale to that, so this is a small
+   new component rather than a reuse. */
+.status-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.status-badge.tone-neutral { background: var(--gg-off); color: var(--gg-muted); }
+.status-badge.tone-info    { background: rgba(82,130,156,0.15); color: var(--gg-steel); }
+.status-badge.tone-open    { background: rgba(46,125,79,0.12); color: #2e7d4f; }
+.status-badge.tone-steel   { background: rgba(42,92,118,0.12); color: var(--gg-mid); }
+.status-badge.tone-danger  { background: rgba(192,57,43,0.10); color: #c0392b; }
+
+/* .trn-inperson-field / .trn-virtual-field: pure JS hooks for the
+   Training delivery-method (In-Person / Virtual) field-visibility
+   toggle in js/admin-training.js — carry no CSS rule of their own,
+   exactly like .itin-logistics-field/.itin-session-field above. */
+
+/* ── PILL SELECTOR (Speaking Overview → Speaker(s)) ─────────── */
+.pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gg-pale);
+  background: white;
+  color: var(--gg-dark);
+  cursor: pointer;
+}
+.pill-btn:hover { border-color: var(--gg-steel); }
+.pill-btn.active { background: var(--gg-mid); border-color: var(--gg-mid); color: white; }
+
+/* ── SAVE TOAST ──────────────────────────────────────────── */
+.gg-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translate(-50%, 12px);
+  background: var(--gg-dark);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(10,30,50,0.28);
+  z-index: 1200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.gg-toast.gg-toast-show { opacity: 1; transform: translate(-50%, 0); }
 
 /* ── RESPONSIVE ──────────────────────────────────────────── */
 @media (max-width: 1200px) {

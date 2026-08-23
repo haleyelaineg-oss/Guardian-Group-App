@@ -96,6 +96,12 @@
             <button class="nav-subitem" data-view="address-book" onclick="setView('address-book', this)">Address Book</button>
           </div>
         </div>
+        <button class="nav-item" data-view="speaking" onclick="setView('speaking', this)">
+          <i data-lucide="presentation" class="lucide-nav-icon"></i> Speaking Engagements
+        </button>
+        <button class="nav-item" data-view="training" onclick="setView('training', this)">
+          <i data-lucide="graduation-cap" class="lucide-nav-icon"></i> Trainings
+        </button>
         <!-- ARCHIVED 2026-08-21 — Trainings & Workshops + Surveys don't
              fit the current direction of the app. Nothing deleted, just
              hidden: the views, data, and admin.js logic underneath are
@@ -720,16 +726,28 @@
         <div class="calendar-toolbar">
           <div class="calendar-nav">
             <button class="btn-sm btn-sm-ghost" onclick="calendarPrevMonth()">‹</button>
-            <div class="calendar-month-label" id="calendarMonthLabel"></div>
+            <select class="calendar-month-select" id="calendarMonthSelect" onchange="calendarJumpToMonthYear()"></select>
+            <select class="calendar-month-select" id="calendarYearSelect" onchange="calendarJumpToMonthYear()"></select>
             <button class="btn-sm btn-sm-ghost" onclick="calendarNextMonth()">›</button>
             <button class="btn-sm btn-sm-ghost" onclick="calendarGoToday()">Today</button>
           </div>
           <div class="calendar-toolbar-actions">
+            <select class="workshop-select" id="calendarStatusFilter" onchange="renderCalendarGrid()">
+              <option value="all">All Statuses</option>
+              <option value="planning">Planning</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="application_sent">Application Sent</option>
+              <option value="application_denied">Application Denied</option>
+            </select>
             <label class="calendar-tasks-toggle">
               <input type="checkbox" id="calendarShowTasksToggle" checked onchange="toggleCalendarTasks(this.checked)" /> Show tasks on calendar
             </label>
             <div class="calendar-toolbar-buttons">
+              <button class="btn btn-ghost" onclick="goToNewSpeakingFromCalendar()">+ New Speaking Engagement</button>
               <button class="btn btn-ghost" onclick="showCreateTaskFromCalendar()">+ New Task</button>
+              <button class="btn btn-ghost" onclick="goToNewTrainingFromCalendar()">+ New Training</button>
               <button class="btn btn-primary" onclick="showCreateEvent()">+ New Event</button>
             </div>
           </div>
@@ -749,10 +767,9 @@
                 <option value="workshop">Workshop</option>
                 <option value="travel">Travel</option>
                 <option value="meeting">Meeting</option>
-                <option value="speaking">Speaking Engagement</option>
-                <option value="training">Training</option>
                 <option value="other" selected>Other</option>
               </select>
+              <p class="field-hint">Speaking Engagements and Trainings have their own dedicated forms — use "+ New Speaking Engagement" / "+ New Training" above.</p>
             </div>
             <div class="field-group half">
               <label class="field-label" for="newEventCompany">Client</label>
@@ -883,7 +900,7 @@
             </div>
           </div>
           <div class="create-form-actions">
-            <button class="btn-sm btn-sm-danger" id="taskDeleteBtn" style="display:none;" onclick="deleteTask(editingTaskId)">Delete Task</button>
+            <button class="btn-sm btn-sm-danger" id="taskDeleteBtn" style="display:none;" onclick="deleteTask(editingTaskId)" title="Delete">🗑️</button>
             <button class="btn btn-ghost" onclick="hideCreateTask()">Cancel</button>
             <button class="btn btn-primary" id="taskSubmitBtn" onclick="saveTask()">Create Task →</button>
           </div>
@@ -893,6 +910,100 @@
           <input type="checkbox" id="taskShowCompleted" onchange="renderTaskList()" /> Show completed
         </label>
         <div id="taskListContainer"></div>
+      </div>
+
+      <!-- VIEW: SPEAKING ──────────────────────────────────── -->
+      <div class="view" id="view-speaking">
+        <div class="view-header">
+          <h1 class="view-title">Speaking Engagements</h1>
+          <button class="btn btn-primary" onclick="showCreateSpeaking()">+ New Engagement</button>
+        </div>
+        <p class="view-sub">Conference opportunities, applications, and confirmed speaking engagements — from CFP through post-event follow-up.</p>
+
+        <div class="stat-cards" id="speakingStats"></div>
+
+        <div class="top-bar">
+          <div class="top-bar-left" style="gap:12px; flex-wrap:wrap;">
+            <select id="speakingStatusFilter" class="workshop-select" onchange="renderSpeakingTable()">
+              <option value="all">All Statuses</option>
+              <option value="opportunity">Opportunity</option>
+              <option value="preparing_submission">Preparing Submission</option>
+              <option value="applied">Applied</option>
+              <option value="under_review">Under Review</option>
+              <option value="selected">Selected</option>
+              <option value="contracting">Contracting</option>
+              <option value="planning">Planning</option>
+              <option value="ready">Ready</option>
+              <option value="completed">Completed</option>
+              <option value="payment_pending">Payment Pending</option>
+              <option value="closed">Closed</option>
+              <option value="declined">Declined</option>
+              <option value="withdrawn">Withdrawn</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="speakingTimeframeFilter" class="workshop-select" onchange="renderSpeakingTable()">
+              <option value="all">All Dates</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+            </select>
+            <input type="text" id="speakingSearchInput" class="field-input" placeholder="Search event, organization, speaker…" oninput="renderSpeakingTable()" style="max-width:260px;" />
+          </div>
+        </div>
+
+        <div class="responses-table-wrap">
+          <table class="responses-table">
+            <thead><tr><th>Event</th><th>Organization</th><th>Location</th><th>Dates</th><th>Speaker(s)</th><th>Status</th></tr></thead>
+            <tbody id="speakingTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW: TRAINING ──────────────────────────────────── -->
+      <div class="view" id="view-training">
+        <div class="view-header">
+          <h1 class="view-title">Training Engagements</h1>
+          <button class="btn btn-primary" onclick="showCreateTraining()">+ New Training</button>
+        </div>
+        <p class="view-sub">Contracted client training jobs — from inquiry through delivery and payment.</p>
+
+        <div class="stat-cards" id="trainingStats"></div>
+
+        <div class="top-bar">
+          <div class="top-bar-left" style="gap:12px; flex-wrap:wrap;">
+            <select id="trainingStatusFilter" class="workshop-select" onchange="renderTrainingTable()">
+              <option value="all">All Statuses</option>
+              <option value="inquiry">Inquiry</option>
+              <option value="proposal_sent">Proposal Sent</option>
+              <option value="contract_pending">Contract Pending</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="planning">Planning</option>
+              <option value="ready">Ready</option>
+              <option value="completed">Completed</option>
+              <option value="invoice_pending">Invoice Pending</option>
+              <option value="payment_pending">Payment Pending</option>
+              <option value="paid">Paid</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="trainingDeliveryFilter" class="workshop-select" onchange="renderTrainingTable()">
+              <option value="all">In-Person &amp; Virtual</option>
+              <option value="in_person">In-Person Only</option>
+              <option value="virtual">Virtual Only</option>
+            </select>
+            <select id="trainingTimeframeFilter" class="workshop-select" onchange="renderTrainingTable()">
+              <option value="all">All Dates</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+            </select>
+            <input type="text" id="trainingSearchInput" class="field-input" placeholder="Search client, title, instructor…" oninput="renderTrainingTable()" style="max-width:240px;" />
+          </div>
+        </div>
+
+        <div class="responses-table-wrap">
+          <table class="responses-table">
+            <thead><tr><th>Client</th><th>Training</th><th>Delivery</th><th>Dates</th><th>Instructor(s)</th><th>Status</th></tr></thead>
+            <tbody id="trainingTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- VIEW: QUOTE / INVOICE / RECEIPT ────────────────────── -->
@@ -974,7 +1085,7 @@
         </div>
       </div>
       <div class="create-form-actions">
-        <button class="btn-sm btn-sm-danger" id="abDeleteContactBtn" onclick="deleteContact()">Delete Contact</button>
+        <button class="btn-sm btn-sm-danger" id="abDeleteContactBtn" onclick="deleteContact()" title="Delete">🗑️</button>
         <button class="btn btn-primary" onclick="saveContactEdits()">Save Changes →</button>
       </div>
     </div>
@@ -1153,7 +1264,7 @@
           </div>
         </div>
         <div class="create-form-actions">
-          <button class="btn-sm btn-sm-danger" onclick="deleteEvent(currentEventId)">Delete Event</button>
+          <button class="btn-sm btn-sm-danger" onclick="deleteEvent(currentEventId)" title="Delete">🗑️</button>
           <button class="btn btn-primary" onclick="saveEventDetails()">Save Changes →</button>
         </div>
       </div>
@@ -1291,9 +1402,19 @@
             <div class="field-group third">
               <label class="field-label" for="expenseCategory">Category</label>
               <select id="expenseCategory" class="field-input">
-                <option value="travel">Travel</option>
+                <option value="airfare">Airfare</option>
                 <option value="lodging">Lodging</option>
+                <option value="rental_car">Rental Car</option>
+                <option value="mileage">Mileage</option>
+                <option value="parking">Parking</option>
+                <option value="baggage">Baggage</option>
+                <option value="ground_transportation">Ground Transportation</option>
                 <option value="meals">Meals</option>
+                <option value="registration">Registration</option>
+                <option value="childcare">Childcare</option>
+                <option value="pet_care">Pet Care</option>
+                <option value="printing">Printing</option>
+                <option value="shipping">Shipping</option>
                 <option value="materials">Materials</option>
                 <option value="venue">Venue</option>
                 <option value="other" selected>Other</option>
@@ -1318,6 +1439,24 @@
             <div class="field-group third">
               <label class="field-label" for="expenseIncurredOn">Date Incurred</label>
               <input type="date" id="expenseIncurredOn" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="expenseVendor">Vendor</label>
+              <input type="text" id="expenseVendor" class="field-input" placeholder="e.g. Marriott, Delta" />
+            </div>
+            <div class="field-group half">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gg-muted); margin-top:22px;">
+                <input type="checkbox" id="expenseReimbursable" onchange="updateExpenseReimbursementFieldVisibility()" /> Reimbursable
+              </label>
+            </div>
+            <div class="field-group half" id="expenseReimbursementStatusGroup" style="display:none;">
+              <label class="field-label" for="expenseReimbursementStatus">Reimbursement Status</label>
+              <select id="expenseReimbursementStatus" class="field-input">
+                <option value="not_submitted">Not Submitted</option>
+                <option value="submitted">Submitted</option>
+                <option value="reimbursed">Reimbursed</option>
+                <option value="denied">Denied</option>
+              </select>
             </div>
             <div class="field-group full">
               <label class="field-label" for="expenseDocFile">Attach Document (optional)</label>
@@ -1363,12 +1502,853 @@
     </div>
   </div>
 
+  <!-- CREATE SPEAKING ENGAGEMENT MODAL -->
+  <div class="modal-overlay" id="createSpeakingModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Speaking Engagement</h3>
+        <button class="modal-close" onclick="hideCreateSpeaking()">✕</button>
+      </div>
+      <div class="fields-grid">
+        <div class="field-group full">
+          <label class="field-label" for="spkNewEventName">Event Name <span class="required">*</span></label>
+          <input type="text" id="spkNewEventName" class="field-input" placeholder="e.g. World Safety Congress 2027" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="spkNewStatus">Status</label>
+          <select id="spkNewStatus" class="field-input">
+            <option value="opportunity" selected>Opportunity</option>
+            <option value="preparing_submission">Preparing Submission</option>
+            <option value="applied">Applied</option>
+            <option value="under_review">Under Review</option>
+            <option value="selected">Selected</option>
+            <option value="contracting">Contracting</option>
+            <option value="planning">Planning</option>
+            <option value="ready">Ready</option>
+            <option value="completed">Completed</option>
+            <option value="payment_pending">Payment Pending</option>
+            <option value="closed">Closed</option>
+            <option value="declined">Declined</option>
+            <option value="withdrawn">Withdrawn</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <p class="field-hint">Direct requests can start at "Selected" or later — no CFP/application needed.</p>
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="spkNewOrganization">Organizing Body</label>
+          <input type="text" id="spkNewOrganization" class="field-input" placeholder="e.g. NSC" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="spkNewWebsite">Event Website</label>
+          <input type="url" id="spkNewWebsite" class="field-input" placeholder="https://…" />
+        </div>
+        <div class="field-group third">
+          <label class="field-label" for="spkNewCity">City</label>
+          <input type="text" id="spkNewCity" class="field-input" />
+        </div>
+        <div class="field-group third">
+          <label class="field-label" for="spkNewRegion">State / Province</label>
+          <input type="text" id="spkNewRegion" class="field-input" />
+        </div>
+        <div class="field-group third">
+          <label class="field-label" for="spkNewCountry">Country</label>
+          <input type="text" id="spkNewCountry" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="spkNewCfpDeadline">CFP Deadline</label>
+          <input type="date" id="spkNewCfpDeadline" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="spkNewDateDiscovered">Date Discovered</label>
+          <input type="date" id="spkNewDateDiscovered" class="field-input" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="spkNewApplicationUrl">Application / CFP Link</label>
+          <input type="url" id="spkNewApplicationUrl" class="field-input" placeholder="https://…" />
+        </div>
+        <div class="field-group full">
+          <button type="button" class="btn-sm btn-sm-ghost" onclick="openContactPicker('spkNewContactName','spkNewContactEmail','spkNewContactPhone')">Choose from Address Book…</button>
+        </div>
+        <div class="field-group third">
+          <label class="field-label" for="spkNewContactName">Contact Name</label>
+          <input type="text" id="spkNewContactName" class="field-input" />
+        </div>
+        <div class="field-group third">
+          <label class="field-label" for="spkNewContactEmail">Contact Email</label>
+          <input type="email" id="spkNewContactEmail" class="field-input" />
+        </div>
+        <div class="field-group third">
+          <label class="field-label" for="spkNewContactPhone">Contact Phone</label>
+          <input type="text" id="spkNewContactPhone" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="spkNewRequestedFee">Requested Fee (USD)</label>
+          <input type="number" id="spkNewRequestedFee" class="field-input" min="0" step="0.01" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="spkNewNotes">Notes</label>
+          <textarea id="spkNewNotes" class="field-input" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="create-form-actions">
+        <button class="btn btn-ghost" onclick="hideCreateSpeaking()">Cancel</button>
+        <button class="btn btn-primary" onclick="createSpeakingEngagement()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE TRAINING ENGAGEMENT MODAL -->
+  <div class="modal-overlay" id="createTrainingModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Training Engagement</h3>
+        <button class="modal-close" onclick="hideCreateTraining()">✕</button>
+      </div>
+      <div class="fields-grid">
+        <div class="field-group half">
+          <label class="field-label" for="trnNewCompany">Client <span class="required">*</span></label>
+          <select id="trnNewCompany" class="field-input" onchange="handleTrainingCompanySelectChange(this, 'trnNewContactParticipant')">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewContactParticipant">Client Contact</label>
+          <select id="trnNewContactParticipant" class="field-input">
+            <option value="">— None —</option>
+          </select>
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="trnNewTitle">Training Title <span class="required">*</span></label>
+          <input type="text" id="trnNewTitle" class="field-input" placeholder="e.g. Safety Leadership Foundations — On-Site" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewTrainingType">Training Type</label>
+          <input type="text" id="trnNewTrainingType" class="field-input" placeholder="e.g. Safety Leadership" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewDeliveryMethod">Delivery Method</label>
+          <select id="trnNewDeliveryMethod" class="field-input">
+            <option value="in_person">In-Person</option>
+            <option value="virtual">Virtual</option>
+          </select>
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewStartDate">Start Date</label>
+          <input type="date" id="trnNewStartDate" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewStartTime">Start Time</label>
+          <input type="time" id="trnNewStartTime" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewEndDate">End Date</label>
+          <input type="date" id="trnNewEndDate" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewEndTime">End Time</label>
+          <input type="time" id="trnNewEndTime" class="field-input" />
+        </div>
+        <div class="field-group half">
+          <label class="field-label" for="trnNewAttendeeCount">Expected Attendees</label>
+          <input type="number" id="trnNewAttendeeCount" class="field-input" min="0" step="1" />
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="trnNewDescription">Description</label>
+          <textarea id="trnNewDescription" class="field-input" rows="2"></textarea>
+        </div>
+        <div class="field-group full">
+          <label class="field-label" for="trnNewNotes">Notes</label>
+          <textarea id="trnNewNotes" class="field-input" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="create-form-actions">
+        <button class="btn btn-ghost" onclick="hideCreateTraining()">Cancel</button>
+        <button class="btn btn-primary" onclick="createTrainingEngagement()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPEAKING DETAIL MODAL -->
+  <div class="modal-overlay" id="speakingDetailModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <h3 class="modal-title" id="speakingDetailTitle">Speaking Engagement</h3>
+        <button class="modal-close" onclick="hideSpeakingDetail()">✕</button>
+      </div>
+
+      <div class="event-tabs">
+        <button class="event-tab-btn active" id="spkTabBtnOverview" onclick="switchSpeakingTab('overview')">Overview</button>
+        <button class="event-tab-btn" id="spkTabBtnSubmission" onclick="switchSpeakingTab('submission')">Submission</button>
+        <button class="event-tab-btn" id="spkTabBtnSessions" onclick="switchSpeakingTab('sessions')">Sessions</button>
+        <button class="event-tab-btn" id="spkTabBtnPrep" onclick="switchSpeakingTab('prep')">Prep</button>
+        <button class="event-tab-btn" id="spkTabBtnTravel" onclick="switchSpeakingTab('travel')">Travel</button>
+        <button class="event-tab-btn" id="spkTabBtnHomeLogistics" onclick="switchSpeakingTab('homeLogistics')">Home Logistics</button>
+        <button class="event-tab-btn" id="spkTabBtnFinancials" onclick="switchSpeakingTab('financials')">Financials</button>
+        <button class="event-tab-btn" id="spkTabBtnDocuments" onclick="switchSpeakingTab('documents')">Documents</button>
+        <button class="event-tab-btn" id="spkTabBtnPostEvent" onclick="switchSpeakingTab('postEvent')">Post-Event</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div class="event-tab-panel active" id="spkTabPanelOverview">
+        <div id="spkLinkedEventBanner"></div>
+        <div class="fields-grid">
+          <div class="field-group full">
+            <label class="field-label" for="spkEditEventName">Event Name <span class="required">*</span></label>
+            <input type="text" id="spkEditEventName" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditOrganization">Organizing Body</label>
+            <input type="text" id="spkEditOrganization" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditWebsite">Event Website</label>
+            <input type="url" id="spkEditWebsite" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditVenue">Venue Name</label>
+            <input type="text" id="spkEditVenue" class="field-input" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="spkEditVenueAddress">Venue Address</label>
+            <input type="text" id="spkEditVenueAddress" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditCity">City</label>
+            <input type="text" id="spkEditCity" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditRegion">State / Province</label>
+            <input type="text" id="spkEditRegion" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditCountry">Country</label>
+            <input type="text" id="spkEditCountry" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditZip">Zip Code</label>
+            <input type="text" id="spkEditZip" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditEventStartDate">Event Start Date</label>
+            <input type="date" id="spkEditEventStartDate" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditEventEndDate">Event End Date</label>
+            <input type="date" id="spkEditEventEndDate" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditCfpDeadline">CFP Deadline</label>
+            <input type="date" id="spkEditCfpDeadline" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditDateDiscovered">Date Discovered</label>
+            <input type="date" id="spkEditDateDiscovered" class="field-input" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="spkEditApplicationUrl">Application / CFP Link</label>
+            <input type="url" id="spkEditApplicationUrl" class="field-input" />
+          </div>
+          <div class="field-group full">
+            <button type="button" class="btn-sm btn-sm-ghost" onclick="openContactPicker('spkEditContactName','spkEditContactEmail','spkEditContactPhone')">Choose from Address Book…</button>
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditContactName">Contact Name</label>
+            <input type="text" id="spkEditContactName" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditContactEmail">Contact Email</label>
+            <input type="email" id="spkEditContactEmail" class="field-input" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditContactPhone">Contact Phone</label>
+            <input type="text" id="spkEditContactPhone" class="field-input" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label">Speaker(s)</label>
+            <div class="pill-group" id="spkSpeakerPills"></div>
+            <input type="hidden" id="spkEditSpeakersValue" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditRequestedFee">Requested Fee (USD)</label>
+            <input type="number" id="spkEditRequestedFee" class="field-input" min="0" step="0.01" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditOfferedFee">Offered / Accepted Fee (USD)</label>
+            <input type="number" id="spkEditOfferedFee" class="field-input" min="0" step="0.01" />
+          </div>
+          <div class="field-group third">
+            <label class="field-label" for="spkEditTravelReimbursementLimit">Travel Reimbursement Limit (USD)</label>
+            <input type="number" id="spkEditTravelReimbursementLimit" class="field-input" min="0" step="0.01" />
+          </div>
+          <div class="field-group full">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gg-muted);">
+              <input type="checkbox" id="spkEditTravelReimbursementOffered" /> Travel reimbursement offered
+            </label>
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkEditStatus">Status</label>
+            <select id="spkEditStatus" class="field-input">
+              <option value="opportunity">Opportunity</option>
+              <option value="preparing_submission">Preparing Submission</option>
+              <option value="applied">Applied</option>
+              <option value="under_review">Under Review</option>
+              <option value="selected">Selected</option>
+              <option value="contracting">Contracting</option>
+              <option value="planning">Planning</option>
+              <option value="ready">Ready</option>
+              <option value="completed">Completed</option>
+              <option value="payment_pending">Payment Pending</option>
+              <option value="closed">Closed</option>
+              <option value="declined">Declined</option>
+              <option value="withdrawn">Withdrawn</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="spkEditNotes">Notes</label>
+            <textarea id="spkEditNotes" class="field-input" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="create-form-actions">
+          <button class="btn-sm btn-sm-danger" onclick="deleteSpeakingEngagement()" title="Delete">🗑️</button>
+          <button class="btn btn-primary" onclick="saveSpeakingEngagementAndLink()">Save + Add to Calendar</button>
+          <button class="btn btn-ghost" onclick="saveSpeakingEngagement()">Save Changes</button>
+        </div>
+      </div>
+
+      <!-- SUBMISSION TAB -->
+      <div class="event-tab-panel" id="spkTabPanelSubmission">
+        <div id="spkSubmissionsList"></div>
+        <div class="create-form-card" id="addSpeakingSubmissionCard" style="display:none">
+          <h3 class="card-title">Add Submission</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="spkSubTitle">Submitted Title</label>
+              <input type="text" id="spkSubTitle" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkSubSessionType">Session Type</label>
+              <input type="text" id="spkSubSessionType" class="field-input" placeholder="e.g. Keynote, Breakout" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkSubRequestedFee">Requested Fee (USD)</label>
+              <input type="number" id="spkSubRequestedFee" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSubAbstract">Abstract</label>
+              <textarea id="spkSubAbstract" class="field-input" rows="3"></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSubLearningObjectives">Learning Objectives</label>
+              <textarea id="spkSubLearningObjectives" class="field-input" rows="2"></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSubBio">Submitted Bio</label>
+              <textarea id="spkSubBio" class="field-input" rows="2"></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSubSpeakers">Submitted Speaker(s)</label>
+              <input type="text" id="spkSubSpeakers" class="field-input" placeholder="Comma-separated" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSubApplicationUrl">Application Link</label>
+              <input type="url" id="spkSubApplicationUrl" class="field-input" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSubNotes">Notes</label>
+              <textarea id="spkSubNotes" class="field-input" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideAddSpeakingSubmission()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveSpeakingSubmission()">Add Submission →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="showAddSpeakingSubmissionBtn" onclick="showAddSpeakingSubmission()">+ Add Submission</button>
+      </div>
+
+      <!-- PLACEHOLDER TAB (Stage 3) -->
+      <!-- SESSIONS TAB -->
+      <div class="event-tab-panel" id="spkTabPanelSessions">
+        <div id="spkSessionsList"></div>
+        <div class="create-form-card" id="addSpeakingSessionCard" style="display:none">
+          <h3 class="card-title" id="spkSessionCardTitle">Add Session</h3>
+          <div class="fields-grid">
+            <div class="field-group full">
+              <label class="field-label" for="spkSessionTitle">Session Title <span class="required">*</span></label>
+              <input type="text" id="spkSessionTitle" class="field-input" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="spkSessionType">Session Type</label>
+              <input type="text" id="spkSessionType" class="field-input" placeholder="e.g. Keynote, Breakout" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="spkSessionDate">Date</label>
+              <input type="date" id="spkSessionDate" class="field-input" />
+            </div>
+            <div class="field-group third">
+              <label class="field-label" for="spkSessionStartTime">Start Time</label>
+              <div style="display:flex; gap:8px;">
+                <input type="time" id="spkSessionStartTime" class="field-input" />
+                <input type="time" id="spkSessionEndTime" class="field-input" title="End time" />
+              </div>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSessionSpeakers">Speaker(s) for This Session</label>
+              <input type="text" id="spkSessionSpeakers" class="field-input" placeholder="Comma-separated — can differ from the engagement's overall Speaker(s)" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSessionDescription">Description</label>
+              <textarea id="spkSessionDescription" class="field-input" rows="3"></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSessionLearningObjectives">Learning Objectives</label>
+              <textarea id="spkSessionLearningObjectives" class="field-input" rows="3"></textarea>
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkSessionAvRequirements">AV Requirements</label>
+              <textarea id="spkSessionAvRequirements" class="field-input" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions">
+            <button class="btn btn-ghost" onclick="hideAddSpeakingSession()">Cancel</button>
+            <button class="btn btn-primary" id="spkSessionSubmitBtn" onclick="saveSpeakingSession()">Add Session →</button>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-ghost" id="showAddSpeakingSessionBtn" onclick="showAddSpeakingSession()">+ Add Session</button>
+      </div>
+
+      <!-- PREP TAB (checklist) -->
+      <div class="event-tab-panel" id="spkTabPanelPrep">
+        <div class="dashboard-section-header" style="margin-top:0;">
+          <div style="font-size:14px; color:var(--gg-muted);">Planning Progress: <strong id="spkPrepProgressLabel" style="color:var(--gg-dark);">—</strong></div>
+          <button class="btn-sm btn-sm-ghost" id="spkGenerateChecklistBtn" onclick="generateSpeakingDefaultChecklist()" style="display:none;">Generate Default Checklist</button>
+        </div>
+        <div id="spkChecklistList"></div>
+        <div class="create-form-card" style="margin-top:16px;">
+          <h3 class="card-title" style="font-size:15px;">Add Checklist Item</h3>
+          <div class="fields-grid">
+            <div class="field-group half">
+              <label class="field-label" for="spkNewChecklistTitle">Item</label>
+              <input type="text" id="spkNewChecklistTitle" class="field-input" placeholder="e.g. Confirm hotel booking" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkNewChecklistDueDate">Due Date</label>
+              <input type="date" id="spkNewChecklistDueDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkNewChecklistOwner">Owner</label>
+              <select id="spkNewChecklistOwner" class="field-input">
+                <option value="Unassigned" selected>Unassigned</option>
+                <option value="Dave">Dave</option>
+                <option value="Haley">Haley</option>
+              </select>
+            </div>
+          </div>
+          <div class="create-form-actions" style="margin-top:8px;">
+            <button class="btn btn-primary" onclick="addSpeakingChecklistItem()">+ Add Item</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAVEL TAB (guided wizard + itinerary quick-edit) -->
+      <div class="event-tab-panel" id="spkTabPanelTravel">
+        <div id="spkTravelWizardArea"></div>
+        <div id="spkTravelItemsList"></div>
+      </div>
+
+      <!-- HOME LOGISTICS TAB (childcare / pet care) -->
+      <div class="event-tab-panel" id="spkTabPanelHomeLogistics">
+        <div id="spkCareArrangementsList"></div>
+        <div class="create-form-card" style="margin-top:16px;">
+          <h3 class="card-title" style="font-size:15px;">Add Care Arrangement</h3>
+          <div class="fields-grid">
+            <div class="field-group half">
+              <label class="field-label" for="spkNewCareType">Type</label>
+              <select id="spkNewCareType" class="field-input">
+                <option value="childcare">Childcare</option>
+                <option value="petcare">Pet Care</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkNewCareProvider">Provider</label>
+              <input type="text" id="spkNewCareProvider" class="field-input" placeholder="e.g. Grandma, Rover sitter" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkNewCareStartDate">Starts</label>
+              <input type="date" id="spkNewCareStartDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkNewCareEndDate">Ends</label>
+              <input type="date" id="spkNewCareEndDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="spkNewCareCost">Cost (USD)</label>
+              <input type="number" id="spkNewCareCost" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="spkNewCareNotes">Notes</label>
+              <textarea id="spkNewCareNotes" class="field-input" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions" style="margin-top:8px;">
+            <button class="btn btn-primary" onclick="addSpeakingCareArrangement()">+ Add Arrangement</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCIALS TAB -->
+      <div class="event-tab-panel" id="spkTabPanelFinancials">
+        <div class="stat-cards stat-cards-compact" id="spkFinancialsStats"></div>
+        <div id="spkFinancialsExpensesList"></div>
+      </div>
+
+      <!-- DOCUMENTS TAB -->
+      <div class="event-tab-panel" id="spkTabPanelDocuments">
+        <div id="spkDocumentsList"></div>
+      </div>
+
+      <!-- POST-EVENT TAB -->
+      <div class="event-tab-panel" id="spkTabPanelPostEvent">
+        <div class="fields-grid">
+          <div class="field-group half">
+            <label class="field-label" for="spkPostAttendeeCount">Actual Attendee Count</label>
+            <input type="number" id="spkPostAttendeeCount" class="field-input" min="0" step="1" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="spkPostRecordingUrl">Recording URL</label>
+            <input type="url" id="spkPostRecordingUrl" class="field-input" placeholder="https://…" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="spkPostOutcomeNotes">Outcome Notes</label>
+            <textarea id="spkPostOutcomeNotes" class="field-input" rows="4" placeholder="How'd it go — feedback, whether they'd have us back, anything worth remembering next time…"></textarea>
+          </div>
+        </div>
+        <div class="create-form-actions">
+          <button class="btn btn-primary" onclick="saveSpeakingPostEvent()">Save Post-Event Notes →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAINING DETAIL MODAL -->
+  <div class="modal-overlay" id="trainingDetailModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <h3 class="modal-title" id="trainingDetailTitle">Training Engagement</h3>
+        <button class="modal-close" onclick="hideTrainingDetail()">✕</button>
+      </div>
+
+      <div class="event-tabs">
+        <button class="event-tab-btn active" id="trnTabBtnOverview" onclick="switchTrainingTab('overview')">Overview</button>
+        <button class="event-tab-btn" id="trnTabBtnDelivery" onclick="switchTrainingTab('delivery')">Delivery &amp; Logistics</button>
+        <button class="event-tab-btn" id="trnTabBtnPrep" onclick="switchTrainingTab('prep')">Prep</button>
+        <button class="event-tab-btn" id="trnTabBtnTravel" onclick="switchTrainingTab('travel')">Travel</button>
+        <button class="event-tab-btn" id="trnTabBtnFinancials" onclick="switchTrainingTab('financials')">Financials</button>
+        <button class="event-tab-btn" id="trnTabBtnDocuments" onclick="switchTrainingTab('documents')">Documents</button>
+        <button class="event-tab-btn" id="trnTabBtnCompletion" onclick="switchTrainingTab('completion')">Completion</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div class="event-tab-panel active" id="trnTabPanelOverview">
+        <div id="trnLinkedEventBanner"></div>
+        <div class="fields-grid">
+          <div class="field-group half">
+            <label class="field-label" for="trnEditCompany">Client <span class="required">*</span></label>
+            <select id="trnEditCompany" class="field-input" onchange="handleTrainingCompanySelectChange(this, 'trnEditContactParticipant')">
+              <option value="">— Select —</option>
+            </select>
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditContactParticipant">Client Contact</label>
+            <select id="trnEditContactParticipant" class="field-input">
+              <option value="">— None —</option>
+            </select>
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="trnEditTitle">Training Title <span class="required">*</span></label>
+            <input type="text" id="trnEditTitle" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditTrainingType">Training Type</label>
+            <input type="text" id="trnEditTrainingType" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditInstructors">Instructor(s)</label>
+            <input type="text" id="trnEditInstructors" class="field-input" placeholder="Comma-separated, e.g. Haley Vincent, Dave Vincent" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditStatus">Status</label>
+            <select id="trnEditStatus" class="field-input">
+              <option value="inquiry">Inquiry</option>
+              <option value="proposal_sent">Proposal Sent</option>
+              <option value="contract_pending">Contract Pending</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="planning">Planning</option>
+              <option value="ready">Ready</option>
+              <option value="completed">Completed</option>
+              <option value="invoice_pending">Invoice Pending</option>
+              <option value="payment_pending">Payment Pending</option>
+              <option value="paid">Paid</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditStartDate">Start Date</label>
+            <input type="date" id="trnEditStartDate" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditStartTime">Start Time</label>
+            <input type="time" id="trnEditStartTime" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditEndDate">End Date</label>
+            <input type="date" id="trnEditEndDate" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditEndTime">End Time</label>
+            <input type="time" id="trnEditEndTime" class="field-input" />
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditAttendeeCount">Expected Attendees</label>
+            <input type="number" id="trnEditAttendeeCount" class="field-input" min="0" step="1" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="trnEditDescription">Description</label>
+            <textarea id="trnEditDescription" class="field-input" rows="2"></textarea>
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="trnEditNotes">Notes</label>
+            <textarea id="trnEditNotes" class="field-input" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="create-form-actions">
+          <button class="btn-sm btn-sm-danger" onclick="deleteTrainingEngagement()" title="Delete">🗑️</button>
+          <button class="btn btn-primary" onclick="saveTrainingEngagementAndLink()">Save + Add to Calendar</button>
+          <button class="btn btn-ghost" onclick="saveTrainingEngagement()">Save Changes</button>
+        </div>
+      </div>
+
+      <!-- DELIVERY & LOGISTICS TAB -->
+      <div class="event-tab-panel" id="trnTabPanelDelivery">
+        <div class="fields-grid">
+          <div class="field-group half">
+            <label class="field-label" for="trnEditDeliveryMethod">Delivery Method</label>
+            <select id="trnEditDeliveryMethod" class="field-input" onchange="updateTrainingDeliveryFields()">
+              <option value="in_person">In-Person</option>
+              <option value="virtual">Virtual</option>
+            </select>
+          </div>
+          <div class="field-group half">
+            <label class="field-label" for="trnEditTimeZone">Time Zone</label>
+            <input type="text" id="trnEditTimeZone" class="field-input" placeholder="e.g. America/Denver" />
+          </div>
+
+          <div class="field-group full trn-inperson-field">
+            <label class="field-label" for="trnEditSiteLocation">Site / Facility Name</label>
+            <input type="text" id="trnEditSiteLocation" class="field-input" />
+          </div>
+          <div class="field-group full trn-inperson-field">
+            <label class="field-label" for="trnEditSiteAddress">Site Address</label>
+            <textarea id="trnEditSiteAddress" class="field-input" rows="2"></textarea>
+          </div>
+          <div class="field-group half trn-inperson-field">
+            <label class="field-label" for="trnEditOnsiteContactName">On-Site Contact Name</label>
+            <input type="text" id="trnEditOnsiteContactName" class="field-input" />
+          </div>
+          <div class="field-group half trn-inperson-field">
+            <label class="field-label" for="trnEditOnsiteContactPhone">On-Site Contact Phone</label>
+            <input type="text" id="trnEditOnsiteContactPhone" class="field-input" />
+          </div>
+          <div class="field-group full trn-inperson-field">
+            <label class="field-label" for="trnEditSiteAccessNotes">Site Access / Parking Notes</label>
+            <textarea id="trnEditSiteAccessNotes" class="field-input" rows="2"></textarea>
+          </div>
+          <div class="field-group full trn-inperson-field">
+            <label class="field-label" for="trnEditPpeRequirements">PPE Requirements</label>
+            <textarea id="trnEditPpeRequirements" class="field-input" rows="2"></textarea>
+          </div>
+          <div class="field-group full trn-inperson-field">
+            <label class="field-label" for="trnEditEquipmentRequirements">Equipment Requirements</label>
+            <textarea id="trnEditEquipmentRequirements" class="field-input" rows="2"></textarea>
+          </div>
+          <div class="field-group full trn-inperson-field">
+            <label class="field-label" for="trnEditMaterialsRequirements">Materials Requirements</label>
+            <textarea id="trnEditMaterialsRequirements" class="field-input" rows="2"></textarea>
+          </div>
+
+          <div class="field-group half trn-virtual-field">
+            <label class="field-label" for="trnEditVirtualPlatform">Platform</label>
+            <input type="text" id="trnEditVirtualPlatform" class="field-input" placeholder="e.g. Zoom, Teams" />
+          </div>
+          <div class="field-group half trn-virtual-field">
+            <label class="field-label" for="trnEditVirtualHost">Host</label>
+            <input type="text" id="trnEditVirtualHost" class="field-input" />
+          </div>
+          <div class="field-group full trn-virtual-field">
+            <label class="field-label" for="trnEditVirtualMeetingLink">Meeting Link</label>
+            <input type="url" id="trnEditVirtualMeetingLink" class="field-input" />
+          </div>
+          <div class="field-group half trn-virtual-field">
+            <label class="field-label" for="trnEditVirtualMeetingId">Meeting ID</label>
+            <input type="text" id="trnEditVirtualMeetingId" class="field-input" />
+          </div>
+          <div class="field-group half trn-virtual-field">
+            <label class="field-label" for="trnEditVirtualPasscode">Passcode</label>
+            <input type="text" id="trnEditVirtualPasscode" class="field-input" />
+          </div>
+          <div class="field-group half trn-virtual-field">
+            <label class="field-label" for="trnEditTechnicalContact">Technical Contact</label>
+            <input type="text" id="trnEditTechnicalContact" class="field-input" />
+          </div>
+          <div class="field-group half trn-virtual-field">
+            <label class="field-label" for="trnEditTechCheckDate">Tech Check Date/Time</label>
+            <div style="display:flex; gap:8px;">
+              <input type="date" id="trnEditTechCheckDate" class="field-input" />
+              <input type="time" id="trnEditTechCheckTime" class="field-input" />
+            </div>
+          </div>
+          <div class="field-group full trn-virtual-field">
+            <label style="display:flex; align-items:center; gap:16px; font-size:13px; color:var(--gg-muted); flex-wrap:wrap;">
+              <span><input type="checkbox" id="trnEditTechCheckRequired" /> Tech check required</span>
+              <span><input type="checkbox" id="trnEditRecordingAllowed" /> Recording allowed</span>
+              <span><input type="checkbox" id="trnEditRecordingRequired" /> Recording required</span>
+            </label>
+          </div>
+        </div>
+        <div class="create-form-actions">
+          <button class="btn-sm btn-sm-danger" onclick="deleteTrainingEngagement()" title="Delete">🗑️</button>
+          <button class="btn btn-primary" onclick="saveTrainingEngagement()">Save Changes →</button>
+        </div>
+      </div>
+
+      <!-- PREP TAB (checklist) -->
+      <div class="event-tab-panel" id="trnTabPanelPrep">
+        <div class="dashboard-section-header" style="margin-top:0;">
+          <div style="font-size:14px; color:var(--gg-muted);">Planning Progress: <strong id="trnPrepProgressLabel" style="color:var(--gg-dark);">—</strong></div>
+          <button class="btn-sm btn-sm-ghost" id="trnGenerateChecklistBtn" onclick="generateTrainingDefaultChecklist()" style="display:none;">Generate Default Checklist</button>
+        </div>
+        <div id="trnChecklistList"></div>
+        <div class="create-form-card" style="margin-top:16px;">
+          <h3 class="card-title" style="font-size:15px;">Add Checklist Item</h3>
+          <div class="fields-grid">
+            <div class="field-group half">
+              <label class="field-label" for="trnNewChecklistTitle">Item</label>
+              <input type="text" id="trnNewChecklistTitle" class="field-input" placeholder="e.g. Confirm room setup" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnNewChecklistDueDate">Due Date</label>
+              <input type="date" id="trnNewChecklistDueDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnNewChecklistOwner">Owner</label>
+              <select id="trnNewChecklistOwner" class="field-input">
+                <option value="Unassigned" selected>Unassigned</option>
+                <option value="Dave">Dave</option>
+                <option value="Haley">Haley</option>
+              </select>
+            </div>
+          </div>
+          <div class="create-form-actions" style="margin-top:8px;">
+            <button class="btn btn-primary" onclick="addTrainingChecklistItem()">+ Add Item</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAVEL TAB (guided wizard + itinerary quick-edit + care arrangements — In-Person only, tab hidden entirely for Virtual) -->
+      <div class="event-tab-panel" id="trnTabPanelTravel">
+        <div id="trnTravelWizardArea"></div>
+        <div id="trnTravelItemsList"></div>
+        <div class="detail-section-title">Childcare / Pet Care</div>
+        <div id="trnCareArrangementsList"></div>
+        <div class="create-form-card" style="margin-top:16px;">
+          <h3 class="card-title" style="font-size:15px;">Add Care Arrangement</h3>
+          <div class="fields-grid">
+            <div class="field-group half">
+              <label class="field-label" for="trnNewCareType">Type</label>
+              <select id="trnNewCareType" class="field-input">
+                <option value="childcare">Childcare</option>
+                <option value="petcare">Pet Care</option>
+              </select>
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnNewCareProvider">Provider</label>
+              <input type="text" id="trnNewCareProvider" class="field-input" placeholder="e.g. Grandma, Rover sitter" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnNewCareStartDate">Starts</label>
+              <input type="date" id="trnNewCareStartDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnNewCareEndDate">Ends</label>
+              <input type="date" id="trnNewCareEndDate" class="field-input" />
+            </div>
+            <div class="field-group half">
+              <label class="field-label" for="trnNewCareCost">Cost (USD)</label>
+              <input type="number" id="trnNewCareCost" class="field-input" min="0" step="0.01" />
+            </div>
+            <div class="field-group full">
+              <label class="field-label" for="trnNewCareNotes">Notes</label>
+              <textarea id="trnNewCareNotes" class="field-input" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="create-form-actions" style="margin-top:8px;">
+            <button class="btn btn-primary" onclick="addTrainingCareArrangement()">+ Add Arrangement</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCIALS TAB -->
+      <div class="event-tab-panel" id="trnTabPanelFinancials">
+        <div class="stat-cards stat-cards-compact" id="trnFinancialsStats"></div>
+        <div id="trnFinancialsExpensesList"></div>
+      </div>
+
+      <!-- DOCUMENTS TAB -->
+      <div class="event-tab-panel" id="trnTabPanelDocuments">
+        <div id="trnDocumentsList"></div>
+      </div>
+
+      <!-- COMPLETION TAB -->
+      <div class="event-tab-panel" id="trnTabPanelCompletion">
+        <div class="fields-grid">
+          <div class="field-group half">
+            <label class="field-label" for="trnPostAttendeeCount">Actual Attendee Count</label>
+            <input type="number" id="trnPostAttendeeCount" class="field-input" min="0" step="1" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label" for="trnPostOutcomeNotes">Outcome Notes</label>
+            <textarea id="trnPostOutcomeNotes" class="field-input" rows="4" placeholder="How'd it go — feedback, whether they'd book again, anything worth remembering next time…"></textarea>
+          </div>
+        </div>
+        <div class="create-form-actions">
+          <button class="btn btn-primary" onclick="saveTrainingCompletion()">Save Completion Notes →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADDRESS BOOK CONTACT PICKER MODAL -->
+  <div class="modal-overlay" id="contactPickerModal" style="display:none; z-index:1100;" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Choose a Contact</h3>
+        <button class="modal-close" onclick="closeContactPicker()">✕</button>
+      </div>
+      <input type="text" id="contactPickerSearch" class="field-input" placeholder="Search name or email…" oninput="searchContactPicker()" style="margin-bottom:14px;" />
+      <div id="contactPickerResults"></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/config.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="../js/admin.js"></script>
   <script src="../js/admin-calendar.js"></script>
+  <script src="../js/admin-engagements.js"></script>
+  <script src="../js/admin-speaking.js"></script>
+  <script src="../js/admin-training.js"></script>
 
 </body>
 </html>

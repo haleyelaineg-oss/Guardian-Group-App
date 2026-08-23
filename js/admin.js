@@ -75,6 +75,8 @@ function setView(viewName, btn) {
   if (viewName === 'financial-overview') loadFinancialOverview();
   if (viewName === 'expenses') loadExpenses();
   if (viewName === 'income') loadIncomeView();
+  if (viewName === 'speaking') loadSpeakingView();
+  if (viewName === 'training') loadTrainingView();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
@@ -173,7 +175,7 @@ function renderDashboardEvents(events) {
     return;
   }
   eventsEl.innerHTML = events.map(ev => `
-    <div class="dashboard-event-row" onclick="showEventDetail('${ev.id}')">
+    <div class="dashboard-event-row" onclick="openEventOrEngagement('${ev.id}', '${ev.event_type || 'other'}')">
       <div class="dashboard-event-main">
         <div class="dashboard-event-title">${escHtml(ev.title)}</div>
         <div class="dashboard-event-meta">${formatEventWhen(ev)}${ev.location ? ' · ' + escHtml(ev.location) : ''}</div>
@@ -280,7 +282,7 @@ function renderExpensesTable() {
       <td>${exp.incurred_on ? formatDate(exp.incurred_on) : '—'}</td>
       <td>${formatCurrency(exp.amount)}</td>
       <td>${escHtml(exp.notes || '—')}</td>
-      <td><button class="btn-sm btn-sm-danger" onclick="deleteGeneralExpense('${exp.id}')">Delete</button></td>
+      <td><button class="btn-sm btn-sm-danger" onclick="deleteGeneralExpense('${exp.id}')" title="Delete">🗑️</button></td>
     </tr>
   `).join('');
 }
@@ -345,8 +347,8 @@ async function loadIncomeView() {
 
   const [{ data: invoices }, { data: events }, { data: itineraryItems }, { data: manual, error }] = await Promise.all([
     ggClient.from('documents').select('id, doc_number, client_name, status, balance, due_date').eq('doc_type', 'invoice').gt('balance', 0),
-    ggClient.from('events').select('id, title, status, starts_at, income_amount').not('income_amount', 'is', null),
-    ggClient.from('event_itinerary_items').select('id, title, income_amount, income_source, starts_at, event_id, events!event_id(title, status)').not('income_amount', 'is', null),
+    ggClient.from('events').select('id, title, event_type, status, starts_at, income_amount').not('income_amount', 'is', null),
+    ggClient.from('event_itinerary_items').select('id, title, income_amount, income_source, starts_at, event_id, events!event_id(title, status, event_type)').not('income_amount', 'is', null),
     ggClient.from('income').select('*').order('expected_on', { ascending: true })
   ]);
 
@@ -379,7 +381,7 @@ async function loadIncomeView() {
       amount: Number(ev.income_amount) || 0,
       status: 'expected',
       statusLabel: 'Pending Payment',
-      onClick: `showEventDetail('${ev.id}')`
+      onClick: `openEventOrEngagement('${ev.id}', '${ev.event_type}')`
     });
   });
 
@@ -393,7 +395,7 @@ async function loadIncomeView() {
       amount: Number(item.income_amount) || 0,
       status: 'expected',
       statusLabel: 'Pending Payment',
-      onClick: `showEventDetail('${item.event_id}')`
+      onClick: `openEventOrEngagement('${item.event_id}', '${item.events?.event_type || 'other'}')`
     });
   });
 
@@ -471,7 +473,7 @@ function renderIncomeTable() {
       <td>
         ${it.manual
           ? `<button class="btn-sm btn-sm-ghost" onclick="toggleIncomeStatus('${it.id}', '${it.status}')">${it.status === 'received' ? 'Mark Expected' : 'Mark Received'}</button>
-             <button class="btn-sm btn-sm-danger" onclick="deleteIncome('${it.id}')">Delete</button>`
+             <button class="btn-sm btn-sm-danger" onclick="deleteIncome('${it.id}')" title="Delete">🗑️</button>`
           : (it.onClick ? `<button class="btn-sm btn-sm-ghost" onclick="${it.onClick}">View</button>` : '')}
       </td>
     </tr>
@@ -645,7 +647,7 @@ function renderWorkshopsList(workshops, seatsByWorkshop = {}) {
         <button class="btn-sm btn-sm-ghost" onclick="copyWorkshopLink('${escHtml(ws.slug)}')">Copy Link</button>
         <button class="btn-sm btn-sm-ghost" onclick="showEditWorkshop('${ws.id}')">Edit</button>
         <button class="btn-sm btn-sm-ghost" onclick="toggleActive('${ws.id}', ${ws.is_active})">${ws.is_active ? 'Deactivate' : 'Activate'}</button>
-        <button class="btn-sm btn-sm-danger" onclick="deleteWorkshop('${ws.id}', '${escHtml(ws.title).replace(/'/g, "\\'")}')">Delete</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteWorkshop('${ws.id}', '${escHtml(ws.title).replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -758,6 +760,16 @@ function handleModalOverlayClick(event) {
     hideEditWorkshop();
   } else if (event.target === document.getElementById('eventDetailModal')) {
     hideEventDetail();
+  } else if (event.target === document.getElementById('speakingDetailModal')) {
+    hideSpeakingDetail();
+  } else if (event.target === document.getElementById('trainingDetailModal')) {
+    hideTrainingDetail();
+  } else if (event.target === document.getElementById('contactPickerModal')) {
+    closeContactPicker();
+  } else if (event.target === document.getElementById('createSpeakingModal')) {
+    hideCreateSpeaking();
+  } else if (event.target === document.getElementById('createTrainingModal')) {
+    hideCreateTraining();
   }
 }
 
@@ -1366,7 +1378,7 @@ async function loadCompanies() {
                 <td>${membership ? (membership.max_seats === null ? 'Unlimited' : `${activeCount} / ${membership.max_seats}`) : '—'}</td>
                 <td style="white-space:nowrap;">
                   <button class="btn-sm btn-sm-ghost" onclick="event.stopPropagation(); showClientDetail('${c.id}')">Edit</button>
-                  <button class="btn-sm btn-sm-danger" onclick="event.stopPropagation(); deleteClient('${c.id}', '${escHtml(c.name).replace(/'/g, "\\'")}')">Delete</button>
+                  <button class="btn-sm btn-sm-danger" onclick="event.stopPropagation(); deleteClient('${c.id}', '${escHtml(c.name).replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
                 </td>
               </tr>
             `;
@@ -1817,7 +1829,7 @@ async function loadClientDetail() {
       <td>${linked ? escHtml(linked.doc_number) : '—'}</td>
       <td>
         <button type="button" class="btn-sm btn-sm-ghost" onclick="viewClientDocument('${escHtml(doc.storage_path)}')">View</button>
-        <button type="button" class="btn-sm btn-sm-danger" onclick="deleteClientDocument('${escHtml(doc.id)}', '${escHtml(doc.storage_path)}')">Delete</button>
+        <button type="button" class="btn-sm btn-sm-danger" onclick="deleteClientDocument('${escHtml(doc.id)}', '${escHtml(doc.storage_path)}')" title="Delete">🗑️</button>
       </td>
     </tr>
   `;
