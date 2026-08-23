@@ -8,15 +8,15 @@ export default function ClientsListPage() {
   const { companies, participantsByCompany, membershipByCompany, loading, error, reload, deleteClient } = useClientsList();
   const [showForm, setShowForm] = useState(false);
 
+  // No try/catch — SaveButton (inside ClientForm) owns error display now.
+  // The warnings from a partial contacts/membership failure still surface
+  // here since createCompany() itself resolves (doesn't throw) for those;
+  // closing the form happens from ClientForm's onSaved, after the
+  // "✓ Saved" confirmation has actually been visible.
   async function handleCreate(values) {
-    try {
-      const { warnings } = await clientsService.createCompany(values);
-      warnings.forEach((w) => alert(w));
-      setShowForm(false);
-      await reload();
-    } catch (err) {
-      alert(err.message);
-    }
+    const { warnings } = await clientsService.createCompany(values);
+    warnings.forEach((w) => alert(w));
+    await reload();
   }
 
   async function handleDelete(companyId, name) {
@@ -36,7 +36,7 @@ export default function ClientsListPage() {
       </div>
       <p className="view-sub">Click a client to manage their client code, company roster, training records, and invoices.</p>
 
-      {showForm && <ClientForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} />}
+      {showForm && <ClientForm onSubmit={handleCreate} onSaved={() => setShowForm(false)} onCancel={() => setShowForm(false)} />}
 
       {error && <p className="empty-hint">Error: {error.message}</p>}
       {!loading && !error && (

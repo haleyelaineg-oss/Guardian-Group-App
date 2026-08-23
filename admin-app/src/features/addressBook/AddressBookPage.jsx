@@ -44,22 +44,16 @@ export default function AddressBookPage() {
     return rows;
   }, [contacts, statusFilter, search]);
 
+  // No try/catch on these two — SaveButton (inside ContactForm) owns error
+  // display now; closing happens from ContactForm's onSaved, after the
+  // "✓ Saved" confirmation has actually been visible. handleDelete below is
+  // unchanged (an immediate action, not a Save button).
   async function handleCreate(payload) {
-    try {
-      await createContact(payload);
-      setShowCreateForm(false);
-    } catch (err) {
-      alert(err.message);
-    }
+    await createContact(payload);
   }
 
   async function handleSaveEdit(payload) {
-    try {
-      await updateContact(editingContact.id, payload);
-      setEditingContact(null);
-    } catch (err) {
-      alert(err.message);
-    }
+    await updateContact(editingContact.id, payload);
   }
 
   async function handleDelete() {
@@ -90,7 +84,13 @@ export default function AddressBookPage() {
       {showCreateForm && (
         <div className="create-form-card">
           <h3 className="card-title">Add Contact</h3>
-          <ContactForm mode="create" companyOptions={companyOptions} onSubmit={handleCreate} onCancel={() => setShowCreateForm(false)} />
+          <ContactForm
+            mode="create"
+            companyOptions={companyOptions}
+            onSubmit={handleCreate}
+            onSaved={() => setShowCreateForm(false)}
+            onCancel={() => setShowCreateForm(false)}
+          />
         </div>
       )}
 
@@ -157,6 +157,7 @@ export default function AddressBookPage() {
             initialContact={editingContact}
             companyOptions={companyOptions}
             onSubmit={handleSaveEdit}
+            onSaved={() => setEditingContact(null)}
             onDelete={handleDelete}
             canDelete={canDelete}
             deleteDisabledReason={deleteDisabledReason}

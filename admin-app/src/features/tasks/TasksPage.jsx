@@ -37,16 +37,15 @@ export default function TasksPage() {
     setEditingTask(null);
   }
 
+  // No try/catch here — SaveButton (inside TaskForm) owns error display now;
+  // this just needs to throw on failure, which updateTask/createTask
+  // already do. closeForm() runs from TaskForm's onSaved, i.e. after the
+  // "✓ Saved" confirmation has actually been visible, not immediately.
   async function handleSubmit(payload) {
-    try {
-      if (formMode === 'edit') {
-        await updateTask(editingTask.id, payload);
-      } else {
-        await createTask(payload);
-      }
-      closeForm();
-    } catch (err) {
-      alert('Could not save task: ' + err.message);
+    if (formMode === 'edit') {
+      await updateTask(editingTask.id, payload);
+    } else {
+      await createTask(payload);
     }
   }
 
@@ -85,6 +84,7 @@ export default function TasksPage() {
           initialTask={editingTask}
           eventOptions={eventOptions}
           onSubmit={handleSubmit}
+          onSaved={closeForm}
           onCancel={closeForm}
           onDelete={() => handleDelete(editingTask.id)}
         />

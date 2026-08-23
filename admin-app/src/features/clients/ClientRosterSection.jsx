@@ -5,15 +5,6 @@ import RosterContactModal from './RosterContactModal.jsx';
 export default function ClientRosterSection({ companyId, company, roster, onCreateContact }) {
   const [showModal, setShowModal] = useState(false);
 
-  async function handleSubmit(values) {
-    try {
-      await onCreateContact(values);
-      setShowModal(false);
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
   return (
     <>
       <div className="dashboard-section-header" style={{ marginTop: 24 }}>
@@ -55,7 +46,13 @@ export default function ClientRosterSection({ companyId, company, roster, onCrea
         </table>
       </div>
 
-      {showModal && <RosterContactModal onSubmit={handleSubmit} onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <RosterContactModal
+          onSubmit={onCreateContact}
+          onSaved={() => setShowModal(false)}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </>
   );
 }

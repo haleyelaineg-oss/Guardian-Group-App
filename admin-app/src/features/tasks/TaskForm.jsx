@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import SaveButton from '../../components/SaveButton.jsx';
 
 const BLANK = { title: '', due_date: '', owner: 'Unassigned', event_id: '', link_url: '', notes: '' };
 
@@ -8,7 +9,7 @@ const BLANK = { title: '', due_date: '', owner: 'Unassigned', event_id: '', link
 // instance (via a `key` prop on the caller side) whenever switching between
 // "create" and a specific task to edit, so field state always resets the
 // same way the vanilla form's repopulation did.
-export default function TaskForm({ mode, initialTask, eventOptions, onSubmit, onCancel, onDelete }) {
+export default function TaskForm({ mode, initialTask, eventOptions, onSubmit, onSaved, onCancel, onDelete }) {
   const [values, setValues] = useState(() =>
     mode === 'edit' && initialTask
       ? {
@@ -33,11 +34,11 @@ export default function TaskForm({ mode, initialTask, eventOptions, onSubmit, on
     setValues((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleSubmit() {
+  async function handleSave() {
     const title = values.title.trim();
-    if (!title) { alert('Task title is required.'); return; }
+    if (!title) throw new Error('Task title is required.');
 
-    onSubmit({
+    await onSubmit({
       title,
       due_date: values.due_date || null,
       owner: values.owner,
@@ -109,9 +110,11 @@ export default function TaskForm({ mode, initialTask, eventOptions, onSubmit, on
           <button className="btn-sm btn-sm-danger" onClick={onDelete} title="Delete">🗑️</button>
         )}
         <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-        <button className="btn btn-primary" onClick={handleSubmit}>
-          {mode === 'edit' ? 'Save Changes →' : 'Create Task →'}
-        </button>
+        <SaveButton
+          onSave={handleSave}
+          onSaved={onSaved}
+          label={mode === 'edit' ? 'Save Changes →' : 'Create Task →'}
+        />
       </div>
     </div>
   );

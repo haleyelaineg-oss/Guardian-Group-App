@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import PhoneNumbersField from '../../components/PhoneNumbersField.jsx';
+import SaveButton from '../../components/SaveButton.jsx';
 
 // Org Admin saves immediately on change; every other field here only
 // saves when "Save" is clicked — same split as the vanilla Overview
@@ -23,8 +24,8 @@ export default function ClientOverviewSection({ company, roster, onSave, onSetOr
     setBillingAddress(company.billing_address || '');
   }, [company]);
 
-  function handleSave() {
-    onSave({
+  async function handleSave() {
+    await onSave({
       contactName: contactName.trim() || null,
       contactEmail: contactEmail.trim() || null,
       phones,
@@ -69,7 +70,7 @@ export default function ClientOverviewSection({ company, roster, onSave, onSetOr
         </div>
       </div>
       <div className="create-form-actions" style={{ justifyContent: 'flex-start', marginTop: 16 }}>
-        <button className="btn btn-primary" onClick={handleSave}>Save →</button>
+        <SaveButton onSave={handleSave} label="Save →" />
       </div>
     </>
   );

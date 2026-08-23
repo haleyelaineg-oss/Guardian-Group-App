@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { formatFileSize } from '../../utils/format.js';
 import * as clientsService from './clientsService.js';
+import SaveButton from '../../components/SaveButton.jsx';
 
 export default function ClientDocumentsSection({ clientDocuments, invoices, onUpload, onDelete }) {
   const fileInputRef = useRef(null);
@@ -28,14 +29,15 @@ export default function ClientDocumentsSection({ clientDocuments, invoices, onUp
 
   async function handleUpload() {
     const file = fileInputRef.current?.files?.[0];
-    if (!file) { alert('Choose a file first.'); return; }
-    try {
-      await onUpload(file, linkedDocId || null);
-      fileInputRef.current.value = '';
-      setLinkedDocId('');
-    } catch (err) {
-      alert(err.message);
-    }
+    if (!file) throw new Error('Choose a file first.');
+    await onUpload(file, linkedDocId || null);
+  }
+
+  // Runs after the "✓ Saved" confirmation, once the upload has actually
+  // completed — clears the picked file and reset the link-to select.
+  function resetUploadFields() {
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setLinkedDocId('');
   }
 
   return (
@@ -71,7 +73,7 @@ export default function ClientDocumentsSection({ clientDocuments, invoices, onUp
           <option value="">— Not linked to a specific quote/invoice —</option>
           {invoices.map((d) => <option key={d.id} value={d.id}>{d.doc_number} ({d.doc_type})</option>)}
         </select>
-        <button className="btn-sm btn-sm-ghost" onClick={handleUpload}>+ Upload Document</button>
+        <SaveButton onSave={handleUpload} onSaved={resetUploadFields} label="+ Upload Document" className="btn-sm btn-sm-ghost" />
       </div>
     </>
   );

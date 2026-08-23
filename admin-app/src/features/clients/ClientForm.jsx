@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import NewClientContactRow from './NewClientContactRow.jsx';
+import SaveButton from '../../components/SaveButton.jsx';
 
 const BLANK_CONTACT = () => ({ key: crypto.randomUUID(), name: '', email: '', phones: [], title: '', notes: '' });
 
 // 1:1 with #createCompanyCard + createCompany() in admin.js, minus the
 // per-contact "assign to a different company" select the vanilla form had
 // — every contact created here belongs to the client being created.
-export default function ClientForm({ onSubmit, onCancel }) {
+export default function ClientForm({ onSubmit, onSaved, onCancel }) {
   const [name, setName] = useState('');
   const [contacts, setContacts] = useState([BLANK_CONTACT()]);
   const [billingAddress, setBillingAddress] = useState('');
@@ -24,9 +25,9 @@ export default function ClientForm({ onSubmit, onCancel }) {
     setContacts((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleSubmit() {
+  async function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) { alert('Client name is required.'); return; }
+    if (!trimmedName) throw new Error('Client name is required.');
 
     const rawContacts = contacts
       .map((c) => ({
@@ -40,12 +41,11 @@ export default function ClientForm({ onSubmit, onCancel }) {
 
     for (const c of rawContacts) {
       if (!c.name && (c.email || c.phones.length || c.title || c.notes)) {
-        alert('Each contact needs a full name.');
-        return;
+        throw new Error('Each contact needs a full name.');
       }
     }
 
-    onSubmit({
+    await onSubmit({
       name: trimmedName,
       contacts: rawContacts.filter((c) => c.name),
       billingAddress: billingAddress.trim() || null,
@@ -109,7 +109,7 @@ export default function ClientForm({ onSubmit, onCancel }) {
       </div>
       <div className="create-form-actions">
         <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-        <button className="btn btn-primary" onClick={handleSubmit}>Create Client →</button>
+        <SaveButton onSave={handleSave} onSaved={onSaved} label="Create Client →" />
       </div>
     </div>
   );

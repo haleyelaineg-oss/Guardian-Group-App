@@ -77,7 +77,7 @@ export default function ClientDetailPage() {
       <ClientOverviewSection
         company={detail.company}
         roster={detail.roster}
-        onSave={(values) => guard(saveOverview, values)}
+        onSave={saveOverview}
         onSetOrgAdmin={(participantId) => guard(setOrgAdmin, participantId)}
       />
 
@@ -86,7 +86,7 @@ export default function ClientDetailPage() {
         activeCount={activeCount}
         onCopyCode={handleCopyCode}
         onRegenerateCode={handleRegenerateCode}
-        onSaveMembership={(values) => guard(saveMembership, values)}
+        onSaveMembership={saveMembership}
         onEnableMembership={() => guard(enableMembership)}
       />
 

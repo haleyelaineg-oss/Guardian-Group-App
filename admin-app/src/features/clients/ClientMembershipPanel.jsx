@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import SaveButton from '../../components/SaveButton.jsx';
 
 const TIERS = ['Blue', 'Silver', 'Gold', 'Platinum'];
 
@@ -18,8 +19,8 @@ export default function ClientMembershipPanel({ membership, activeCount, onCopyC
     setUnlimited(membership?.max_seats === null);
   }, [membership]);
 
-  function handleSave() {
-    onSaveMembership({ tier, maxSeats, unlimited });
+  async function handleSave() {
+    await onSaveMembership({ tier, maxSeats, unlimited });
   }
 
   return (
@@ -60,7 +61,7 @@ export default function ClientMembershipPanel({ membership, activeCount, onCopyC
             </div>
           </div>
           <div className="create-form-actions" style={{ justifyContent: 'flex-start' }}>
-            <button className="btn btn-primary" onClick={handleSave}>Save Membership →</button>
+            <SaveButton onSave={handleSave} label="Save Membership →" />
           </div>
         </div>
       ) : (

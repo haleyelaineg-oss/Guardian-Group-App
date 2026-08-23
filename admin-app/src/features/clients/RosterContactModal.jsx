@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal.jsx';
+import SaveButton from '../../components/SaveButton.jsx';
 
 // Deliberately simpler than the full Address Book contact form — a single
 // `phone` text field, not the multi-number PhoneNumbersField, matching the
 // vanilla addRosterContactModal exactly (a fast path for the common case,
 // not an oversight worth "fixing" to match the fuller form).
-export default function RosterContactModal({ onSubmit, onClose }) {
+export default function RosterContactModal({ onSubmit, onSaved, onClose }) {
   const [values, setValues] = useState({ fullName: '', email: '', phone: '', title: '', notes: '' });
 
   function setField(field, value) {
     setValues((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleSubmit() {
+  async function handleSave() {
     const fullName = values.fullName.trim();
-    if (!fullName) { alert('Full name is required.'); return; }
-    onSubmit({
+    if (!fullName) throw new Error('Full name is required.');
+    await onSubmit({
       fullName,
       email: values.email.trim() || null,
       phone: values.phone.trim() || null,
@@ -50,7 +51,7 @@ export default function RosterContactModal({ onSubmit, onClose }) {
       </div>
       <div className="create-form-actions">
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary" onClick={handleSubmit}>Add Contact →</button>
+        <SaveButton onSave={handleSave} onSaved={onSaved} label="Add Contact →" />
       </div>
     </Modal>
   );
