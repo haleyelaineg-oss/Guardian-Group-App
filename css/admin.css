@@ -901,12 +901,12 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
   position: sticky;
   top: 0;
   z-index: 2;
   background: var(--gg-white);
-  padding-bottom: 16px;
+  margin: -36px -36px 24px -36px;
+  padding: 36px 36px 16px;
   border-bottom: 1px solid var(--gg-pale);
 }
 .modal-title {
