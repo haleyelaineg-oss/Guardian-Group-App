@@ -23,6 +23,11 @@ export default function SaveButton({ onSave, onSaved, label, className = 'btn bt
     if (status === 'saving') return;
     setStatus('saving');
     try {
+      // Let React commit the saving state before a very fast request can
+      // resolve and batch straight through to the success state. This keeps
+      // the promised "Saving…" feedback perceptible even for local/fast DB
+      // responses.
+      await new Promise(requestAnimationFrame);
       await onSave();
       setStatus('success');
       setTimeout(() => {

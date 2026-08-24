@@ -11,7 +11,7 @@ import SaveButton from '../../components/SaveButton.jsx';
 // fields to the last-saved values, discarding unsaved edits here — the
 // vanilla app has this same behavior (its loadClientDetail() rebuilds the
 // whole page from scratch on every reload), not something introduced here.
-export default function ClientOverviewSection({ company, roster, onSave, onSetOrgAdmin }) {
+export default function ClientOverviewSection({ company, roster, onSave, onSaved, onSetOrgAdmin }) {
   const [contactName, setContactName] = useState(company.contact_name || '');
   const [contactEmail, setContactEmail] = useState(company.contact_email || '');
   const [phones, setPhones] = useState(company.phones || []);
@@ -70,7 +70,7 @@ export default function ClientOverviewSection({ company, roster, onSave, onSetOr
         </div>
       </div>
       <div className="create-form-actions" style={{ justifyContent: 'flex-start', marginTop: 16 }}>
-        <SaveButton onSave={handleSave} label="Save →" />
+        <SaveButton onSave={handleSave} onSaved={onSaved} label="Save →" />
       </div>
     </>
   );

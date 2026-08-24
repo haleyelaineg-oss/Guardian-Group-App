@@ -22,7 +22,7 @@ export default function AddressBookPage() {
     if (paramCompany) setCompanyFilter(paramCompany);
   }, [searchParams]);
 
-  const { contacts, companyOptions, loading, error, createContact, updateContact, deleteContact } = useAddressBook(companyFilter);
+  const { contacts, companyOptions, loading, error, reload, createContact, updateContact, deleteContact } = useAddressBook(companyFilter);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [viewingContact, setViewingContact] = useState(null);
@@ -88,7 +88,10 @@ export default function AddressBookPage() {
             mode="create"
             companyOptions={companyOptions}
             onSubmit={handleCreate}
-            onSaved={() => setShowCreateForm(false)}
+            onSaved={async () => {
+              await reload();
+              setShowCreateForm(false);
+            }}
             onCancel={() => setShowCreateForm(false)}
           />
         </div>
@@ -157,7 +160,10 @@ export default function AddressBookPage() {
             initialContact={editingContact}
             companyOptions={companyOptions}
             onSubmit={handleSaveEdit}
-            onSaved={() => setEditingContact(null)}
+            onSaved={async () => {
+              await reload();
+              setEditingContact(null);
+            }}
             onDelete={handleDelete}
             canDelete={canDelete}
             deleteDisabledReason={deleteDisabledReason}

@@ -36,7 +36,6 @@ export function useClientDetail(companyId) {
       ...values,
       currentPrimaryContactId: detail.company.primary_contact_participant_id,
     });
-    await reload();
   }
 
   async function setOrgAdmin(participantId) {
@@ -51,7 +50,6 @@ export function useClientDetail(companyId) {
 
   async function saveMembership(values) {
     await clientsService.saveMembership(companyId, values);
-    await reload();
   }
 
   async function regenerateClientCode() {

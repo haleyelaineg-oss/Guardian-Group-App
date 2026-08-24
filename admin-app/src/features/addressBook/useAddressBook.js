@@ -33,12 +33,10 @@ export function useAddressBook(companyFilter) {
 
   async function createContact(payload) {
     await addressBookService.createContact(payload);
-    await reload();
   }
 
   async function updateContact(id, payload) {
     await addressBookService.updateContact(id, payload);
-    await reload();
   }
 
   async function deleteContact(id, name) {
@@ -46,5 +44,5 @@ export function useAddressBook(companyFilter) {
     await reload();
   }
 
-  return { contacts, companyOptions, loading, error, createContact, updateContact, deleteContact };
+  return { contacts, companyOptions, loading, error, reload, createContact, updateContact, deleteContact };
 }

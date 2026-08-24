@@ -78,6 +78,7 @@ export default function ClientDetailPage() {
         company={detail.company}
         roster={detail.roster}
         onSave={saveOverview}
+        onSaved={reload}
         onSetOrgAdmin={(participantId) => guard(setOrgAdmin, participantId)}
       />
 
@@ -87,6 +88,7 @@ export default function ClientDetailPage() {
         onCopyCode={handleCopyCode}
         onRegenerateCode={handleRegenerateCode}
         onSaveMembership={saveMembership}
+        onSaved={reload}
         onEnableMembership={() => guard(enableMembership)}
       />
 

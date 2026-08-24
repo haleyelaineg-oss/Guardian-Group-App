@@ -8,7 +8,7 @@ const TIERS = ['Blue', 'Silver', 'Gold', 'Platinum'];
 // per-field immediate save (with a full-page reload on every change) too
 // disruptive. Copy and Regenerate stay immediate actions, since those
 // don't have anything to "buffer" — same as the vanilla app.
-export default function ClientMembershipPanel({ membership, activeCount, onCopyCode, onRegenerateCode, onSaveMembership, onEnableMembership }) {
+export default function ClientMembershipPanel({ membership, activeCount, onCopyCode, onRegenerateCode, onSaveMembership, onSaved, onEnableMembership }) {
   const [tier, setTier] = useState(membership?.membership_tier || '');
   const [maxSeats, setMaxSeats] = useState(membership?.max_seats ?? '');
   const [unlimited, setUnlimited] = useState(membership?.max_seats === null);
@@ -61,7 +61,7 @@ export default function ClientMembershipPanel({ membership, activeCount, onCopyC
             </div>
           </div>
           <div className="create-form-actions" style={{ justifyContent: 'flex-start' }}>
-            <SaveButton onSave={handleSave} label="Save Membership →" />
+            <SaveButton onSave={handleSave} onSaved={onSaved} label="Save Membership →" />
           </div>
         </div>
       ) : (
