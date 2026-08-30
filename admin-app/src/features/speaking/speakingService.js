@@ -6,6 +6,7 @@ export async function createSpeakingEngagement(values) { const { data, error } =
 export async function fetchSpeakingDetail(id) { const [engagement, submissions] = await Promise.all([supabase.from('speaking_engagements').select('*').eq('id', id).single(), supabase.from('speaking_submissions').select('*').eq('speaking_engagement_id', id).order('submitted_at', { ascending: false })]); fail(engagement.error); fail(submissions.error); return { engagement: engagement.data, submissions: submissions.data || [] }; }
 export async function updateSpeakingEngagement(id, values) { const { data, error } = await supabase.from('speaking_engagements').update(values).eq('id', id).select().single(); fail(error); return data; }
 export async function deleteSpeakingEngagement(id) { const { error } = await supabase.from('speaking_engagements').delete().eq('id', id); fail(error); }
+export async function createSpeakingSubmission(values) { const { error } = await supabase.from('speaking_submissions').insert(values); fail(error); }
 
 function eventStatus(status) { if (['selected', 'contracting', 'planning', 'ready'].includes(status)) return 'confirmed'; if (['completed', 'payment_pending', 'closed'].includes(status)) return 'completed'; if (['cancelled', 'declined', 'withdrawn'].includes(status)) return 'cancelled'; return 'planning'; }
 export async function saveSpeakingAndLink(id, values) {
