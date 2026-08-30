@@ -7,6 +7,9 @@ export async function fetchSpeakingDetail(id) { const [engagement, submissions] 
 export async function updateSpeakingEngagement(id, values) { const { data, error } = await supabase.from('speaking_engagements').update(values).eq('id', id).select().single(); fail(error); return data; }
 export async function deleteSpeakingEngagement(id) { const { error } = await supabase.from('speaking_engagements').delete().eq('id', id); fail(error); }
 export async function createSpeakingSubmission(values) { const { error } = await supabase.from('speaking_submissions').insert(values); fail(error); }
+export async function fetchSpeakingSessions(eventId) { const { data, error } = await supabase.from('event_itinerary_items').select('*').eq('event_id', eventId).eq('item_type', 'speaking_session').order('starts_at', { ascending: true, nullsFirst: false }); fail(error); return data || []; }
+export async function createSpeakingSession(eventId, values) { const { error } = await supabase.from('event_itinerary_items').insert({ ...values, event_id: eventId, item_type: 'speaking_session' }); fail(error); }
+export async function deleteSpeakingSession(id) { const { error } = await supabase.from('event_itinerary_items').delete().eq('id', id); fail(error); }
 
 function eventStatus(status) { if (['selected', 'contracting', 'planning', 'ready'].includes(status)) return 'confirmed'; if (['completed', 'payment_pending', 'closed'].includes(status)) return 'completed'; if (['cancelled', 'declined', 'withdrawn'].includes(status)) return 'cancelled'; return 'planning'; }
 export async function saveSpeakingAndLink(id, values) {
