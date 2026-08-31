@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import SaveButton from '../../components/SaveButton.jsx';
 import Checklist from '../engagements/Checklist.jsx';
+import CareArrangements from '../engagements/CareArrangements.jsx';
 import ExpenseManager from '../expenses/ExpenseManager.jsx';
 import DocumentManager from '../documents/DocumentManager.jsx';
 import TravelPlanner from '../itinerary/TravelPlanner.jsx';
@@ -17,9 +18,9 @@ export default function SpeakingDetailPage() {
   const reload = () => fetchSpeakingDetail(id).then(setData).catch((err) => alert(err.message));
   useEffect(() => { reload(); }, [id]);
   if (!data) return <p className="empty-hint">Loading...</p>;
-  const { engagement } = data; const tabs = ['Overview', 'Submissions', 'Sessions', 'Prep', 'Travel', 'Financials', 'Documents', 'Post-Event'];
+  const { engagement } = data; const tabs = ['Overview', 'Submissions', 'Sessions', 'Prep', 'Travel', 'Care', 'Financials', 'Documents', 'Post-Event'];
   return <div className="view active"><Link to="/admin/speaking">← Speaking Engagements</Link><h1 className="view-title">{engagement.event_name}</h1><div className="tab-bar">{tabs.map((name) => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>
-    {tab === 'Overview' && <Overview engagement={engagement} onSaved={reload} />}{tab === 'Submissions' && <SpeakingSubmissions engagementId={engagement.id} submissions={data.submissions} onSaved={reload} />}{tab === 'Sessions' && <SpeakingSessions eventId={engagement.event_id} />}{tab === 'Prep' && <Checklist kind="speaking" engagementId={engagement.id} />}{tab === 'Travel' && <TravelPlanner eventId={engagement.event_id} startsAt={engagement.event_start_date} endsAt={engagement.event_end_date} />}{tab === 'Financials' && <ExpenseManager eventId={engagement.event_id} incomeAmount={engagement.offered_fee} />}{tab === 'Documents' && <DocumentManager eventId={engagement.event_id} />}{tab === 'Post-Event' && <PostEvent engagement={engagement} onSaved={reload} />}
+    {tab === 'Overview' && <Overview engagement={engagement} onSaved={reload} />}{tab === 'Submissions' && <SpeakingSubmissions engagementId={engagement.id} submissions={data.submissions} onSaved={reload} />}{tab === 'Sessions' && <SpeakingSessions eventId={engagement.event_id} />}{tab === 'Prep' && <Checklist kind="speaking" engagementId={engagement.id} />}{tab === 'Travel' && <TravelPlanner eventId={engagement.event_id} startsAt={engagement.event_start_date} endsAt={engagement.event_end_date} />}{tab === 'Care' && <CareArrangements eventId={engagement.event_id} />}{tab === 'Financials' && <ExpenseManager eventId={engagement.event_id} incomeAmount={engagement.offered_fee} />}{tab === 'Documents' && <DocumentManager eventId={engagement.event_id} />}{tab === 'Post-Event' && <PostEvent engagement={engagement} onSaved={reload} />}
   </div>;
 }
 
