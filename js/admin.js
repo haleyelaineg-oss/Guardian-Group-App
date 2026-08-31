@@ -49,15 +49,27 @@ async function signOut() {
 
 // ── VIEWS ─────────────────────────────────────────────────────
 function setView(viewName, btn) {
+  // Detail/create dialogs are transient UI for their current view. Leaving
+  // one open while switching views strands its full-screen backdrop over the
+  // dashboard, which looks like a black screen and blocks the sidebar.
+  document.querySelectorAll('.modal-overlay').forEach((modal) => {
+    modal.style.display = 'none';
+  });
+  const targetView = document.getElementById(`view-${viewName}`);
+  if (!targetView) {
+    console.error(`Unknown admin view: ${viewName}`);
+    return;
+  }
+  const activeButton = btn || document.querySelector(`[data-view="${viewName}"]`);
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item, .nav-subitem').forEach(n => n.classList.remove('active'));
-  document.getElementById(`view-${viewName}`).classList.add('active');
-  btn.classList.add('active');
+  targetView.classList.add('active');
+  activeButton?.classList.add('active');
 
   const viewsWithWorkshopBar = ['overview', 'responses', 'registrants', 'survey-builder'];
   document.getElementById('workshopTopBar').style.display = viewsWithWorkshopBar.includes(viewName) ? 'flex' : 'none';
 
-  const parentGroup = btn.closest('.nav-group');
+  const parentGroup = activeButton?.closest('.nav-group');
   if (parentGroup) {
     parentGroup.classList.add('expanded');
     parentGroup.querySelector('.nav-group-toggle').classList.add('active');
