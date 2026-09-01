@@ -632,6 +632,15 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .responses-table tr:hover td { background: rgba(42,92,118,0.03); }
 .responses-table tr { cursor: pointer; }
 .responses-table .clickable-row:focus-visible td { background: rgba(42,92,118,0.08); outline: 2px solid var(--gg-steel); outline-offset: -2px; }
+.event-list-controls {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 20px;
+}
+.event-list-controls label { display: grid; gap: 5px; color: var(--gg-muted); font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.event-list-controls .field-input { min-width: 160px; }
 .expand-btn {
   background: var(--gg-off);
   border: none;
