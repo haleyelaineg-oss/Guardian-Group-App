@@ -12,8 +12,12 @@ export function useTasks() {
 
   const reloadTasks = useCallback(async () => {
     try {
-      const rows = await tasksService.fetchTasks();
-      setTasks(rows);
+      const [taskRows, eventRows] = await Promise.all([
+        tasksService.fetchTasks(),
+        tasksService.fetchEventsForSelect(),
+      ]);
+      setTasks(taskRows);
+      setEventOptions(eventRows);
       setError(null);
     } catch (err) {
       setError(err);
@@ -78,6 +82,7 @@ export function useTasks() {
     eventTitleById,
     loading,
     error,
+    reload: reloadTasks,
     createTask,
     updateTask,
     toggleTaskStatus,

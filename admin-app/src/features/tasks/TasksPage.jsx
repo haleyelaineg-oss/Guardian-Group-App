@@ -9,7 +9,7 @@ import TaskList from './TaskList.jsx';
 // useTasks (data) + TaskForm/TaskList/TaskRow (presentation).
 export default function TasksPage() {
   const {
-    tasks, eventOptions, eventTitleById, loading,
+    tasks, eventOptions, eventTitleById, loading, error, reload,
     createTask, updateTask, toggleTaskStatus, deleteTask, fetchTaskById,
   } = useTasks();
 
@@ -98,7 +98,7 @@ export default function TasksPage() {
         /> Show completed
       </label>
 
-      {!loading && (
+      {loading ? <p className="empty-hint">Loading tasks...</p> : error ? <section className="empty-hint" role="alert">Couldn’t load tasks. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : (
         <TaskList
           tasks={visibleTasks}
           eventTitleById={eventTitleById}
