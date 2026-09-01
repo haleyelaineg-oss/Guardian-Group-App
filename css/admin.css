@@ -994,6 +994,11 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   border: 0;
   box-shadow: none;
 }
+
+.financial-document-filters { gap: 12px; margin-bottom: 12px; }
+.financial-document-filters > .field-input { max-width: 300px; }
+.financial-document-filters > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.financial-document-filters select.field-input { min-width: 150px; }
 .modal-title {
   font-family: var(--font-display);
   font-size: 22px;
