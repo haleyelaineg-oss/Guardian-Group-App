@@ -125,8 +125,7 @@ let state = {
   listSearch: '',
   listTypeFilter: 'all',
   listStatusFilter: 'all',
-  listClientFilter: 'all',
-  docsUnlocked: false
+  listClientFilter: 'all'
 };
 
 let itemIdCounter = 1;
@@ -259,9 +258,9 @@ async function init() {
     await qtOpenDocument(docId);
   } else if (params.get('view') === 'list') {
     const type = params.get('type');
-    state.docsUnlocked = !type;
+    state.listTypeFilter = ['quote', 'invoice', 'receipt'].includes(type) ? type : 'all';
     state.listStatusFilter = params.get('status') || 'all';
-    qtOpenDocumentsList(type || 'all');
+    qtOpenDocumentsList();
   } else {
     resetToBlank('quote');
   }
@@ -298,15 +297,12 @@ async function loadDocumentsList() {
 }
 function qtOpenDocumentsList(type) {
   state.view = 'list';
-  if (type !== undefined) {
-    state.listTypeFilter = type;
-    state.docsUnlocked = type === 'all';
-  }
+  if (type !== undefined) state.listTypeFilter = type;
   render();
   loadDocumentsList();
 }
-function qtCreateNewFromList(mode = state.listTypeFilter) {
-  resetToBlank(mode === 'all' ? 'quote' : mode);
+function qtCreateNewFromList(mode = 'quote') {
+  resetToBlank(mode);
 }
 function qtCreateNewReceipt() {
   resetToBlank('receipt');
@@ -519,7 +515,7 @@ async function qtDeleteDocument(id) {
     renderDocRows();
   }
   if (state.currentDocId === id) {
-    qtOpenDocumentsList(state.mode);
+    qtOpenDocumentsList('all');
   }
 }
 
@@ -546,7 +542,6 @@ async function qtOpenDocument(id) {
     parentDocId: data.parent_doc_id,
     parentDocNumber: parentNumber,
     mode: data.doc_type,
-    docsUnlocked: false,
     status: data.status,
     docNumber: data.doc_number,
     docDate: data.doc_date || '',
@@ -700,7 +695,6 @@ function resetToBlank(mode) {
     parentDocId: null,
     parentDocNumber: null,
     mode: mode,
-    docsUnlocked: false,
     status: 'draft',
     docNumber: '',
     docDate: formatToday(),
@@ -796,10 +790,6 @@ function renderUnlocked() {
   const s = state;
   const isListView = s.view === 'list';
   const isEditorView = s.view === 'editor';
-  const backListType = s.docsUnlocked ? 'all' : s.mode;
-  const backListLabel = s.docsUnlocked ? 'All Documents' : `All ${labelize(s.mode)}s`;
-  const createMode = s.listTypeFilter === 'all' ? 'quote' : s.listTypeFilter;
-  const canCreateFromList = createMode !== 'receipt';
   return `
     <div>
       <div class="qt-topbar" data-noprint>
@@ -809,10 +799,8 @@ function renderUnlocked() {
         </div>
         <div class="qt-topbar-right">
           ${isListView
-            ? (s.docsUnlocked
-              ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('quote')">+ New Quote</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('invoice')">+ New Invoice</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewReceipt()">+ New Receipt</button>`
-              : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button>${canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('${createMode}')">+ New ${esc(labelize(createMode))}</button>` : ''}`)
-            : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button><button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('${backListType}')">${esc(backListLabel)}</button>`}
+            ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('quote')">+ New Quote</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('invoice')">+ New Invoice</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewReceipt()">+ New Receipt</button>`
+            : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button>`}
           ${isEditorView ? renderModeTabsAndActions() : ''}
         </div>
       </div>
@@ -867,24 +855,23 @@ function renderModeTabsAndActions() {
 
 function renderListView() {
   const s = state;
-  const listTitle = s.docsUnlocked ? 'All Documents' : `${labelize(s.listTypeFilter)}s`;
+  const listTitle = 'All Documents';
   return `
     <div id="listPage" class="qt-list-page">
       <div class="qt-list-header">
         <div class="qt-list-title">${esc(listTitle)}</div>
         <div class="qt-list-controls">
           <input class="qt-list-search" value="${escAttr(s.listSearch)}" oninput="qtListSearchInput(this.value)" placeholder="Search client or number…">
-          ${s.docsUnlocked ? `
           <select class="qt-select" onchange="qtSetListFilter('listTypeFilter', this.value)">
             <option value="all" ${s.listTypeFilter === 'all' ? 'selected' : ''}>All types</option>
             <option value="quote" ${s.listTypeFilter === 'quote' ? 'selected' : ''}>Quotes</option>
             <option value="invoice" ${s.listTypeFilter === 'invoice' ? 'selected' : ''}>Invoices</option>
             <option value="receipt" ${s.listTypeFilter === 'receipt' ? 'selected' : ''}>Receipts</option>
-          </select>` : ''}
+          </select>
           <select class="qt-select" onchange="qtSetListFilter('listStatusFilter', this.value)">
             <option value="all" ${s.listStatusFilter === 'all' ? 'selected' : ''}>All statuses</option>
-            ${(s.docsUnlocked || s.listTypeFilter === 'invoice') ? `<option value="past_due" ${s.listStatusFilter === 'past_due' ? 'selected' : ''}>Past Due</option>` : ''}
-            ${(s.docsUnlocked ? ['draft', 'sent', 'accepted', 'declined', 'expired', 'partially_paid', 'paid', 'issued'] : statusListFor(s.listTypeFilter)).map(v => `<option value="${v}" ${s.listStatusFilter === v ? 'selected' : ''}>${esc(labelize(v))}</option>`).join('')}
+            <option value="past_due" ${s.listStatusFilter === 'past_due' ? 'selected' : ''}>Past Due</option>
+            ${['draft', 'sent', 'accepted', 'declined', 'expired', 'partially_paid', 'paid', 'issued'].map(v => `<option value="${v}" ${s.listStatusFilter === v ? 'selected' : ''}>${esc(labelize(v))}</option>`).join('')}
           </select>
           <select class="qt-select" onchange="qtSetListFilter('listClientFilter', this.value)">
             <option value="all" ${s.listClientFilter === 'all' ? 'selected' : ''}>All clients</option>
