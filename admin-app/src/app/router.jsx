@@ -71,6 +71,7 @@ export const routes = [
   { path: '/admin', element: <DashboardPage /> },
   { path: '/admin/calendar', element: <CalendarPage /> },
   { path: '/admin/events', element: <EventsListPage /> },
+  { path: '/admin/events/new', element: <EventDetailPage /> },
   { path: '/admin/events/:id', element: <EventDetailPage /> },
   { path: '/admin/tasks', element: <TasksPage /> },
   { path: '/admin/clients', element: <ClientsListPage /> },
