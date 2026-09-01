@@ -90,6 +90,11 @@ export default function Sidebar() {
                     key={child.path}
                     to={child.path}
                     className={({ isActive }) => `nav-subitem${isActive ? ' active' : ''}`}
+                    onClick={() => {
+                      if (child.path === '/admin/quotes' && location.pathname === child.path) {
+                        window.dispatchEvent(new Event('quote-tool:all-documents'));
+                      }
+                    }}
                   >
                     {child.label}
                   </NavLink>

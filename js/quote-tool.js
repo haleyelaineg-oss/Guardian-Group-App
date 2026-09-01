@@ -811,7 +811,7 @@ function renderUnlocked() {
           ${isListView
             ? (s.docsUnlocked
               ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('quote')">+ New Quote</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('invoice')">+ New Invoice</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewReceipt()">+ New Receipt</button>`
-              : (canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('${createMode}')">+ New ${esc(labelize(createMode))}</button>` : ''))
+              : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button>${canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('${createMode}')">+ New ${esc(labelize(createMode))}</button>` : ''}`)
             : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button><button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('${backListType}')">${esc(backListLabel)}</button>`}
           ${isEditorView ? renderModeTabsAndActions() : ''}
         </div>
