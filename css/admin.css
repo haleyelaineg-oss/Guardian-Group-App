@@ -631,6 +631,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .responses-table tr:last-child td { border-bottom: none; }
 .responses-table tr:hover td { background: rgba(42,92,118,0.03); }
 .responses-table tr { cursor: pointer; }
+.responses-table .clickable-row:focus-visible td { background: rgba(42,92,118,0.08); outline: 2px solid var(--gg-steel); outline-offset: -2px; }
 .expand-btn {
   background: var(--gg-off);
   border: none;
