@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import AppErrorBoundary from '../components/AppErrorBoundary.jsx';
+import LoadingIndicator from '../components/LoadingIndicator.jsx';
 import LoginPage from '../features/auth/LoginPage.jsx';
 import { routes } from './router.jsx';
 
@@ -12,7 +13,7 @@ function AuthedShell() {
       <Sidebar />
       <main className="dash-main">
         <AppErrorBoundary>
-          <Suspense fallback={<p className="empty-hint">Loading...</p>}>
+          <Suspense fallback={<LoadingIndicator />}>
             <Routes>
               <Route path="/" element={<Navigate to="/admin" replace />} />
               {routes.map((route) => (

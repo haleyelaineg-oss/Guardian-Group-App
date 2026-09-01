@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import SaveButton from '../../components/SaveButton.jsx';
+import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import Checklist from '../engagements/Checklist.jsx';
 import CareArrangements from '../engagements/CareArrangements.jsx';
 import ExpenseManager from '../expenses/ExpenseManager.jsx';
@@ -19,7 +20,7 @@ export default function SpeakingDetailPage() {
   const [tab, setTab] = useState('Overview');
   const reload = () => fetchSpeakingDetail(id).then(setData).catch((err) => alert(err.message));
   useEffect(() => { reload(); }, [id]);
-  if (!data) return <p className="empty-hint">Loading...</p>;
+  if (!data) return <LoadingIndicator label="Loading speaking engagement…" />;
 
   const { engagement } = data;
   const tabs = ['Overview', 'Submissions', 'Sessions', 'Prep', 'Travel', 'Care', 'Financials', 'Documents', 'Post-Event'];

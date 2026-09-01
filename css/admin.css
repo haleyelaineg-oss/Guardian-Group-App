@@ -342,6 +342,58 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   gap: 16px;
   margin-bottom: 28px;
 }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (max-width: 1080px) {
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+.dashboard-operations-grid .stat-card { padding: 16px; }
+.dashboard-operations-grid .stat-value { font-size: 32px; }
+.loading-indicator {
+  min-height: 160px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  color: var(--gg-muted);
+  font-size: 14px;
+}
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gg-pale);
+  border-top-color: var(--gg-mid);
+  border-radius: 50%;
+  animation: gg-spin 0.75s linear infinite;
+}
+@keyframes gg-spin { to { transform: rotate(360deg); } }
+.calendar-actions,
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.calendar-toolbar {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.calendar-date-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gg-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.calendar-date-jump .field-input { width: auto; padding: 8px 10px; }
 .stat-card {
   background: white;
   border-radius: 12px;

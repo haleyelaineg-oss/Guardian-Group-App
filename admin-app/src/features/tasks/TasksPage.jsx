@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTasks } from './useTasks.js';
 import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
@@ -12,6 +13,8 @@ export default function TasksPage() {
     tasks, eventOptions, eventTitleById, loading, error, reload,
     createTask, updateTask, toggleTaskStatus, deleteTask, fetchTaskById,
   } = useTasks();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [formMode, setFormMode] = useState(null); // null | 'create' | 'edit'
   const [editingTask, setEditingTask] = useState(null);
@@ -21,6 +24,12 @@ export default function TasksPage() {
     setEditingTask(null);
     setFormMode('create');
   }
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('new') !== '1') return;
+    openCreateForm();
+    navigate('/admin/tasks', { replace: true });
+  }, [location.search, navigate]);
 
   async function openEditForm(taskId) {
     try {
