@@ -298,12 +298,15 @@ async function loadDocumentsList() {
 }
 function qtOpenDocumentsList(type) {
   state.view = 'list';
-  if (type !== undefined) state.listTypeFilter = type;
+  if (type !== undefined) {
+    state.listTypeFilter = type;
+    state.docsUnlocked = type === 'all';
+  }
   render();
   loadDocumentsList();
 }
-function qtCreateNewFromList() {
-  resetToBlank(state.listTypeFilter);
+function qtCreateNewFromList(mode = state.listTypeFilter) {
+  resetToBlank(mode === 'all' ? 'quote' : mode);
 }
 
 // ── Client / catalog interactions ───────────────────────────
@@ -789,7 +792,8 @@ function renderUnlocked() {
   const isEditorView = s.view === 'editor';
   const backListType = s.docsUnlocked ? 'all' : s.mode;
   const backListLabel = s.docsUnlocked ? 'All Documents' : `All ${labelize(s.mode)}s`;
-  const canCreateFromList = s.listTypeFilter !== 'all' && s.listTypeFilter !== 'receipt';
+  const createMode = s.listTypeFilter === 'all' ? 'quote' : s.listTypeFilter;
+  const canCreateFromList = createMode !== 'receipt';
   return `
     <div>
       <div class="qt-topbar" data-noprint>
@@ -799,8 +803,8 @@ function renderUnlocked() {
         </div>
         <div class="qt-topbar-right">
           ${isListView
-            ? (canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList()">+ New ${esc(labelize(s.listTypeFilter))}</button>` : '')
-            : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('${backListType}')">${esc(backListLabel)}</button>`}
+            ? (canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('${createMode}')">+ New ${esc(labelize(createMode))}</button>` : '')
+            : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button><button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('${backListType}')">${esc(backListLabel)}</button>`}
           ${isEditorView ? renderModeTabsAndActions() : ''}
         </div>
       </div>
