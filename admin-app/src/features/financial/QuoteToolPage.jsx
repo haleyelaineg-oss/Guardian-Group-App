@@ -5,5 +5,6 @@ import { useLocation } from 'react-router-dom';
 // React shell owns navigation around it.
 export default function QuoteToolPage() {
   const location = useLocation();
-  return <div className="quote-tool-workspace"><iframe className="quote-tool-frame" src={`/quote-tool/index.html${location.search}`} title="Quotes, invoices, and receipts" /></div>;
+  const query = location.search || '?view=list';
+  return <div className="quote-tool-workspace"><iframe className="quote-tool-frame" src={`/quote-tool/index.html${query}`} title="Quotes, invoices, and receipts" /></div>;
 }
