@@ -14,6 +14,7 @@ import ExpensesPage from '../features/expenses/ExpensesPage.jsx';
 import QuoteToolPage from '../features/financial/QuoteToolPage.jsx';
 import SpeakingListPage from '../features/speaking/SpeakingListPage.jsx';
 import SpeakingDetailPage from '../features/speaking/SpeakingDetailPage.jsx';
+import SpeakingCreatePage from '../features/speaking/SpeakingCreatePage.jsx';
 import TrainingListPage from '../features/trainings/TrainingListPage.jsx';
 import TrainingDetailPage from '../features/trainings/TrainingDetailPage.jsx';
 
@@ -78,6 +79,7 @@ export const routes = [
   { path: '/admin/expenses', element: <ExpensesPage /> },
   { path: '/admin/quotes', element: <QuoteToolPage /> },
   { path: '/admin/speaking', element: <SpeakingListPage /> },
+  { path: '/admin/speaking/new', element: <SpeakingCreatePage /> },
   { path: '/admin/speaking/:id', element: <SpeakingDetailPage /> },
   { path: '/admin/trainings', element: <TrainingListPage /> },
   { path: '/admin/trainings/:id', element: <TrainingDetailPage /> },
