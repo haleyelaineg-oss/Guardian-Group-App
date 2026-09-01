@@ -1075,6 +1075,11 @@ main.dash-main:has(.tab-bar) .view.active > a:first-child::after {
 }
 main.dash-main:has(.tab-bar) .view.active > a:first-child:hover { background: var(--gg-pale); }
 main.dash-main:has(.tab-bar) .view.active > a:first-child:hover::after { color: var(--gg-dark); }
+main.dash-main:has(.tab-bar) .event-workspace-header { padding-right: 72px; }
+main.dash-main:has(.tab-bar) section > .btn.btn-primary {
+  display: block;
+  margin: 24px 0 0 auto;
+}
 main.dash-main:has(.tab-bar) .tab-bar {
   display: flex;
   gap: 0;
