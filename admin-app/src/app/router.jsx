@@ -1,22 +1,24 @@
 // Route config lives here (not inline JSX) so the Sidebar can be driven off
 // the same list instead of hand-duplicating nav items and <Route>s.
-import DashboardPage from '../features/dashboard/DashboardPage.jsx';
-import CalendarPage from '../features/calendar/CalendarPage.jsx';
-import EventsListPage from '../features/events/EventsListPage.jsx';
-import EventDetailPage from '../features/events/EventDetailPage.jsx';
-import TasksPage from '../features/tasks/TasksPage.jsx';
-import ClientsListPage from '../features/clients/ClientsListPage.jsx';
-import ClientDetailPage from '../features/clients/ClientDetailPage.jsx';
-import AddressBookPage from '../features/addressBook/AddressBookPage.jsx';
-import FinancialOverviewPage from '../features/financial/FinancialOverviewPage.jsx';
-import IncomePage from '../features/financial/IncomePage.jsx';
-import ExpensesPage from '../features/expenses/ExpensesPage.jsx';
-import QuoteToolPage from '../features/financial/QuoteToolPage.jsx';
-import SpeakingListPage from '../features/speaking/SpeakingListPage.jsx';
-import SpeakingDetailPage from '../features/speaking/SpeakingDetailPage.jsx';
-import SpeakingCreatePage from '../features/speaking/SpeakingCreatePage.jsx';
-import TrainingListPage from '../features/trainings/TrainingListPage.jsx';
-import TrainingDetailPage from '../features/trainings/TrainingDetailPage.jsx';
+import { lazy } from 'react';
+
+const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage.jsx'));
+const CalendarPage = lazy(() => import('../features/calendar/CalendarPage.jsx'));
+const EventsListPage = lazy(() => import('../features/events/EventsListPage.jsx'));
+const EventDetailPage = lazy(() => import('../features/events/EventDetailPage.jsx'));
+const TasksPage = lazy(() => import('../features/tasks/TasksPage.jsx'));
+const ClientsListPage = lazy(() => import('../features/clients/ClientsListPage.jsx'));
+const ClientDetailPage = lazy(() => import('../features/clients/ClientDetailPage.jsx'));
+const AddressBookPage = lazy(() => import('../features/addressBook/AddressBookPage.jsx'));
+const FinancialOverviewPage = lazy(() => import('../features/financial/FinancialOverviewPage.jsx'));
+const IncomePage = lazy(() => import('../features/financial/IncomePage.jsx'));
+const ExpensesPage = lazy(() => import('../features/expenses/ExpensesPage.jsx'));
+const QuoteToolPage = lazy(() => import('../features/financial/QuoteToolPage.jsx'));
+const SpeakingListPage = lazy(() => import('../features/speaking/SpeakingListPage.jsx'));
+const SpeakingDetailPage = lazy(() => import('../features/speaking/SpeakingDetailPage.jsx'));
+const SpeakingCreatePage = lazy(() => import('../features/speaking/SpeakingCreatePage.jsx'));
+const TrainingListPage = lazy(() => import('../features/trainings/TrainingListPage.jsx'));
+const TrainingDetailPage = lazy(() => import('../features/trainings/TrainingDetailPage.jsx'));
 
 // Nav-visible sections, used to render the Sidebar.
 export const navSections = [

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth.jsx';
 import Sidebar from '../components/Sidebar.jsx';
@@ -11,13 +12,15 @@ function AuthedShell() {
       <Sidebar />
       <main className="dash-main">
         <AppErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Navigate to="/admin" replace />} />
-            {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={route.element} />
-            ))}
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Routes>
+          <Suspense fallback={<p className="empty-hint">Loading...</p>}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/admin" replace />} />
+              {routes.map((route) => (
+                <Route key={route.path} path={route.path} element={route.element} />
+              ))}
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </Suspense>
         </AppErrorBoundary>
       </main>
     </div>
