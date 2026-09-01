@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import { useClientDetail } from './useClientDetail.js';
 import ClientOverviewSection from './ClientOverviewSection.jsx';
 import ClientMembershipPanel from './ClientMembershipPanel.jsx';
@@ -13,7 +14,7 @@ import ClientDocumentsSection from './ClientDocumentsSection.jsx';
 export default function ClientDetailPage() {
   const { id } = useParams();
   const {
-    detail, loading, error,
+    detail, loading, error, reload,
     saveOverview, setOrgAdmin, enableMembership, saveMembership,
     regenerateClientCode, createRosterContact,
     uploadDocument, deleteDocument,
@@ -41,7 +42,7 @@ export default function ClientDetailPage() {
     return (
       <div className="view active">
         <Link className="btn-sm btn-sm-ghost" to="/admin/clients">← Back to Clients</Link>
-        <p className="empty-hint">Loading...</p>
+        <LoadingIndicator label="Loading client…" />
       </div>
     );
   }
@@ -50,7 +51,7 @@ export default function ClientDetailPage() {
     return (
       <div className="view active">
         <Link className="btn-sm btn-sm-ghost" to="/admin/clients">← Back to Clients</Link>
-        <p className="empty-hint">Error: {error.message}</p>
+        <section className="empty-hint" role="alert">Couldn’t load this client. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section>
       </div>
     );
   }

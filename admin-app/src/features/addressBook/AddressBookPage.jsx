@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import { useAddressBook } from './useAddressBook.js';
 import ContactForm from './ContactForm.jsx';
 import ContactViewModal from './ContactViewModal.jsx';
@@ -117,9 +118,9 @@ export default function AddressBookPage() {
       </div>
 
       {loading ? (
-        <p className="empty-hint">Loading...</p>
+        <LoadingIndicator label="Loading contacts…" />
       ) : error ? (
-        <p className="empty-hint">Error: {error.message}</p>
+        <section className="empty-hint" role="alert">Couldn’t load contacts. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section>
       ) : visibleContacts.length === 0 ? (
         <p className="empty-hint">No contacts match.</p>
       ) : (

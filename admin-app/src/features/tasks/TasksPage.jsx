@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import { useTasks } from './useTasks.js';
 import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
@@ -26,9 +27,15 @@ export default function TasksPage() {
   }
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('new') !== '1') return;
-    openCreateForm();
-    navigate('/admin/tasks', { replace: true });
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('edit');
+    if (params.get('new') === '1') {
+      openCreateForm();
+      navigate('/admin/tasks', { replace: true });
+    } else if (editId) {
+      openEditForm(editId);
+      navigate('/admin/tasks', { replace: true });
+    }
   }, [location.search, navigate]);
 
   async function openEditForm(taskId) {
@@ -107,7 +114,7 @@ export default function TasksPage() {
         /> Show completed
       </label>
 
-      {loading ? <p className="empty-hint">Loading tasks...</p> : error ? <section className="empty-hint" role="alert">Couldn’t load tasks. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : (
+      {loading ? <LoadingIndicator label="Loading tasks…" /> : error ? <section className="empty-hint" role="alert">Couldn’t load tasks. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : (
         <TaskList
           tasks={visibleTasks}
           eventTitleById={eventTitleById}
