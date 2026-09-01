@@ -54,10 +54,8 @@ export function useTasks() {
   async function createTask(payload) {
     await tasksService.createTask(payload);
     await reloadTasks();
-    // NOTE: the vanilla saveTask() also called loadCalendarMonth() here to
-    // refresh the Calendar's month grid. Calendar doesn't exist in React
-    // yet (Phase 9) so there's nothing to refresh — revisit this once it
-    // does, so a task created here shows up on the grid without a reload.
+    // Calendar fetches its current range when the route is opened, so a
+    // task created here appears there without a full-page refresh.
   }
 
   async function updateTask(id, payload) {

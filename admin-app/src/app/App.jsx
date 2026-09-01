@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import AppErrorBoundary from '../components/AppErrorBoundary.jsx';
@@ -8,11 +8,13 @@ import LoginPage from '../features/auth/LoginPage.jsx';
 import { routes } from './router.jsx';
 
 function AuthedShell() {
+  const location = useLocation();
+
   return (
     <div className="dashboard" style={{ display: 'flex' }}>
       <Sidebar />
       <main className="dash-main">
-        <AppErrorBoundary>
+        <AppErrorBoundary key={location.pathname}>
           <Suspense fallback={<LoadingIndicator />}>
             <Routes>
               <Route path="/" element={<Navigate to="/admin" replace />} />
@@ -31,7 +33,7 @@ function AuthedShell() {
 function Gate() {
   const { isLoading, isAuthenticated } = useAuth();
 
-  if (isLoading) return null; // avoid a login-screen flash while the session check is in flight
+  if (isLoading) return <LoadingIndicator label="Loading admin dashboard…" />;
   return isAuthenticated ? <AuthedShell /> : <LoginPage />;
 }
 
