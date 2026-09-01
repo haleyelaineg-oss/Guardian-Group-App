@@ -1,14 +1,66 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase.js';
-import { formatDate } from '../../utils/format.js';
+import { engagementForEvent } from '../calendar/calendarService.js';
+import { revenueSummary } from '../financial/financialCalculations.js';
+import { formatCurrency, formatDate, todayIsoDate } from '../../utils/format.js';
+
+function eventWhen(event) {
+  if (!event.starts_at) return 'Date TBD';
+  const date = new Date(event.starts_at);
+  const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return event.all_day ? label : `${label} · ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+}
+
+function RevenueCard({ value, label, sub, danger = false, accent = false }) {
+  return <div className={`stat-card ${danger ? 'accent-danger' : accent ? 'accent' : ''}`}><div className="stat-value">{formatCurrency(value)}</div><div className="stat-label">{label}</div><div className="stat-sub">{sub}</div></div>;
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const reload = useCallback(async () => { setError(null); try { const [events, tasks, speaking, trainings] = await Promise.all([supabase.from('events').select('id,title,starts_at,status').gte('starts_at', new Date().toISOString()).neq('status', 'cancelled').order('starts_at').limit(6), supabase.from('tasks').select('id,title,due_date,status').neq('status', 'done').order('due_date', { ascending: true, nullsFirst: false }).limit(8), supabase.from('speaking_engagements').select('id', { count: 'exact', head: true }).in('status', ['selected', 'contracting', 'planning', 'ready']), supabase.from('training_engagements').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'planning', 'ready'])]); if (events.error || tasks.error || speaking.error || trainings.error) throw events.error || tasks.error || speaking.error || trainings.error; setData({ events: events.data || [], tasks: tasks.data || [], speaking: speaking.count || 0, trainings: trainings.count || 0 }); } catch (err) { setError(err); } }, []);
+  const navigate = useNavigate();
+  const reload = useCallback(async () => {
+    setError(null);
+    try {
+      const [events, tasks, speaking, trainings, documents, revenueEvents, itinerary, manual] = await Promise.all([
+        supabase.from('events').select('id,title,event_type,starts_at,ends_at,all_day,location,status').gte('starts_at', new Date().toISOString()).neq('status', 'cancelled').order('starts_at').limit(8),
+        supabase.from('tasks').select('id,title,due_date,status,owner,event_id').neq('status', 'done').order('due_date', { ascending: true, nullsFirst: false }).limit(8),
+        supabase.from('speaking_engagements').select('id', { count: 'exact', head: true }).in('status', ['selected', 'contracting', 'planning', 'ready']),
+        supabase.from('training_engagements').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'planning', 'ready']),
+        supabase.from('documents').select('id,doc_type,client_name,status,total,balance,amount_paid,due_date').eq('doc_type', 'invoice'),
+        supabase.from('events').select('id,status,income_amount').not('income_amount', 'is', null),
+        supabase.from('event_itinerary_items').select('id,income_amount,events!event_id(status)').not('income_amount', 'is', null),
+        supabase.from('income').select('amount,status'),
+      ]);
+      const results = [events, tasks, speaking, trainings, documents, revenueEvents, itinerary, manual];
+      const failed = results.find((result) => result.error);
+      if (failed) throw failed.error;
+      setData({
+        events: events.data || [], tasks: tasks.data || [], speaking: speaking.count || 0, trainings: trainings.count || 0,
+        revenue: revenueSummary({ invoices: documents.data || [], events: revenueEvents.data || [], itinerary: itinerary.data || [], manual: manual.data || [] }),
+      });
+    } catch (err) {
+      setError(err);
+    }
+  }, []);
   useEffect(() => { reload(); }, [reload]);
+
+  const openCalendarResource = async (event) => {
+    if (!['speaking', 'training'].includes(event.event_type)) return navigate(`/admin/events/${event.id}`);
+    try {
+      const engagement = await engagementForEvent(event.id, event.event_type);
+      if (engagement) return navigate(`/admin/${event.event_type === 'speaking' ? 'speaking' : 'trainings'}/${engagement.id}`);
+    } catch {
+      // The general Event workspace remains a safe fallback if the linked
+      // engagement lookup is temporarily unavailable.
+    }
+    navigate(`/admin/events/${event.id}`);
+  };
+
   if (error) return <div className="view active"><div className="view-header"><h1 className="view-title">Dashboard</h1></div><section className="empty-hint" role="alert">Couldn’t load the dashboard. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section></div>;
   if (!data) return <p className="empty-hint">Loading dashboard...</p>;
-  return <div className="view active"><div className="view-header"><h1 className="view-title">Dashboard</h1></div><div className="stats-grid"><div className="stat-card accent"><div className="stat-value">{data.events.length}</div><div className="stat-label">Upcoming Events</div></div><div className="stat-card"><div className="stat-value">{data.tasks.length}</div><div className="stat-label">Open Tasks</div></div><div className="stat-card"><div className="stat-value">{data.speaking}</div><div className="stat-label">Active Speaking</div></div><div className="stat-card"><div className="stat-value">{data.trainings}</div><div className="stat-label">Active Trainings</div></div></div><div className="fields-grid"><section><div className="detail-section-title">Upcoming Events</div>{data.events.length ? data.events.map((event) => <Link className="task-row" key={event.id} to={`/admin/events/${event.id}`}><span className="task-row-title">{event.title}</span><span className="task-row-due">{formatDate(event.starts_at.slice(0, 10))}</span></Link>) : <p className="empty-hint">No upcoming events.</p>}<Link to="/admin/calendar">View calendar →</Link></section><section><div className="detail-section-title">Open Tasks</div>{data.tasks.length ? data.tasks.map((task) => <Link className="task-row" key={task.id} to="/admin/tasks"><span className="task-row-title">☐ {task.title}</span><span className="task-row-due">{task.due_date ? formatDate(task.due_date) : 'No due date'}</span></Link>) : <p className="empty-hint">No open tasks.</p>}<Link to="/admin/tasks">View tasks →</Link></section></div></div>;
+  const { revenue } = data;
+  const today = todayIsoDate();
+  return <div className="view active"><div className="view-header"><h1 className="view-title">Dashboard</h1></div><div className="stats-grid"><div className="stat-card accent"><div className="stat-value">{data.events.length}</div><div className="stat-label">Upcoming Events</div></div><div className="stat-card"><div className="stat-value">{data.tasks.length}</div><div className="stat-label">Open Tasks</div></div><div className="stat-card"><div className="stat-value">{data.speaking}</div><div className="stat-label">Active Speaking</div></div><div className="stat-card"><div className="stat-value">{data.trainings}</div><div className="stat-label">Active Trainings</div></div></div><div className="detail-section-title">Revenue Snapshot</div><div className="stats-grid"><RevenueCard value={revenue.booked} label="Booked Revenue" sub="all sources" /><RevenueCard value={revenue.earned} label="Earned Revenue" sub="completed / invoiced" /><RevenueCard value={revenue.accountsReceivable} label="Accounts Receivable" sub="open invoices" danger={Boolean(revenue.accountsReceivable)} /><RevenueCard value={revenue.collected} label="Collected Revenue" sub="received" accent /></div><div className="dashboard-split-row"><section><div className="dashboard-section-header"><div className="detail-section-title">Upcoming Events</div><Link className="dashboard-section-link" to="/admin/calendar">View calendar →</Link></div>{data.events.length ? data.events.map((event) => <button className="dashboard-event-row" type="button" key={event.id} onClick={() => openCalendarResource(event)}><span className="dashboard-event-main"><span className="dashboard-event-title">{event.title}</span><span className="dashboard-event-meta">{eventWhen(event)}{event.location ? ` · ${event.location}` : ''}</span></span><span className={`calendar-event-chip event-type-${event.event_type || 'other'}`}>{event.event_type || 'other'}</span></button>) : <p className="empty-hint">Nothing on the calendar yet.</p>}</section><section><div className="dashboard-section-header"><div className="detail-section-title">Open Tasks</div><Link className="dashboard-section-link" to="/admin/tasks">View tasks →</Link></div>{data.tasks.length ? data.tasks.map((task) => <Link className="dashboard-event-row" key={task.id} to="/admin/tasks"><span className="dashboard-event-main"><span className="dashboard-event-title">{task.title}</span><span className={`dashboard-event-meta ${task.due_date && task.due_date < today ? 'task-row-overdue' : ''}`}>{task.due_date ? formatDate(task.due_date) : 'No due date'}{task.owner && task.owner !== 'Unassigned' ? ` · ${task.owner}` : ''}</span></span><span>{task.status === 'done' ? '✓' : '☐'}</span></Link>) : <p className="empty-hint">No open tasks.</p>}</section></div></div>;
 }
