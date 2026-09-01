@@ -308,6 +308,12 @@ function qtOpenDocumentsList(type) {
 function qtCreateNewFromList(mode = state.listTypeFilter) {
   resetToBlank(mode === 'all' ? 'quote' : mode);
 }
+function qtCreateNewReceipt() {
+  resetToBlank('receipt');
+  state.status = 'issued';
+  state.datePaid = todayIso();
+  render();
+}
 
 // ── Client / catalog interactions ───────────────────────────
 
@@ -803,7 +809,9 @@ function renderUnlocked() {
         </div>
         <div class="qt-topbar-right">
           ${isListView
-            ? (canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('${createMode}')">+ New ${esc(labelize(createMode))}</button>` : '')
+            ? (s.docsUnlocked
+              ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('quote')">+ New Quote</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('invoice')">+ New Invoice</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewReceipt()">+ New Receipt</button>`
+              : (canCreateFromList ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('${createMode}')">+ New ${esc(labelize(createMode))}</button>` : ''))
             : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button><button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('${backListType}')">${esc(backListLabel)}</button>`}
           ${isEditorView ? renderModeTabsAndActions() : ''}
         </div>
