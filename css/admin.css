@@ -386,7 +386,15 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   grid-template-columns: repeat(2, minmax(150px, 1fr));
   width: min(420px, 100%);
 }
-.calendar-actions .btn { width: 100%; }
+.calendar-actions .btn {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  white-space: nowrap;
+}
+.calendar-view .view-header { margin-bottom: 18px; }
+.calendar-view .view-title { margin: 0; }
 .calendar-toolbar {
   margin-bottom: 18px;
 }
