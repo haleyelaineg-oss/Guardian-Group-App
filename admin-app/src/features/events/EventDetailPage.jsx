@@ -12,7 +12,7 @@ const tabs = ['Overview', 'Itinerary', 'Financials', 'Documents'];
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const creating = id === 'new';
+  const creating = !id || id === 'new';
   const [event, setEvent] = useState(creating ? blank : null);
   const [tab, setTab] = useState('Overview');
   const reload = useCallback(() => { if (!creating) fetchEvent(id).then(setEvent).catch((error) => alert(error.message)); }, [creating, id]);
