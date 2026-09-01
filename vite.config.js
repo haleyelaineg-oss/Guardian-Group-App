@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { copyFile, mkdir, stat } from 'node:fs/promises';
+import { copyFile, cp, mkdir, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -17,18 +17,21 @@ const quoteToolFiles = [
 const quoteToolDevFiles = new Map(quoteToolFiles.map(([source, target]) => [`/${target}`, source]));
 const mimeType = (file) => ({ '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png' })[file.slice(file.lastIndexOf('.'))] || 'application/octet-stream';
 
-// Quotes/Invoices/Receipts remains its own vanilla application by design.
-// This lightweight bridge lets React's Vite server host it unchanged, and
-// includes exactly its required static files in the standalone build.
-function quoteToolBridge() {
+// Quotes/Invoices/Receipts and the Resource Library remain standalone
+// static experiences. This bridge keeps both reachable from React in dev
+// and includes their required files in the standalone build.
+function legacyStaticBridge() {
   return {
     name: 'quote-tool-bridge',
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const pathname = new URL(request.url, 'http://localhost').pathname;
         const source = quoteToolDevFiles.get(pathname);
-        if (!source) return next();
-        const sourcePath = resolve(source);
+        const resourcePath = pathname === '/resources' || pathname === '/resources/'
+          ? 'resources/index.html'
+          : pathname.startsWith('/resources/') ? `resources/${pathname.slice('/resources/'.length)}` : null;
+        const sourcePath = source ? resolve(source) : resourcePath ? resolve(resourcePath) : null;
+        if (!sourcePath || (resourcePath && !sourcePath.startsWith(`${resolve('resources')}/`))) return next();
         try {
           if (!(await stat(sourcePath)).isFile()) return next();
           response.setHeader('Content-Type', mimeType(sourcePath));
@@ -45,6 +48,7 @@ function quoteToolBridge() {
         await mkdir(dirname(targetPath), { recursive: true });
         await copyFile(resolve(source), targetPath);
       }));
+      await cp(resolve('resources'), resolve(outDir, 'resources'), { recursive: true });
     },
   };
 }
@@ -56,7 +60,7 @@ function quoteToolBridge() {
 // `npm run admin:dev` / `npm run admin:build`.
 export default defineConfig({
   root: 'admin-app',
-  plugins: [react(), quoteToolBridge()],
+  plugins: [react(), legacyStaticBridge()],
   build: {
     outDir: '../admin-app-dist',
     emptyOutDir: true,
