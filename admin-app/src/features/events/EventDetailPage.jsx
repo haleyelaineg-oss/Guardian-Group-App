@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import SaveButton from '../../components/SaveButton.jsx';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import ExpenseManager from '../expenses/ExpenseManager.jsx';
@@ -13,6 +13,8 @@ const tabs = ['Overview', 'Itinerary', 'Financials', 'Documents'];
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const closeTo = location.state?.returnTo || '/admin/events';
   const creating = !id || id === 'new';
   const [event, setEvent] = useState(creating ? blank : null);
   const [tab, setTab] = useState('Overview');
@@ -21,7 +23,7 @@ export default function EventDetailPage() {
   if (!event) return <LoadingIndicator label="Loading event…" />;
 
   const needsSave = creating && tab !== 'Overview';
-  return <div className="view active"><Link to="/admin/events" aria-label="Close event workspace">← Events</Link><div className="view-header"><h1 className="view-title">{creating ? 'New Event' : event.title}</h1>{!creating && <button className="btn-sm btn-sm-danger" onClick={async () => { if (!confirm(`Delete “${event.title}”? Its itinerary, financial records, and documents will also be removed.`)) return; try { await deleteEvent(id); navigate('/admin/events'); } catch (error) { alert(error.message); } }}>Delete Event</button>}</div><div className="tab-bar">{tabs.map((name) => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{needsSave ? <p className="empty-hint">Save the Overview first to set up this event workspace.</p> : <>{tab === 'Overview' && <Overview event={event} creating={creating} onSaved={reload} onCreated={(record) => navigate(`/admin/events/${record.id}`, { replace: true })} />}{tab === 'Itinerary' && <ItineraryManager eventId={id} />}{tab === 'Financials' && <ExpenseManager eventId={id} incomeAmount={event.income_amount} />}{tab === 'Documents' && <DocumentManager eventId={id} />}</>}</div>;
+  return <div className="view active"><Link to={closeTo} aria-label="Close event workspace">← Events</Link><div className="view-header"><h1 className="view-title">{creating ? 'New Event' : event.title}</h1>{!creating && <button className="btn-sm btn-sm-danger" onClick={async () => { if (!confirm(`Delete “${event.title}”? Its itinerary, financial records, and documents will also be removed.`)) return; try { await deleteEvent(id); navigate(closeTo); } catch (error) { alert(error.message); } }}>Delete Event</button>}</div><div className="tab-bar">{tabs.map((name) => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{needsSave ? <p className="empty-hint">Save the Overview first to set up this event workspace.</p> : <>{tab === 'Overview' && <Overview event={event} creating={creating} onSaved={reload} onCreated={(record) => navigate(`/admin/events/${record.id}`, { replace: true, state: location.state })} />}{tab === 'Itinerary' && <ItineraryManager eventId={id} />}{tab === 'Financials' && <ExpenseManager eventId={id} incomeAmount={event.income_amount} />}{tab === 'Documents' && <DocumentManager eventId={id} />}</>}</div>;
 }
 
 function Overview({ event, creating, onSaved, onCreated }) {
