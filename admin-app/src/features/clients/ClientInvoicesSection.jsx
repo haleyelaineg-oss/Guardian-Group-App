@@ -1,12 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, todayIsoDate } from '../../utils/format.js';
 
-// "View →" navigates to /admin/quotes?doc=<id> — the vanilla equivalent
-// (openQuoteDocument) points at the embedded quote-tool iframe, which
-// isn't wired up until Phase 5. Keeping the same query-param contract now
-// so Phase 5's QuoteToolPage can pick it up without this call site
-// changing — flagged in the migration report as a decision worth
-// confirming rather than assumed silently.
+// "View →" preserves the vanilla quote-tool deep-link contract. The React
+// shell forwards ?doc=<id> to the unchanged embedded application.
 export default function ClientInvoicesSection({ invoices }) {
   const navigate = useNavigate();
   const todayStr = todayIsoDate();

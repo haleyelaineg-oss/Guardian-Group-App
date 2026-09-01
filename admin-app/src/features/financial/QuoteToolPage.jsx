@@ -1,7 +1,9 @@
-import ComingSoon from '../../components/ComingSoon.jsx';
+import { useLocation } from 'react-router-dom';
 
-// Stays an iframe embed of the existing quote-tool/ app once migrated —
-// that tool itself is not being rewritten. See MIGRATION_MAP.md §8.
+// The quote tool remains the existing standalone application. Keeping it in
+// an iframe preserves its own auth, document, and print behavior while the
+// React shell owns navigation around it.
 export default function QuoteToolPage() {
-  return <ComingSoon title="Quotes / Invoices / Receipts" phase="Phase 5" />;
+  const location = useLocation();
+  return <div className="quote-tool-workspace"><iframe className="quote-tool-frame" src={`/quote-tool/index.html${location.search}`} title="Quotes, invoices, and receipts" /></div>;
 }

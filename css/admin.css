@@ -1325,6 +1325,19 @@ main.dash-main:has(.tab-bar) .tab-btn.active { color: var(--gg-dark); border-bot
 }
 .gg-toast.gg-toast-show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ── QUOTE / INVOICE / RECEIPT TOOL ─────────────────────── */
+.quote-tool-workspace {
+  min-height: calc(100vh - 48px);
+  margin: -26px -28px;
+}
+.quote-tool-frame {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - 48px);
+  border: 0;
+  background: var(--gg-off);
+}
+
 /* ── RESPONSIVE ──────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .charts-row { grid-template-columns: 1fr 1fr; }
