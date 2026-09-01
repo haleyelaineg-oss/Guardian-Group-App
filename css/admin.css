@@ -381,9 +381,19 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   gap: 8px;
   flex-wrap: wrap;
 }
+.calendar-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  width: min(420px, 100%);
+}
+.calendar-actions .btn { width: 100%; }
 .calendar-toolbar {
-  justify-content: space-between;
   margin-bottom: 18px;
+}
+.calendar-navigation {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
 }
 .calendar-date-jump {
   display: flex;
