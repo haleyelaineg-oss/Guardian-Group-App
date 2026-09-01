@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../hooks/useAuth.jsx';
 import Sidebar from '../components/Sidebar.jsx';
+import AppErrorBoundary from '../components/AppErrorBoundary.jsx';
 import LoginPage from '../features/auth/LoginPage.jsx';
 import { routes } from './router.jsx';
 
@@ -9,13 +10,15 @@ function AuthedShell() {
     <div className="dashboard" style={{ display: 'flex' }}>
       <Sidebar />
       <main className="dash-main">
-        <Routes>
-          <Route path="/" element={<Navigate to="/admin" replace />} />
-          {routes.map((route) => (
-            <Route key={route.path} path={route.path} element={route.element} />
-          ))}
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
+        <AppErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Navigate to="/admin" replace />} />
+            {routes.map((route) => (
+              <Route key={route.path} path={route.path} element={route.element} />
+            ))}
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </AppErrorBoundary>
       </main>
     </div>
   );
