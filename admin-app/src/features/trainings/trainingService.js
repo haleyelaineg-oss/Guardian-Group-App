@@ -5,6 +5,7 @@ export async function fetchTrainings() { const { data, error } = await supabase.
 export async function fetchTrainingDetail(id) { const { data, error } = await supabase.from('training_engagements').select('*,companies(name)').eq('id', id).single(); fail(error); return data; }
 export async function createTraining(values) { const { data, error } = await supabase.from('training_engagements').insert(values).select().single(); fail(error); return syncTrainingCalendar(data); }
 export async function updateTraining(id, values) { const { data, error } = await supabase.from('training_engagements').update(values).eq('id', id).select().single(); fail(error); return data; }
+export async function deleteTraining(id) { const { error } = await supabase.from('training_engagements').delete().eq('id', id); fail(error); }
 export async function listTrainingCompanies() { return fetchCompaniesForSelect(); }
 export async function listTrainingContacts(companyId) { if (!companyId) return []; const { data, error } = await supabase.from('participants').select('id,full_name').eq('company_id', companyId).order('full_name'); fail(error); return data || []; }
 function eventStatus(status) { if (['scheduled', 'planning', 'ready'].includes(status)) return 'confirmed'; if (['completed', 'invoice_pending', 'payment_pending', 'paid'].includes(status)) return 'completed'; if (status === 'cancelled') return 'cancelled'; return 'planning'; }
