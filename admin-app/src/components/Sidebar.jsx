@@ -20,17 +20,12 @@ const ICONS = {
 export default function Sidebar({ isOpen = false, onNavigate }) {
   const { signOut } = useAuth();
   const location = useLocation();
-  // Manually-toggled groups, keyed by section label — separate from
-  // "contains the active route," same as the vanilla sidebar where a
-  // group auto-expands on navigation but can also be toggled by hand.
-  const [toggled, setToggled] = useState(() => new Set());
+  // A group with no override follows the active route. Once manually
+  // toggled, its explicit state wins so even the active section can close.
+  const [groupOverrides, setGroupOverrides] = useState({});
 
-  function toggleGroup(label) {
-    setToggled((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) next.delete(label); else next.add(label);
-      return next;
-    });
+  function toggleGroup(label, expanded) {
+    setGroupOverrides((previous) => ({ ...previous, [label]: !expanded }));
   }
 
   return (
@@ -68,7 +63,7 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
           const Icon = ICONS[section.icon];
           const containsActive = [section.path, ...section.children.map((c) => c.path)]
             .some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
-          const expanded = containsActive || toggled.has(section.label);
+          const expanded = groupOverrides[section.label] ?? containsActive;
 
           return (
             <div className={`nav-group${expanded ? ' expanded' : ''}`} key={section.label}>
@@ -79,7 +74,7 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
                 <button
                   type="button"
                   className={`nav-group-caret-btn${expanded ? ' active' : ''}`}
-                  onClick={() => toggleGroup(section.label)}
+                  onClick={() => toggleGroup(section.label, expanded)}
                   aria-label={`${expanded ? 'Collapse' : 'Expand'} ${section.label}`}
                 >
                   <ChevronDown className="nav-group-caret" size={16} />
