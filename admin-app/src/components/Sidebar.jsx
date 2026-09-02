@@ -17,7 +17,7 @@ const ICONS = {
   'library-big': LibraryBig,
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onNavigate }) {
   const { signOut } = useAuth();
   const location = useLocation();
   // Manually-toggled groups, keyed by section label — separate from
@@ -34,7 +34,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' mobile-open' : ''}`} id="admin-navigation">
       <div className="sidebar-logo">
         <img
           src="/assets/logo-white.png"
@@ -58,6 +58,7 @@ export default function Sidebar() {
                 to={section.path}
                 end={section.path === '/admin'}
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                onClick={onNavigate}
               >
                 {Icon && <Icon className="lucide-nav-icon" size={18} />} {section.label}
               </NavLink>
@@ -72,7 +73,7 @@ export default function Sidebar() {
           return (
             <div className={`nav-group${expanded ? ' expanded' : ''}`} key={section.label}>
               <div className="nav-item nav-group-toggle">
-                <NavLink to={section.path} className="nav-group-label" end>
+                <NavLink to={section.path} className="nav-group-label" end onClick={onNavigate}>
                   {Icon && <Icon className="lucide-nav-icon" size={18} />} {section.label}
                 </NavLink>
                 <button
@@ -91,6 +92,7 @@ export default function Sidebar() {
                     to={child.path}
                     className={({ isActive }) => `nav-subitem${isActive ? ' active' : ''}`}
                     onClick={() => {
+                      onNavigate?.();
                       if (child.path === '/admin/quotes' && location.pathname === child.path) {
                         window.dispatchEvent(new Event('quote-tool:all-documents'));
                       }
@@ -104,7 +106,7 @@ export default function Sidebar() {
           );
         })}
 
-        <a className="nav-item" href="/resources/" target="_blank" rel="noopener noreferrer">
+        <a className="nav-item" href="/resources/" target="_blank" rel="noopener noreferrer" onClick={onNavigate}>
           <LibraryBig className="lucide-nav-icon" size={18} /> Resource Library
         </a>
       </nav>
