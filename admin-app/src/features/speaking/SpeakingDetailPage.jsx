@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import SaveButton from '../../components/SaveButton.jsx';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import Checklist from '../engagements/Checklist.jsx';
@@ -9,13 +9,14 @@ import DocumentManager from '../documents/DocumentManager.jsx';
 import TravelPlanner from '../itinerary/TravelPlanner.jsx';
 import SpeakingSubmissions from './SpeakingSubmissions.jsx';
 import SpeakingSessions from './SpeakingSessions.jsx';
-import { fetchSpeakingDetail, isCalendarRemovalStatus, removeSpeakingFromCalendar, syncSpeakingCalendar, updateSpeakingEngagement } from './speakingService.js';
+import { deleteSpeakingEngagementAndCalendar, fetchSpeakingDetail, isCalendarRemovalStatus, removeSpeakingFromCalendar, syncSpeakingCalendar, updateSpeakingEngagement } from './speakingService.js';
 
 const STATUSES = ['opportunity', 'preparing_submission', 'applied', 'under_review', 'selected', 'contracting', 'planning', 'ready', 'completed', 'payment_pending', 'closed', 'declined', 'withdrawn', 'cancelled'];
 const text = (value) => value.trim() || null;
 
 export default function SpeakingDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('Overview');
   const reload = () => fetchSpeakingDetail(id).then(setData).catch((err) => alert(err.message));
@@ -24,7 +25,7 @@ export default function SpeakingDetailPage() {
 
   const { engagement } = data;
   const tabs = ['Overview', 'Submissions', 'Sessions', 'Prep', 'Travel', 'Care', 'Financials', 'Documents', 'Post-Event'];
-  return <div className="view active"><Link to="/admin/speaking" aria-label="Close speaking engagement workspace">← Speaking Engagements</Link><h1 className="view-title">{engagement.event_name}</h1><div className="tab-bar">{tabs.map((name) => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>
+  return <div className="view active"><Link to="/admin/speaking" aria-label="Close speaking engagement workspace">← Speaking Engagements</Link><div className="view-header event-workspace-header"><h1 className="view-title">{engagement.event_name}</h1><button className="btn-sm btn-sm-danger event-delete-button" onClick={async () => { if (!confirm(`Delete “${engagement.event_name}”? This will also remove it from the Calendar. Its planning records, documents, expenses, and care arrangements will be kept.`)) return; try { await deleteSpeakingEngagementAndCalendar(engagement); navigate('/admin/speaking'); } catch (error) { alert(error.message); } }}>Delete Engagement</button></div><div className="tab-bar">{tabs.map((name) => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>
     {tab === 'Overview' && <Overview engagement={engagement} onSaved={reload} />}
     {tab === 'Submissions' && <SpeakingSubmissions engagementId={engagement.id} submissions={data.submissions} onSaved={reload} />}
     {tab === 'Sessions' && <SpeakingSessions eventId={engagement.event_id} />}
