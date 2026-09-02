@@ -51,6 +51,7 @@ export const navSections = [
     label: 'Clients',
     path: '/admin/clients',
     children: [
+      { label: 'Client List', path: '/admin/clients' },
       { label: 'Address Book', path: '/admin/address-book' },
     ],
   },
