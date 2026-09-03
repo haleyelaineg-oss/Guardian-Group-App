@@ -12,6 +12,33 @@ const key = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padSt
 const today = new Date();
 const todayValue = key(today);
 
+function startOfDay(value) {
+  const date = new Date(value);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function eventSegmentsForWeek(events, weekDays) {
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
+  const segments = events
+    .map((event) => ({ event, start: startOfDay(event.starts_at), end: startOfDay(event.ends_at || event.starts_at) }))
+    .filter(({ start, end }) => start <= weekEnd && end >= weekStart)
+    .map(({ event, start, end }) => ({
+      event,
+      start: Math.max(0, Math.round((start - weekStart) / 86400000)),
+      end: Math.min(6, Math.round((end - weekStart) / 86400000)),
+    }))
+    .sort((a, b) => a.start - b.start || b.end - b.start || a.event.title.localeCompare(b.event.title));
+
+  const laneEnds = [];
+  return segments.map((segment) => {
+    let lane = laneEnds.findIndex((end) => end < segment.start);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = segment.end;
+    return { ...segment, lane };
+  });
+}
+
 export default function CalendarPage() {
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [jumpDate, setJumpDate] = useState(todayValue);
@@ -45,12 +72,6 @@ export default function CalendarPage() {
     await createTask(values);
     await reload();
   };
-  const events = useMemo(() => data.events.reduce((out, event) => {
-    const start = new Date(event.starts_at);
-    const end = event.ends_at ? new Date(event.ends_at) : start;
-    for (const day = new Date(start.getFullYear(), start.getMonth(), start.getDate()); day <= end; day.setDate(day.getDate() + 1)) (out[key(day)] ||= []).push(event);
-    return out;
-  }, {}), [data.events]);
   const tasks = useMemo(() => data.tasks.reduce((out, task) => {
     if (task.due_date) (out[task.due_date] ||= []).push(task);
     return out;
@@ -81,5 +102,10 @@ export default function CalendarPage() {
     day.setDate(day.getDate() + index);
     return day;
   });
-  return <div className="view active calendar-view">{showTaskModal && <Modal title="Create New Task" onClose={() => setShowTaskModal(false)}><TaskForm mode="create" eventOptions={taskEventOptions} onSubmit={createCalendarTask} onSaved={() => setShowTaskModal(false)} onCancel={() => setShowTaskModal(false)} /></Modal>}<div className="view-header"><h1 className="view-title">Calendar</h1></div><div className="calendar-toolbar"><div className="calendar-navigation"><div><button className="btn btn-ghost" aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>←</button><button className="btn btn-ghost" onClick={() => { setMonth(new Date(today.getFullYear(), today.getMonth(), 1)); setJumpDate(todayValue); }}>Today</button><button className="btn btn-ghost" aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>→</button></div><label className="calendar-date-jump"><span>Go to date</span><input className="field-input" type="date" value={jumpDate} onChange={(event) => jumpToDate(event.target.value)} /></label></div><div className="calendar-actions"><button className="btn btn-ghost" onClick={openTaskModal}>+ Task</button><button className="btn btn-ghost" onClick={() => navigate('/admin/events/new', { state: { returnTo: '/admin/calendar' } })}>+ Event</button><button className="btn btn-ghost" onClick={() => navigate('/admin/trainings/new', { state: { returnTo: '/admin/calendar' } })}>+ New Training</button><button className="btn btn-ghost" onClick={() => navigate('/admin/speaking/new', { state: { returnTo: '/admin/calendar' } })}>+ Speaking Engagement</button></div></div><h2 className="detail-section-title">{month.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</h2>{error ? <section className="empty-hint" role="alert">Couldn’t load the calendar. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading calendar…" /> : <div className="calendar-grid">{names.map((name) => <div className="calendar-day-header" key={name}>{name}</div>)}{days.map((day) => <div className={`calendar-day-cell ${day.getMonth() !== month.getMonth() ? 'outside-month' : ''}`} key={key(day)}><div className="calendar-day-number">{day.getDate()}</div>{(events[key(day)] || []).map((event) => <button className={`calendar-event-chip event-type-${event.event_type}`} key={`${key(day)}-${event.id}`} onClick={() => open(event)}>{event.title}</button>)}{(tasks[key(day)] || []).map((task) => <button className={`calendar-task-chip ${task.status === 'done' ? 'task-done' : ''}`} key={task.id} onClick={() => navigate(`/admin/tasks?edit=${task.id}`)}>{task.status === 'done' ? '✓ ' : '☐ '}{task.title}</button>)}</div>)}</div>}</div>;
+  const weeks = Array.from({ length: 6 }, (_, index) => days.slice(index * 7, index * 7 + 7));
+  return <div className="view active calendar-view">{showTaskModal && <Modal title="Create New Task" onClose={() => setShowTaskModal(false)}><TaskForm mode="create" eventOptions={taskEventOptions} onSubmit={createCalendarTask} onSaved={() => setShowTaskModal(false)} onCancel={() => setShowTaskModal(false)} /></Modal>}<div className="view-header"><h1 className="view-title">Calendar</h1></div><div className="calendar-toolbar"><div className="calendar-navigation"><div><button className="btn btn-ghost" aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>←</button><button className="btn btn-ghost" onClick={() => { setMonth(new Date(today.getFullYear(), today.getMonth(), 1)); setJumpDate(todayValue); }}>Today</button><button className="btn btn-ghost" aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>→</button></div><label className="calendar-date-jump"><span>Go to date</span><input className="field-input" type="date" value={jumpDate} onChange={(event) => jumpToDate(event.target.value)} /></label></div><div className="calendar-actions"><button className="btn btn-ghost" onClick={openTaskModal}>+ Task</button><button className="btn btn-ghost" onClick={() => navigate('/admin/events/new', { state: { returnTo: '/admin/calendar' } })}>+ Event</button><button className="btn btn-ghost" onClick={() => navigate('/admin/trainings/new', { state: { returnTo: '/admin/calendar' } })}>+ New Training</button><button className="btn btn-ghost" onClick={() => navigate('/admin/speaking/new', { state: { returnTo: '/admin/calendar' } })}>+ Speaking Engagement</button></div></div><h2 className="detail-section-title">{month.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</h2>{error ? <section className="empty-hint" role="alert">Couldn’t load the calendar. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading calendar…" /> : <div className="calendar-grid"><div className="calendar-weekday-headers">{names.map((name) => <div className="calendar-day-header" key={name}>{name}</div>)}</div>{weeks.map((week) => {
+    const segments = eventSegmentsForWeek(data.events, week);
+    const lanes = segments.reduce((count, segment) => Math.max(count, segment.lane + 1), 0);
+    return <div className="calendar-week" key={key(week[0])} style={{ '--calendar-event-lanes': lanes }}><div className="calendar-week-days">{week.map((day) => <div className={`calendar-day-cell ${day.getMonth() !== month.getMonth() ? 'outside-month' : ''}`} key={key(day)}><div className="calendar-day-number">{day.getDate()}</div>{(tasks[key(day)] || []).map((task) => <button className={`calendar-task-chip ${task.status === 'done' ? 'task-done' : ''}`} key={task.id} onClick={() => navigate(`/admin/tasks?edit=${task.id}`)}>{task.status === 'done' ? '✓ ' : '☐ '}{task.title}</button>)}</div>)}</div><div className="calendar-event-lanes">{segments.map(({ event, start, end, lane }) => <button className={`calendar-event-chip event-type-${event.event_type}`} key={`${event.id}-${start}`} style={{ gridColumn: `${start + 1} / ${end + 2}`, gridRow: lane + 1 }} onClick={() => open(event)}>{event.title}</button>)}</div></div>;
+  })}</div>}</div>;
 }

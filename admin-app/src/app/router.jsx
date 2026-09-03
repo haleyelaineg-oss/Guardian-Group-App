@@ -27,6 +27,15 @@ export const navSections = [
     label: 'Dashboard',
     path: '/admin',
   },
+    {
+    icon: 'users-round',
+    label: 'Clients',
+    path: '/admin/clients',
+    children: [
+      { label: 'Client List', path: '/admin/clients' },
+      { label: 'Address Book', path: '/admin/address-book' },
+    ],
+  },
   {
     icon: 'calendar-days',
     label: 'Calendar',
@@ -44,15 +53,6 @@ export const navSections = [
       { label: 'Quotes / Invoices / Receipts', path: '/admin/quotes' },
       { label: 'Income', path: '/admin/income' },
       { label: 'Expenses', path: '/admin/expenses' },
-    ],
-  },
-  {
-    icon: 'users-round',
-    label: 'Clients',
-    path: '/admin/clients',
-    children: [
-      { label: 'Client List', path: '/admin/clients' },
-      { label: 'Address Book', path: '/admin/address-book' },
     ],
   },
   {

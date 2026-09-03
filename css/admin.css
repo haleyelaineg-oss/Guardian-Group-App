@@ -391,13 +391,16 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 }
 .calendar-actions .btn {
   width: 100%;
-  min-height: 58px;
+  min-height: 46px;
+  padding: 8px 18px;
   display: grid;
   place-items: center;
   white-space: nowrap;
 }
 .calendar-view .view-header { margin-bottom: 18px; }
 .calendar-view .view-title { margin: 0; }
+.calendar-view .calendar-toolbar { margin-bottom: 4px; }
+.calendar-view .detail-section-title { margin: 8px 0; }
 .calendar-toolbar {
   margin-bottom: 18px;
 }
@@ -1178,19 +1181,21 @@ main.dash-main:has(.tab-bar) .tab-btn.active { color: var(--gg-dark); border-bot
   cursor: pointer;
 }
 .calendar-grid {
-  display: grid;
-  /* minmax(0, 1fr), not bare 1fr — a grid track's implicit minimum is
-     "auto" (its content's min-content width), so a long, unbroken
-     event/task title in one cell would otherwise stretch that whole
-     column wider than the rest instead of being clipped by the chip's
-     own text-overflow:ellipsis. */
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 1px;
   background: var(--gg-pale);
   border: 1px solid var(--gg-pale);
   border-radius: 10px;
   overflow: hidden;
 }
+.calendar-weekday-headers,
+.calendar-week-days,
+.calendar-event-lanes {
+  display: grid;
+  /* minmax(0, 1fr) keeps a long event title from widening its day. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+}
+.calendar-week { position: relative; }
+.calendar-week + .calendar-week { border-top: 1px solid var(--gg-pale); }
 .calendar-day-header {
   background: var(--gg-off);
   padding: 10px 8px;
@@ -1205,7 +1210,10 @@ main.dash-main:has(.tab-bar) .tab-btn.active { color: var(--gg-dark); border-bot
   background: white;
   min-height: 108px;
   min-width: 0;
+  position: relative;
   padding: 8px;
+  /* Leave room for the event lanes that overlay this week. */
+  padding-top: calc(8px + var(--calendar-event-lanes, 0) * 24px);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1213,9 +1221,33 @@ main.dash-main:has(.tab-bar) .tab-btn.active { color: var(--gg-dark); border-bot
 .calendar-day-cell.outside-month { background: var(--gg-off); }
 .calendar-day-cell.outside-month .calendar-day-number { color: var(--gg-muted); opacity: 0.6; }
 .calendar-day-cell.is-today { box-shadow: inset 0 0 0 2px var(--gg-mid); }
-.calendar-day-number { font-size: 12px; font-weight: 600; color: var(--gg-muted); }
+.calendar-day-number {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gg-muted);
+}
+
+.calendar-event-lanes {
+  position: absolute;
+  z-index: 1;
+  top: 29px;
+  right: 0;
+  left: 0;
+  grid-auto-rows: 20px;
+  row-gap: 4px;
+  pointer-events: none;
+}
 
 .calendar-event-chip {
+  display: block;
+  min-width: 0;
+  margin-inline: 4px;
+  border: 0;
+  text-align: left;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
@@ -1226,6 +1258,7 @@ main.dash-main:has(.tab-bar) .tab-btn.active { color: var(--gg-dark); border-bot
   text-overflow: ellipsis;
   background: rgba(42,92,118,0.12);
   color: var(--gg-mid);
+  pointer-events: auto;
 }
 .calendar-event-chip:hover { filter: brightness(0.95); }
 .calendar-event-chip.event-type-workshop { background: rgba(82,130,156,0.18); color: var(--gg-steel); }
