@@ -3,41 +3,196 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import SaveButton from '../../components/SaveButton.jsx';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import Modal from '../../components/Modal.jsx';
-import Checklist from '../engagements/Checklist.jsx'; import CareArrangements from '../engagements/CareArrangements.jsx'; import ExpenseManager from '../expenses/ExpenseManager.jsx'; import DocumentManager from '../documents/DocumentManager.jsx'; import TravelPlanner from '../itinerary/TravelPlanner.jsx';
-import EngagementBillingPanel from '../financial/EngagementBillingPanel.jsx';
+import Checklist from '../engagements/Checklist.jsx';
+import CareArrangements from '../engagements/CareArrangements.jsx';
+import DocumentManager from '../documents/DocumentManager.jsx';
+import EngagementFinancials from '../financial/EngagementFinancials.jsx';
+import ItineraryManager, { TRAVEL_TYPES } from '../itinerary/ItineraryManager.jsx';
 import { createTraining, deleteTrainingAndCalendar, fetchTrainingDetail, listTrainingCompanies, listTrainingContacts, syncTrainingCalendar, updateTraining } from './trainingService.js';
 const STATUSES = ['inquiry', 'proposal_sent', 'contract_pending', 'scheduled', 'planning', 'ready', 'completed', 'invoice_sent', 'payment_pending', 'paid', 'cancelled'];
-const INSTRUCTOR_OPTIONS = [
-  { value: 'dave', label: 'Dave', instructors: ['Dave'] },
-  { value: 'haley', label: 'Haley', instructors: ['Haley'] },
-  { value: 'both', label: 'Both', instructors: ['Dave', 'Haley'] },
-];
-const blank = { company_id: '', contact_participant_id: '', title: '', training_type: '', instructors: [], status: 'inquiry', delivery_method: 'in_person', starts_at: null, ends_at: null, attendee_count: null, description: '', notes: '' }; const nil = (v) => v.trim() || null;
-export default function TrainingDetailPage() { const { id } = useParams(); const navigate = useNavigate(); const location = useLocation(); const closeTo = location.state?.returnTo || '/admin/trainings'; const creating = id === 'new'; const [training, setTraining] = useState(creating ? blank : null); const [tab, setTab] = useState('Overview'); const [showDeleteDialog, setShowDeleteDialog] = useState(false); const reload = () => !creating && fetchTrainingDetail(id).then(setTraining).catch((err) => alert(err.message)); useEffect(() => { reload(); }, [id]); if (!training) return <LoadingIndicator label="Loading training…" />; const tabs = ['Overview', 'Delivery & Logistics', 'Prep', ...(training.delivery_method === 'virtual' ? [] : ['Travel', 'Care']), 'Financials', 'Documents', 'Completion']; const needsSave = creating && tab !== 'Overview'; const changeStatusInstead = () => { setShowDeleteDialog(false); setTab('Overview'); }; const deleteRecord = async () => { try { await deleteTrainingAndCalendar(training); navigate(closeTo); } catch (error) { alert(error.message); } }; return <div className="view active">{showDeleteDialog && <Modal title="Delete Training?" onClose={() => setShowDeleteDialog(false)}><p>Are you sure you want to delete this training? Deleting permanently deletes its linked itinerary, expenses, documents, and care arrangements.</p><p className="field-hint">To keep this data, change the status to Cancelled instead. Cancelled trainings are removed from the Calendar.</p><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setShowDeleteDialog(false)}>Cancel</button><button className="btn btn-ghost" onClick={changeStatusInstead}>Change Status Instead</button><button className="btn-sm btn-sm-danger" onClick={deleteRecord}>Delete Training</button></div></Modal>}<Link to={closeTo} aria-label="Close training workspace">← Trainings</Link><div className="view-header event-workspace-header"><h1 className="view-title">{creating ? 'New Training' : training.title}</h1>{!creating && <button className="btn-sm btn-sm-danger event-delete-button" onClick={() => setShowDeleteDialog(true)}>Delete Training</button>}</div><div className="tab-bar">{tabs.map((name) => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{needsSave ? <p className="empty-hint">Save the Overview first to set up this training’s planning workspace.</p> : <>{tab === 'Overview' && <Overview training={training} creating={creating} onSaved={reload} onCreated={(record) => navigate(`/admin/trainings/${record.id}`, { replace: true, state: location.state })} />}{tab === 'Delivery & Logistics' && <Delivery training={training} onSaved={reload} />}{tab === 'Prep' && <Checklist kind="training" engagementId={training.id} deliveryMethod={training.delivery_method} />}{tab === 'Travel' && <TravelPlanner eventId={training.event_id} startsAt={training.starts_at} endsAt={training.ends_at} />}{tab === 'Care' && <CareArrangements eventId={training.event_id} />}{tab === 'Financials' && <><EngagementBillingPanel sourceType="training" sourceId={training.id} eventId={training.event_id} companyId={training.company_id} title={training.title} expectedOn={training.starts_at?.slice(0, 10)} initialCertainty={['scheduled', 'planning', 'ready', 'completed', 'invoice_sent', 'payment_pending', 'paid'].includes(training.status) ? 'confirmed' : 'potential'} /><ExpenseManager eventId={training.event_id} /></>}{tab === 'Documents' && <DocumentManager eventId={training.event_id} />}{tab === 'Completion' && <Completion training={training} onSaved={reload} />}</>}</div>; }
-function Field({ v, set, name, label, type = 'text' }) { return <label className="field-group half"><span className="field-label">{label}</span><input className="field-input" type={type} value={v[name]} onChange={(e) => set(name, e.target.value)} /></label>; }
-function Overview({ training, creating, onSaved, onCreated }) {
+const INSTRUCTOR_OPTIONS = [{
+  value: 'dave',
+  label: 'Dave',
+  instructors: ['Dave']
+}, {
+  value: 'haley',
+  label: 'Haley',
+  instructors: ['Haley']
+}, {
+  value: 'both',
+  label: 'Both',
+  instructors: ['Dave', 'Haley']
+}];
+const blank = {
+  company_id: '',
+  contact_participant_id: '',
+  title: '',
+  training_type: '',
+  instructors: [],
+  status: 'inquiry',
+  delivery_method: 'in_person',
+  starts_at: null,
+  ends_at: null,
+  attendee_count: null,
+  description: '',
+  notes: ''
+};
+const nil = v => v.trim() || null;
+export default function TrainingDetailPage() {
+  const {
+    id
+  } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const closeTo = location.state?.returnTo || '/admin/trainings';
+  const creating = id === 'new';
+  const [training, setTraining] = useState(creating ? blank : null);
+  const [tab, setTab] = useState('Overview');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const reload = () => !creating && fetchTrainingDetail(id).then(setTraining).catch(err => alert(err.message));
+  useEffect(() => {
+    reload();
+  }, [id]);
+  if (!training) return <LoadingIndicator label="Loading training…" />;
+  const tabs = ['Overview', 'Delivery & Logistics', 'Prep', ...(training.delivery_method === 'virtual' ? [] : ['Travel', 'Care']), 'Financials', 'Documents', 'Completion'];
+  const needsSave = creating && tab !== 'Overview';
+  const changeStatusInstead = () => {
+    setShowDeleteDialog(false);
+    setTab('Overview');
+  };
+  const deleteRecord = async () => {
+    try {
+      await deleteTrainingAndCalendar(training);
+      navigate(closeTo);
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  return <div className="view active">{showDeleteDialog && <Modal title="Delete Training?" onClose={() => setShowDeleteDialog(false)}><p>Are you sure you want to delete this training? Deleting permanently deletes its linked itinerary, expenses, documents, and care arrangements.</p><p className="field-hint">To keep this data, change the status to Cancelled instead. Cancelled trainings are removed from the Calendar.</p><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setShowDeleteDialog(false)}>Cancel</button><button className="btn btn-ghost" onClick={changeStatusInstead}>Change Status Instead</button><button className="btn-sm btn-sm-danger" onClick={deleteRecord}>Delete Training</button></div></Modal>}<Link to={closeTo} aria-label="Close training workspace">← Trainings</Link><div className="view-header event-workspace-header"><h1 className="view-title">{creating ? 'New Training' : training.title}</h1></div><div className="tab-bar">{tabs.map(name => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{needsSave ? <p className="empty-hint">Save the Overview first to set up this training’s planning workspace.</p> : <>{tab === 'Overview' && <Overview training={training} creating={creating} onSaved={reload} onCreated={record => navigate(`/admin/trainings/${record.id}`, {
+        replace: true,
+        state: location.state
+      })} onDelete={creating ? undefined : () => setShowDeleteDialog(true)} />}{tab === 'Delivery & Logistics' && <Delivery training={training} onSaved={reload} />}{tab === 'Prep' && <Checklist kind="training" engagementId={training.id} deliveryMethod={training.delivery_method} />}{tab === 'Travel' && <ItineraryManager eventId={training.event_id} itemTypes={TRAVEL_TYPES} title="Travel Details" />}{tab === 'Care' && <CareArrangements eventId={training.event_id} />}{tab === 'Financials' && <EngagementFinancials sourceType="training" sourceId={training.id} eventId={training.event_id} companyId={training.company_id} title={training.title} expectedOn={training.starts_at?.slice(0, 10)} initialCertainty={['scheduled', 'planning', 'ready', 'completed', 'invoice_sent', 'payment_pending', 'paid'].includes(training.status) ? 'confirmed' : 'potential'} />}{tab === 'Documents' && <DocumentManager eventId={training.event_id} />}{tab === 'Completion' && <Completion training={training} onSaved={reload} />}</>}</div>;
+}
+function Field({
+  v,
+  set,
+  name,
+  label,
+  type = 'text'
+}) {
+  return <label className="field-group half"><span className="field-label">{label}</span><input className="field-input" type={type} value={v[name]} onChange={e => set(name, e.target.value)} /></label>;
+}
+function Overview({
+  training,
+  creating,
+  onSaved,
+  onCreated,
+  onDelete
+}) {
   const [companies, setCompanies] = useState([]);
   const [contacts, setContacts] = useState([]);
-  const instructorNames = Array.isArray(training.instructors)
-    ? training.instructors.map((person) => typeof person === 'string' ? person : person.name)
-    : [];
-  const instructorChoice = instructorNames.includes('Dave') && instructorNames.includes('Haley') ? 'both'
-    : instructorNames.includes('Dave') ? 'dave'
-      : instructorNames.includes('Haley') ? 'haley' : '';
+  const instructorNames = Array.isArray(training.instructors) ? training.instructors.map(person => typeof person === 'string' ? person : person.name) : [];
+  const instructorChoice = instructorNames.includes('Dave') && instructorNames.includes('Haley') ? 'both' : instructorNames.includes('Dave') ? 'dave' : instructorNames.includes('Haley') ? 'haley' : '';
   const [v, setV] = useState(() => ({
-    company_id: training.company_id, contact_participant_id: training.contact_participant_id || '', title: training.title || '', training_type: training.training_type || '', instructor_choice: instructorChoice,
-    status: training.status, delivery_method: training.delivery_method, starts_at: training.starts_at ? training.starts_at.slice(0, 16) : '', ends_at: training.ends_at ? training.ends_at.slice(0, 16) : '', attendee_count: training.attendee_count ?? '', description: training.description || '', notes: training.notes || '',
+    company_id: training.company_id,
+    contact_participant_id: training.contact_participant_id || '',
+    title: training.title || '',
+    training_type: training.training_type || '',
+    instructor_choice: instructorChoice,
+    status: training.status,
+    delivery_method: training.delivery_method,
+    starts_at: training.starts_at ? training.starts_at.slice(0, 16) : '',
+    ends_at: training.ends_at ? training.ends_at.slice(0, 16) : '',
+    attendee_count: training.attendee_count ?? '',
+    description: training.description || '',
+    notes: training.notes || ''
   }));
-  useEffect(() => { listTrainingCompanies().then(setCompanies).catch((e) => alert(e.message)); }, []);
-  useEffect(() => { listTrainingContacts(v.company_id).then(setContacts).catch((e) => alert(e.message)); }, [v.company_id]);
-  const set = (k, value) => setV((old) => ({ ...old, [k]: value }));
+  useEffect(() => {
+    listTrainingCompanies().then(setCompanies).catch(e => alert(e.message));
+  }, []);
+  useEffect(() => {
+    listTrainingContacts(v.company_id).then(setContacts).catch(e => alert(e.message));
+  }, [v.company_id]);
+  const set = (k, value) => setV(old => ({
+    ...old,
+    [k]: value
+  }));
   const values = () => ({
-    company_id: v.company_id, contact_participant_id: v.contact_participant_id || null, title: v.title.trim(), training_type: nil(v.training_type),
-    instructors: INSTRUCTOR_OPTIONS.find((option) => option.value === v.instructor_choice)?.instructors || [],
-    status: v.status, delivery_method: v.delivery_method, starts_at: v.starts_at || null, ends_at: v.ends_at || null, attendee_count: v.attendee_count === '' ? null : Number(v.attendee_count), description: nil(v.description), notes: nil(v.notes),
+    company_id: v.company_id,
+    contact_participant_id: v.contact_participant_id || null,
+    title: v.title.trim(),
+    training_type: nil(v.training_type),
+    instructors: INSTRUCTOR_OPTIONS.find(option => option.value === v.instructor_choice)?.instructors || [],
+    status: v.status,
+    delivery_method: v.delivery_method,
+    starts_at: v.starts_at || null,
+    ends_at: v.ends_at || null,
+    attendee_count: v.attendee_count === '' ? null : Number(v.attendee_count),
+    description: nil(v.description),
+    notes: nil(v.notes)
   });
-  const save = async () => { if (!v.company_id || !v.title.trim()) throw new Error('Client and training title are required.'); const payload = values(); if (creating) onCreated(await createTraining(payload)); else { await syncTrainingCalendar(await updateTraining(training.id, payload)); await onSaved(); } };
-  return <section>{training.event_id && <p className="field-hint">On Calendar · <Link to={`/admin/calendar`}>View on Calendar →</Link></p>}<div className="fields-grid"><label className="field-group half"><span className="field-label">Client</span><select className="field-input" value={v.company_id} onChange={(e) => set('company_id', e.target.value)}><option value="">— Client —</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="field-group half"><span className="field-label">Primary contact</span><select className="field-input" value={v.contact_participant_id} onChange={(e) => set('contact_participant_id', e.target.value)}><option value="">— None —</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}</select></label><Field v={v} set={set} name="title" label="Training title" /><Field v={v} set={set} name="training_type" label="Training type" /><label className="field-group half"><span className="field-label">Instructor</span><select className="field-input" value={v.instructor_choice} onChange={(e) => set('instructor_choice', e.target.value)}><option value="">— Select instructor —</option>{INSTRUCTOR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={(e) => set('status', e.target.value)}>{STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}</select></label><label className="field-group half"><span className="field-label">Delivery</span><select className="field-input" value={v.delivery_method} onChange={(e) => set('delivery_method', e.target.value)}><option value="in_person">In Person</option><option value="virtual">Virtual</option></select></label><Field v={v} set={set} name="starts_at" label="Starts" type="datetime-local" /><Field v={v} set={set} name="ends_at" label="Ends" type="datetime-local" /><Field v={v} set={set} name="attendee_count" label="Expected attendees" type="number" /><label className="field-group full"><span className="field-label">Description</span><textarea className="field-input" value={v.description} onChange={(e) => set('description', e.target.value)} /></label><label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={(e) => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label={creating ? 'Create Training →' : 'Save Training →'} /></div></section>;
+  const save = async () => {
+    if (!v.company_id || !v.title.trim()) throw new Error('Client and training title are required.');
+    const payload = values();
+    if (creating) onCreated(await createTraining(payload));else {
+      await syncTrainingCalendar(await updateTraining(training.id, payload));
+      await onSaved();
+    }
+  };
+  return <section>{training.event_id && <p className="field-hint">On Calendar · <Link to={`/admin/calendar`}>View on Calendar →</Link></p>}<div className="fields-grid"><label className="field-group half"><span className="field-label">Client</span><select className="field-input" value={v.company_id} onChange={e => set('company_id', e.target.value)}><option value="">— Client —</option>{companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="field-group half"><span className="field-label">Primary contact</span><select className="field-input" value={v.contact_participant_id} onChange={e => set('contact_participant_id', e.target.value)}><option value="">— None —</option>{contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}</select></label><Field v={v} set={set} name="title" label="Training title" /><Field v={v} set={set} name="training_type" label="Training type" /><label className="field-group half"><span className="field-label">Instructor</span><select className="field-input" value={v.instructor_choice} onChange={e => set('instructor_choice', e.target.value)}><option value="">— Select instructor —</option>{INSTRUCTOR_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{STATUSES.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}</select></label><label className="field-group half"><span className="field-label">Delivery</span><select className="field-input" value={v.delivery_method} onChange={e => set('delivery_method', e.target.value)}><option value="in_person">In Person</option><option value="virtual">Virtual</option></select></label><Field v={v} set={set} name="starts_at" label="Starts" type="datetime-local" /><Field v={v} set={set} name="ends_at" label="Ends" type="datetime-local" /><Field v={v} set={set} name="attendee_count" label="Expected attendees" type="number" /><label className="field-group full"><span className="field-label">Description</span><textarea className="field-input" value={v.description} onChange={e => set('description', e.target.value)} /></label><label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label={creating ? 'Create Training →' : 'Save Training →'} />{onDelete && <button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Training</button>}</div></section>;
 }
-function Delivery({ training, onSaved }) { const [v, setV] = useState(() => ({ delivery_method: training.delivery_method, site_location: training.site_location || '', site_address: training.site_address || '', onsite_contact_name: training.onsite_contact_name || '', onsite_contact_phone: training.onsite_contact_phone || '', site_access_notes: training.site_access_notes || '', ppe_requirements: training.ppe_requirements || '', equipment_requirements: training.equipment_requirements || '', materials_requirements: training.materials_requirements || '', time_zone: training.time_zone || '', virtual_platform: training.virtual_platform || '', virtual_meeting_link: training.virtual_meeting_link || '', virtual_meeting_id: training.virtual_meeting_id || '', virtual_passcode: training.virtual_passcode || '', virtual_host: training.virtual_host || '', technical_contact: training.technical_contact || '', tech_check_required: !!training.tech_check_required, tech_check_at: training.tech_check_at?.slice(0, 16) || '', recording_allowed: !!training.recording_allowed, recording_required: !!training.recording_required })); const set = (k, value) => setV((old) => ({ ...old, [k]: value })); const fields = v.delivery_method === 'in_person' ? [['site_location', 'Site location'], ['site_address', 'Site address'], ['onsite_contact_name', 'Onsite contact'], ['onsite_contact_phone', 'Onsite phone'], ['site_access_notes', 'Site access notes'], ['ppe_requirements', 'PPE requirements'], ['equipment_requirements', 'Equipment requirements'], ['materials_requirements', 'Materials requirements']] : [['time_zone', 'Time zone'], ['virtual_platform', 'Platform'], ['virtual_meeting_link', 'Meeting link'], ['virtual_meeting_id', 'Meeting ID'], ['virtual_passcode', 'Passcode'], ['virtual_host', 'Virtual host'], ['technical_contact', 'Technical contact']]; return <section><div className="fields-grid"><label className="field-group half"><span className="field-label">Delivery method</span><select className="field-input" value={v.delivery_method} onChange={(e) => set('delivery_method', e.target.value)}><option value="in_person">In Person</option><option value="virtual">Virtual</option></select></label>{fields.map(([name, label]) => <Field key={name} v={v} set={set} name={name} label={label} />)}{v.delivery_method === 'virtual' && <><label className="field-group half">Tech check <input type="checkbox" checked={v.tech_check_required} onChange={(e) => set('tech_check_required', e.target.checked)} /></label><Field v={v} set={set} name="tech_check_at" label="Tech check at" type="datetime-local" /><label className="field-group half">Recording allowed <input type="checkbox" checked={v.recording_allowed} onChange={(e) => set('recording_allowed', e.target.checked)} /></label><label className="field-group half">Recording required <input type="checkbox" checked={v.recording_required} onChange={(e) => set('recording_required', e.target.checked)} /></label></>}</div><SaveButton onSave={async () => { const payload = Object.fromEntries(Object.entries(v).map(([k, value]) => [k, typeof value === 'string' ? nil(value) : value])); payload.delivery_method = v.delivery_method; payload.tech_check_at = v.tech_check_at || null; await syncTrainingCalendar(await updateTraining(training.id, payload)); await onSaved(); }} label="Save Delivery →" /></section>; }
-function Completion({ training, onSaved }) { const [count, setCount] = useState(training.actual_attendee_count ?? ''); const [notes, setNotes] = useState(training.outcome_notes || ''); return <section><div className="fields-grid"><Field v={{ count }} set={(_, value) => setCount(value)} name="count" label="Actual attendee count" type="number" /><label className="field-group full"><span className="field-label">Outcome notes</span><textarea className="field-input" value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div><SaveButton onSave={async () => { await updateTraining(training.id, { actual_attendee_count: count === '' ? null : Number(count), outcome_notes: nil(notes) }); await onSaved(); }} label="Save Completion →" /></section>; }
+function Delivery({
+  training,
+  onSaved
+}) {
+  const [v, setV] = useState(() => ({
+    delivery_method: training.delivery_method,
+    site_location: training.site_location || '',
+    site_address: training.site_address || '',
+    onsite_contact_name: training.onsite_contact_name || '',
+    onsite_contact_phone: training.onsite_contact_phone || '',
+    site_access_notes: training.site_access_notes || '',
+    ppe_requirements: training.ppe_requirements || '',
+    equipment_requirements: training.equipment_requirements || '',
+    materials_requirements: training.materials_requirements || '',
+    time_zone: training.time_zone || '',
+    virtual_platform: training.virtual_platform || '',
+    virtual_meeting_link: training.virtual_meeting_link || '',
+    virtual_meeting_id: training.virtual_meeting_id || '',
+    virtual_passcode: training.virtual_passcode || '',
+    virtual_host: training.virtual_host || '',
+    technical_contact: training.technical_contact || '',
+    tech_check_required: !!training.tech_check_required,
+    tech_check_at: training.tech_check_at?.slice(0, 16) || '',
+    recording_allowed: !!training.recording_allowed,
+    recording_required: !!training.recording_required
+  }));
+  const set = (k, value) => setV(old => ({
+    ...old,
+    [k]: value
+  }));
+  const fields = v.delivery_method === 'in_person' ? [['site_location', 'Site location'], ['site_address', 'Site address'], ['onsite_contact_name', 'Onsite contact'], ['onsite_contact_phone', 'Onsite phone'], ['site_access_notes', 'Site access notes'], ['ppe_requirements', 'PPE requirements'], ['equipment_requirements', 'Equipment requirements'], ['materials_requirements', 'Materials requirements']] : [['time_zone', 'Time zone'], ['virtual_platform', 'Platform'], ['virtual_meeting_link', 'Meeting link'], ['virtual_meeting_id', 'Meeting ID'], ['virtual_passcode', 'Passcode'], ['virtual_host', 'Virtual host'], ['technical_contact', 'Technical contact']];
+  return <section><div className="fields-grid"><label className="field-group half"><span className="field-label">Delivery method</span><select className="field-input" value={v.delivery_method} onChange={e => set('delivery_method', e.target.value)}><option value="in_person">In Person</option><option value="virtual">Virtual</option></select></label>{fields.map(([name, label]) => <Field key={name} v={v} set={set} name={name} label={label} />)}{v.delivery_method === 'virtual' && <><label className="field-group half">Tech check <input type="checkbox" checked={v.tech_check_required} onChange={e => set('tech_check_required', e.target.checked)} /></label><Field v={v} set={set} name="tech_check_at" label="Tech check at" type="datetime-local" /><label className="field-group half">Recording allowed <input type="checkbox" checked={v.recording_allowed} onChange={e => set('recording_allowed', e.target.checked)} /></label><label className="field-group half">Recording required <input type="checkbox" checked={v.recording_required} onChange={e => set('recording_required', e.target.checked)} /></label></>}</div><SaveButton onSave={async () => {
+      const payload = Object.fromEntries(Object.entries(v).map(([k, value]) => [k, typeof value === 'string' ? nil(value) : value]));
+      payload.delivery_method = v.delivery_method;
+      payload.tech_check_at = v.tech_check_at || null;
+      await syncTrainingCalendar(await updateTraining(training.id, payload));
+      await onSaved();
+    }} label="Save Delivery →" /></section>;
+}
+function Completion({
+  training,
+  onSaved
+}) {
+  const [count, setCount] = useState(training.actual_attendee_count ?? '');
+  const [notes, setNotes] = useState(training.outcome_notes || '');
+  return <section><div className="fields-grid"><Field v={{
+        count
+      }} set={(_, value) => setCount(value)} name="count" label="Actual attendee count" type="number" /><label className="field-group full"><span className="field-label">Outcome notes</span><textarea className="field-input" value={notes} onChange={e => setNotes(e.target.value)} /></label></div><SaveButton onSave={async () => {
+      await updateTraining(training.id, {
+        actual_attendee_count: count === '' ? null : Number(count),
+        outcome_notes: nil(notes)
+      });
+      await onSaved();
+    }} label="Save Completion →" /></section>;
+}

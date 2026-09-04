@@ -460,7 +460,7 @@ async function logCareArrangementAsExpense(itemId, eventId, btnEl) {
     category: item.care_type === 'petcare' ? 'pet_care' : 'childcare',
     description: `${CARE_TYPE_LABELS[item.care_type] || 'Care'} — ${item.provider || 'Provider TBD'}`,
     amount: item.cost,
-    status: 'planned',
+    status: 'planning',
     incurred_on: item.starts_at ? item.starts_at.slice(0, 10) : null
   });
   if (error) { alert('Could not log expense: ' + error.message); return; }
@@ -614,7 +614,7 @@ async function runTravelWizard(method) {
   const payload = rows.map(r => ({
     event_id: eventId, item_type: r.item_type, title: r.title,
     starts_at: r.starts_at ? new Date(`${r.starts_at}T00:00:00`).toISOString() : null,
-    status: 'planned'
+    status: 'planning'
   }));
 
   const { error } = await ggClient.from('event_itinerary_items').insert(payload);

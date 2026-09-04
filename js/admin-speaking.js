@@ -73,7 +73,7 @@ async function renderSpeakingStats() {
       .not('speaking_engagement_id', 'is', null).eq('status', 'pending').lte('due_date', horizonStr),
     linkedEventIds.length
       ? ggClient.from('event_itinerary_items').select('id', { count: 'exact', head: true })
-          .in('event_id', linkedEventIds).in('item_type', TRAVEL_ITEM_TYPES).eq('status', 'planned')
+          .in('event_id', linkedEventIds).in('item_type', TRAVEL_ITEM_TYPES).eq('status', 'planning')
       : Promise.resolve({ count: 0 })
   ]);
 

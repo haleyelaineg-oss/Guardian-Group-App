@@ -62,7 +62,7 @@ async function renderTrainingStats() {
       .not('training_engagement_id', 'is', null).eq('status', 'pending').lte('due_date', horizonStr),
     linkedEventIds.length
       ? ggClient.from('event_itinerary_items').select('id', { count: 'exact', head: true })
-          .in('event_id', linkedEventIds).in('item_type', TRAVEL_ITEM_TYPES).eq('status', 'planned')
+          .in('event_id', linkedEventIds).in('item_type', TRAVEL_ITEM_TYPES).eq('status', 'planning')
       : Promise.resolve({ count: 0 })
   ]);
   const expectedRevenue = (linkedEvents || []).reduce((sum, e) => sum + (Number(e.income_amount) || 0), 0);
@@ -534,4 +534,3 @@ async function pushTrainingToEvent(engagement) {
   const { error } = await ggClient.from('events').update(payload).eq('id', engagement.event_id);
   if (error) console.error('Could not sync linked event:', error.message);
 }
-
