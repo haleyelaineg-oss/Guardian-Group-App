@@ -125,7 +125,7 @@ async function loadDashboardView() {
 }
 
 // Revenue waterfall: Booked (everything committed, all sources) ⊇ Earned
-// (service completed or invoice sent) ⊇ { Collected (cash actually in hand),
+// (service completed or Invoice Sent) ⊇ { Collected (cash actually in hand),
 // Accounts Receivable (invoiced balance still owed) }. Shared by the
 // Dashboard and Financial Overview stat-card rows.
 function renderRevenueStats(invoices, events, itineraryItems, manualIncome, targetId) {

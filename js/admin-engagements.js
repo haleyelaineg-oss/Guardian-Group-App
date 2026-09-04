@@ -37,7 +37,7 @@ const TRAINING_STATUS_LABELS = {
   planning: 'Planning',
   ready: 'Ready',
   completed: 'Completed',
-  invoice_pending: 'Invoice Pending',
+  invoice_sent: 'Invoice Sent',
   payment_pending: 'Payment Pending',
   paid: 'Paid',
   cancelled: 'Cancelled'
@@ -50,7 +50,7 @@ const STATUS_BADGE_TONES = {
   declined: 'danger', withdrawn: 'danger',
   // Training
   inquiry: 'neutral', proposal_sent: 'pending', contract_pending: 'pending', scheduled: 'steel', paid: 'open',
-  invoice_pending: 'pending',
+  invoice_sent: 'pending',
   // Events-only
   application_sent: 'pending', application_denied: 'danger', confirmed: 'steel',
   // Shared across lifecycles — planning/confirmed are "underway" (blue),
@@ -196,7 +196,7 @@ const SPEAKING_DEFAULT_CHECKLIST_ITEMS = [
   'Bio submitted', 'Headshot submitted', 'Session description approved', 'AV requirements confirmed',
   'Presentation started', 'Presentation complete', 'Slides submitted', 'Presentation rehearsed',
   'Handouts/resources completed', 'QR codes/links tested', 'Speaker materials prepared',
-  'Final itinerary reviewed', 'Expenses reviewed', 'Invoice sent', 'Reimbursement submitted',
+  'Final itinerary reviewed', 'Expenses reviewed', 'Invoice Sent', 'Reimbursement submitted',
   'Payment received', 'Post-event follow-up completed'
 ];
 
@@ -207,7 +207,7 @@ const TRAINING_DEFAULT_CHECKLIST_ITEMS_IN_PERSON = [
   'Training materials prepared', 'Travel method confirmed', 'Flights booked', 'Hotel booked',
   'Rental car booked', 'Childcare arranged', 'Pet care arranged', 'Materials shipped',
   'Final client confirmation sent', 'Training delivered', 'Attendance recorded',
-  'Certificates issued', 'Invoice sent', 'Payment received'
+  'Certificates issued', 'Invoice Sent', 'Payment received'
 ];
 
 const TRAINING_DEFAULT_CHECKLIST_ITEMS_VIRTUAL = [
@@ -215,7 +215,7 @@ const TRAINING_DEFAULT_CHECKLIST_ITEMS_VIRTUAL = [
   'Instructor confirmed', 'Attendee count confirmed', 'Platform confirmed',
   'Meeting link created/received', 'Presenter access confirmed', 'Tech check completed',
   'Participant materials prepared', 'Participant materials sent', 'Training delivered',
-  'Attendance recorded', 'Certificates issued', 'Recording handled', 'Invoice sent', 'Payment received'
+  'Attendance recorded', 'Certificates issued', 'Recording handled', 'Invoice Sent', 'Payment received'
 ];
 
 const CHECKLIST_UI_IDS = {

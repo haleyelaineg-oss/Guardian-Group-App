@@ -99,6 +99,9 @@ let state = {
   clientPersonName: '',
   clientEmail: '',
   clientPhone: '',
+  eventId: null,
+  incomeId: null,
+  incomeAllocation: '',
   showNewClientModal: false,
   newClientSaving: false,
   newClientDraft: { name: '', contactName: '', email: '', phone: '' },
@@ -118,6 +121,8 @@ let state = {
 
   catalogPick: '',
   clients: [],
+  events: [],
+  incomes: [],
   catalogItems: [],
 
   documentsList: [],
@@ -250,6 +255,8 @@ async function init() {
   if (biz.businessEmail) state.businessEmail = biz.businessEmail;
 
   loadClients();
+  loadEvents();
+  loadIncomes();
   loadCatalog();
 
   const params = new URLSearchParams(window.location.search);
@@ -276,6 +283,16 @@ async function loadClients() {
   if (!sb) return;
   const { data } = await sb.from('companies').select('id,name,contact_name,contact_email,phones').order('name');
   if (data) { state.clients = data; render(); }
+}
+async function loadEvents() {
+  if (!sb) return;
+  const { data } = await sb.from('events').select('id,title,event_type,starts_at').order('starts_at', { ascending: false, nullsFirst: false });
+  if (data) { state.events = data; render(); }
+}
+async function loadIncomes() {
+  if (!sb) return;
+  const { data } = await sb.from('income').select('id,description,amount,certainty_status').neq('certainty_status', 'cancelled').order('expected_on', { ascending: false });
+  if (data) { state.incomes = data; render(); }
 }
 async function loadCatalog() {
   if (!sb) return;
@@ -326,6 +343,22 @@ function qtSelectClientOption(value) {
   state.clientEmail = company ? (company.contact_email || '') : '';
   state.clientPhone = company ? qtFirstPhone(company) : '';
   render();
+}
+function qtSetEventLink(value) {
+  state.eventId = value || null;
+  render();
+}
+function qtSetIncomeLink(value) {
+  state.incomeId = value || null;
+  const income = state.incomes.find((row) => String(row.id) === String(value));
+  if (income && !state.incomeAllocation) state.incomeAllocation = String(income.amount || '');
+  render();
+}
+function qtSetIncomeAllocation(value) { state.incomeAllocation = value; }
+function qtEventLabel(event) {
+  const type = event.event_type ? labelize(event.event_type) : 'Event';
+  const date = event.starts_at ? ` · ${event.starts_at.slice(0, 10)}` : '';
+  return `${type} · ${event.title || 'Untitled'}${date}`;
 }
 
 function qtOpenNewClientModal() {
@@ -444,6 +477,7 @@ function buildDocPayload(totals) {
     client_person_name: s.clientPersonName,
     client_email: s.clientEmail,
     client_phone: s.clientPhone,
+    event_id: s.eventId || null,
     company_id: s.clientCompanyId || null,
     business_contact_name: s.businessContactName,
     business_phone: s.businessPhone,
@@ -466,6 +500,21 @@ function buildDocPayload(totals) {
     notes: isQuote ? s.notesQuote : (s.mode === 'invoice' ? s.notesInvoice : s.notesReceipt),
     parent_doc_id: s.parentDocId || null
   };
+}
+
+async function qtLoadIncomeLink(documentId) {
+  const { data } = await sb.from('income_document_links').select('income_id,allocated_amount').eq('document_id', documentId).limit(1);
+  state.incomeId = data?.[0]?.income_id || null;
+  state.incomeAllocation = data?.[0] ? String(data[0].allocated_amount) : '';
+}
+async function qtSaveIncomeLink(documentId, total) {
+  if (!sb || !['quote', 'invoice'].includes(state.mode)) return;
+  const { error: clearError } = await sb.from('income_document_links').delete().eq('document_id', documentId);
+  if (clearError) throw clearError;
+  if (!state.incomeId) return;
+  const allocated = parseFloat(state.incomeAllocation);
+  const { error } = await sb.from('income_document_links').insert({ income_id: state.incomeId, document_id: documentId, allocated_amount: Number.isFinite(allocated) ? allocated : total });
+  if (error) throw error;
 }
 
 async function qtSaveDocument() {
@@ -493,6 +542,7 @@ async function qtSaveDocument() {
       result = await sb.from('documents').insert(payload).select().single();
     }
     if (result.error) throw result.error;
+    await qtSaveIncomeLink(result.data.id, totals.afterDiscount);
     state.currentDocId = result.data.id;
     state.clientId = clientId;
     state.saving = false;
@@ -560,6 +610,7 @@ async function qtOpenDocument(id) {
     clientPersonName: data.client_person_name || '',
     clientEmail: data.client_email || '',
     clientPhone: data.client_phone || '',
+    eventId: data.event_id || null,
     items: items,
     discountType: data.discount_type || '$',
     discountValue: String(data.discount_value != null ? data.discount_value : 0),
@@ -570,6 +621,7 @@ async function qtOpenDocument(id) {
     notesReceipt: data.doc_type === 'receipt' ? (data.notes || state.notesReceipt) : state.notesReceipt,
     saveMessage: ''
   });
+  await qtLoadIncomeLink(data.id);
   render();
 }
 
@@ -603,6 +655,7 @@ async function qtConvertToInvoice() {
     });
     const ins = await sb.from('documents').insert(payload).select().single();
     if (ins.error) throw ins.error;
+    await qtSaveIncomeLink(ins.data.id, totals.afterDiscount);
     await sb.from('documents').update({ status: 'accepted' }).eq('id', state.currentDocId);
     Object.assign(state, {
       currentDocId: ins.data.id,
@@ -710,6 +763,9 @@ function resetToBlank(mode) {
     clientPersonName: '',
     clientEmail: '',
     clientPhone: '',
+    eventId: null,
+    incomeId: null,
+    incomeAllocation: '',
     items: [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }],
     discountType: '$',
     discountValue: '0',
@@ -987,6 +1043,23 @@ function renderEditorView() {
         <input class="qt-field-line" id="qtClientEmail" value="${escAttr(s.clientEmail)}" placeholder="Email" oninput="qtSetField('clientEmail', this.value)">
       </div>
     </div>
+
+    ${isInvoice ? `<div class="qt-invoice-link" data-noprint>
+      <label for="qtEventLink">Linked engagement / event</label>
+      <select id="qtEventLink" class="qt-select" onchange="qtSetEventLink(this.value)">
+        <option value="">— No linked engagement or event —</option>
+        ${s.events.map(event => `<option value="${escAttr(String(event.id))}" ${String(s.eventId) === String(event.id) ? 'selected' : ''}>${esc(qtEventLabel(event))}</option>`).join('')}
+      </select>
+    </div>` : ''}
+
+    ${(isQuote || isInvoice) ? `<div class="qt-invoice-link" data-noprint>
+      <label for="qtIncomeLink">Canonical Income</label>
+      <select id="qtIncomeLink" class="qt-select" onchange="qtSetIncomeLink(this.value)">
+        <option value="">— No linked Income record —</option>
+        ${s.incomes.map(income => `<option value="${escAttr(String(income.id))}" ${String(s.incomeId) === String(income.id) ? 'selected' : ''}>${esc(income.description)} · ${fmt(Number(income.amount || 0))}</option>`).join('')}
+      </select>
+      ${s.incomeId ? `<input class="qt-field-line" style="max-width:110px" type="number" min="0" step="0.01" value="${escAttr(s.incomeAllocation)}" placeholder="Allocation" oninput="qtSetIncomeAllocation(this.value)">` : ''}
+    </div>` : ''}
 
     <div class="qt-items-wrap">
       ${s.items.map(it => renderItemRow(it)).join('')}

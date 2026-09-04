@@ -48,7 +48,7 @@ async function renderTrainingStats() {
   const upcoming = allTrainingCache.filter(e => e.starts_at && e.starts_at.slice(0, 10) >= todayStr && e.status !== 'cancelled').length;
   const inPerson = allTrainingCache.filter(e => e.delivery_method === 'in_person' && e.status !== 'cancelled').length;
   const virtual = allTrainingCache.filter(e => e.delivery_method === 'virtual' && e.status !== 'cancelled').length;
-  const paymentPending = allTrainingCache.filter(e => ['invoice_pending', 'payment_pending'].includes(e.status)).length;
+  const paymentPending = allTrainingCache.filter(e => ['invoice_sent', 'payment_pending'].includes(e.status)).length;
 
   // No dedicated fee field on training_engagements — expected revenue
   // is whatever's set on the linked event's income_amount, so it's
@@ -516,7 +516,7 @@ async function deleteTrainingEngagement() {
 // ── EVENT SYNC (engagement → linked event, one-way) ─────────
 function mapTrainingStatusToEventStatus(status) {
   if (['scheduled', 'planning', 'ready'].includes(status)) return 'confirmed';
-  if (['completed', 'invoice_pending', 'payment_pending', 'paid'].includes(status)) return 'completed';
+  if (['completed', 'invoice_sent', 'payment_pending', 'paid'].includes(status)) return 'completed';
   if (status === 'cancelled') return 'cancelled';
   return 'planning';
 }

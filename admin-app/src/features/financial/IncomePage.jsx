@@ -1,53 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import SaveButton from '../../components/SaveButton.jsx';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import { formatCurrency, formatDate, todayIsoDate } from '../../utils/format.js';
-import { normalizeIncomeSources } from './financialCalculations.js';
-import { createIncome, deleteIncome, fetchIncomeSources, updateIncome } from './financialService.js';
+import { createCanonicalIncome, fetchIncomeWorkspace, recordIncomePayment, resolveCandidate, updateCanonicalIncome } from './incomeService.js';
 
-const BLANK = { category: 'other', description: '', amount: '', expected_on: todayIsoDate(), notes: '' };
-const CATEGORIES = ['speaking', 'training', 'retainer', 'grant', 'consulting', 'other'];
+const BLANK = { description: '', amount: '', expected_on: todayIsoDate(), certainty_status: 'potential', income_kind: 'service_revenue', company_id: '', source_type: 'manual', source_id: '', notes: '' };
+const sourceKeys = { event: 'event_id', training: 'training_engagement_id', speaking: 'speaking_engagement_id', itinerary: 'itinerary_item_id' };
+const sourceLabel = { manual: 'Manual / other', event: 'Event', training: 'Training', speaking: 'Speaking engagement', itinerary: 'Itinerary item' };
+
+function sourceOptions(data, type) {
+  const rows = type === 'event' ? data.events : type === 'training' ? data.trainings : type === 'speaking' ? data.speaking : type === 'itinerary' ? data.itinerary : [];
+  return rows.map((row) => ({ id: row.id, label: `${row.title || row.event_name} ${row.starts_at || row.event_start_date ? `· ${(row.starts_at || row.event_start_date).slice(0, 10)}` : ''}` }));
+}
+function summary(income, links, allocations) {
+  const invoiceLinks = links.filter((link) => link.income_id === income.id && link.documents?.doc_type === 'invoice' && link.documents?.status !== 'draft');
+  const billed = invoiceLinks.reduce((sum, link) => sum + Number(link.allocated_amount || 0), 0);
+  const received = allocations.filter((allocation) => allocation.income_id === income.id).reduce((sum, allocation) => sum + (allocation.payments?.direction === 'refund' ? -1 : 1) * Number(allocation.allocated_amount || 0), 0);
+  const overdue = invoiceLinks.some((link) => link.documents?.due_date && link.documents.due_date < todayIsoDate() && Number(link.allocated_amount || 0) > allocations.filter((a) => a.income_id === income.id && a.document_id === link.documents.id).reduce((sum, a) => sum + Number(a.allocated_amount || 0), 0));
+  const billing = billed === 0 ? 'Not billed' : billed < Number(income.amount) ? 'Partially invoiced' : 'Invoiced';
+  const payment = received <= 0 ? 'Unpaid' : received < Number(income.amount) ? 'Partially paid' : 'Paid';
+  return { billed, received, remaining: Number(income.amount) - received, billing, payment, overdue };
+}
 
 export default function IncomePage() {
-  const [data, setData] = useState(null);
-  const [values, setValues] = useState(BLANK);
-  const [show, setShow] = useState(false);
-  const [error, setError] = useState(null);
-  const reload = useCallback(async () => {
-    try {
-      setData(await fetchIncomeSources());
-      setError(null);
-    } catch (err) {
-      setError(err);
-    }
-  }, []);
+  const [data, setData] = useState(null); const [error, setError] = useState(null); const [showCreate, setShowCreate] = useState(false); const [values, setValues] = useState(BLANK); const [paymentIncome, setPaymentIncome] = useState(null); const [payment, setPayment] = useState({ amount: '', receivedAt: todayIsoDate(), documentId: '', paymentMethod: '', reference: '', notes: '' });
+  const reload = useCallback(async () => { try { setData(await fetchIncomeWorkspace()); setError(null); } catch (err) { setError(err); } }, []);
   useEffect(() => { reload(); }, [reload]);
-  async function save() {
-    if (!values.description.trim() || values.amount === '') throw new Error('Description and amount are required.');
-    await createIncome({ ...values, description: values.description.trim(), amount: Number(values.amount), notes: values.notes.trim() || null });
-    await reload();
-    setValues(BLANK);
-    setShow(false);
-  }
-  async function toggle(row) {
-    try {
-      await updateIncome(row.id, { status: row.status === 'received' ? 'expected' : 'received' });
-      await reload();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-  async function remove(row) {
-    if (!confirm('Delete this income entry?')) return;
-    try {
-      await deleteIncome(row.id);
-      await reload();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-  if (error) return <div className="view active"><div className="view-header"><h1 className="view-title">Income</h1></div><section className="empty-hint" role="alert">Couldn’t load income. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section></div>;
+  const candidateByIncome = useMemo(() => data ? Object.fromEntries(data.incomes.map((income) => [income.id, income])) : {}, [data]);
+  if (error) return <div className="view active"><div className="view-header"><h1 className="view-title">Income</h1></div><section className="empty-hint" role="alert">Couldn’t load canonical Income records. Confirm the canonical-income migration has been run. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section></div>;
   if (!data) return <LoadingIndicator label="Loading income…" />;
-  const rows = normalizeIncomeSources(data);
-  return <div className="view active"><div className="view-header"><h1 className="view-title">Income</h1><button className="btn btn-primary" onClick={() => setShow(true)}>+ Add Income</button></div><p className="view-sub">Open invoices, event income, itinerary income, and manual entries in one rollup.</p>{show && <div className="create-form-card"><div className="fields-grid"><input className="field-input" placeholder="Description" value={values.description} onChange={(e) => setValues({ ...values, description: e.target.value })} /><input className="field-input" type="number" placeholder="Amount" value={values.amount} onChange={(e) => setValues({ ...values, amount: e.target.value })} /><input className="field-input" type="date" value={values.expected_on} onChange={(e) => setValues({ ...values, expected_on: e.target.value })} /><select className="field-input" value={values.category} onChange={(e) => setValues({ ...values, category: e.target.value })}>{CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></div><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setShow(false)}>Cancel</button><SaveButton onSave={save} label="Add Income →" /></div></div>}<div className="responses-table-wrap"><table className="responses-table"><thead><tr><th>Source</th><th>Description</th><th>Expected</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={`${row.source}-${row.id}`}><td>{row.label}</td><td>{row.description}</td><td>{formatDate(row.expectedOn)}</td><td>{formatCurrency(row.amount)}</td><td>{row.status}</td><td>{row.source === 'manual' && <><button className="btn-sm btn-sm-ghost" onClick={() => toggle(row)}>{row.status === 'received' ? 'Mark Expected' : 'Mark Received'}</button><button className="btn-sm btn-sm-danger" onClick={() => remove(row)}>🗑️</button></>}</td></tr>) : <tr><td colSpan="6">No income recorded yet.</td></tr>}</tbody></table></div></div>;
+  const sourceRows = sourceOptions(data, values.source_type);
+  const set = (key, value) => setValues((old) => ({ ...old, [key]: value, ...(key === 'source_type' ? { source_id: '' } : {}) }));
+  const saveIncome = async () => { if (!values.description.trim() || values.amount === '') throw new Error('Description and amount are required.'); const payload = { description: values.description.trim(), amount: Number(values.amount), expected_on: values.expected_on, certainty_status: values.certainty_status, income_kind: values.income_kind, company_id: values.company_id || null, source_type: values.source_type, notes: values.notes.trim() || null }; if (values.source_type !== 'manual') payload[sourceKeys[values.source_type]] = values.source_id || null; await createCanonicalIncome(payload); setValues(BLANK); setShowCreate(false); await reload(); };
+  const savePayment = async () => { if (!paymentIncome || Number(payment.amount) <= 0) throw new Error('Enter a payment amount greater than zero.'); await recordIncomePayment({ incomeId: paymentIncome.id, documentId: payment.documentId, amount: Number(payment.amount), receivedAt: payment.receivedAt, paymentMethod: payment.paymentMethod, reference: payment.reference, notes: payment.notes }); setPaymentIncome(null); setPayment({ amount: '', receivedAt: todayIsoDate(), documentId: '', paymentMethod: '', reference: '', notes: '' }); await reload(); };
+  return <div className="view active"><div className="view-header"><h1 className="view-title">Income</h1><button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Add Income</button></div><p className="view-sub">Canonical economic value. Billing and payment badges are calculated from linked invoices and payments.</p>{showCreate && <div className="create-form-card"><div className="fields-grid"><input className="field-input" placeholder="Income description" value={values.description} onChange={(e) => set('description', e.target.value)} /><input className="field-input" type="number" min="0" step="0.01" placeholder="Amount" value={values.amount} onChange={(e) => set('amount', e.target.value)} /><input className="field-input" type="date" value={values.expected_on} onChange={(e) => set('expected_on', e.target.value)} /><select className="field-input" value={values.certainty_status} onChange={(e) => set('certainty_status', e.target.value)}><option value="potential">Potential</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select><select className="field-input" value={values.income_kind} onChange={(e) => set('income_kind', e.target.value)}><option value="service_revenue">Service revenue</option><option value="reimbursement">Reimbursement</option><option value="other_income">Other income</option></select><select className="field-input" value={values.company_id} onChange={(e) => set('company_id', e.target.value)}><option value="">— No client —</option>{data.companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select><select className="field-input" value={values.source_type} onChange={(e) => set('source_type', e.target.value)}>{Object.entries(sourceLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>{values.source_type !== 'manual' && <select className="field-input" value={values.source_id} onChange={(e) => set('source_id', e.target.value)}><option value="">— Select source —</option>{sourceRows.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}</select>}<textarea className="field-input" placeholder="Notes" value={values.notes} onChange={(e) => set('notes', e.target.value)} /></div><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button><SaveButton onSave={saveIncome} label="Create Income →" /></div></div>}{paymentIncome && <div className="create-form-card"><div className="card-title">Record Payment · {paymentIncome.description}</div><div className="fields-grid"><input className="field-input" type="number" min="0" step="0.01" placeholder="Payment amount" value={payment.amount} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} /><input className="field-input" type="date" value={payment.receivedAt} onChange={(e) => setPayment({ ...payment, receivedAt: e.target.value })} /><select className="field-input" value={payment.documentId} onChange={(e) => setPayment({ ...payment, documentId: e.target.value })}><option value="">— Direct payment, no invoice —</option>{data.links.filter((link) => link.income_id === paymentIncome.id && link.documents?.doc_type === 'invoice').map((link) => <option key={link.documents.id} value={link.documents.id}>{link.documents.doc_number || 'Invoice'}</option>)}</select><input className="field-input" placeholder="Payment method" value={payment.paymentMethod} onChange={(e) => setPayment({ ...payment, paymentMethod: e.target.value })} /><input className="field-input" placeholder="Reference" value={payment.reference} onChange={(e) => setPayment({ ...payment, reference: e.target.value })} /><input className="field-input" placeholder="Notes" value={payment.notes} onChange={(e) => setPayment({ ...payment, notes: e.target.value })} /></div><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setPaymentIncome(null)}>Cancel</button><SaveButton onSave={savePayment} label="Record Payment →" /></div></div>}<div className="responses-table-wrap"><table className="responses-table"><thead><tr><th>Income</th><th>Certainty</th><th>Billing</th><th>Payments</th><th>Value</th><th>Remaining</th><th></th></tr></thead><tbody>{data.incomes.map((income) => { const totals = summary(income, data.links, data.allocations); return <tr key={income.id}><td><strong>{income.description}</strong><br /><span className="field-hint">{income.income_kind.replaceAll('_', ' ')} · {formatDate(income.expected_on)}</span></td><td>{income.certainty_status}</td><td>{totals.overdue ? 'Overdue' : totals.billing}</td><td>{totals.payment}</td><td>{formatCurrency(income.amount)}</td><td>{formatCurrency(totals.remaining)}</td><td><button className="btn-sm btn-sm-ghost" onClick={() => { setPaymentIncome(income); setPayment({ ...payment, amount: String(Math.max(0, totals.remaining)) }); }}>Record Payment</button>{income.certainty_status !== 'cancelled' && <button className="btn-sm btn-sm-ghost" onClick={async () => { await updateCanonicalIncome(income.id, { certainty_status: 'cancelled' }); await reload(); }}>Cancel</button>}</td></tr>; })}{data.incomes.length === 0 && <tr><td colSpan="7">No Income records yet.</td></tr>}</tbody></table></div>{data.candidates.length > 0 && <section><div className="detail-section-title">Legacy Reconciliation</div><p className="view-sub">Review candidates before treating legacy event/itinerary and invoice values as one economic source.</p><div className="responses-table-wrap"><table className="responses-table"><thead><tr><th>Possible match</th><th>Basis</th><th></th></tr></thead><tbody>{data.candidates.map((candidate) => <tr key={candidate.id}><td>{candidateByIncome[candidate.left_income_id]?.description || 'Income record'} ↔ {candidateByIncome[candidate.right_income_id]?.description || 'Income record'}</td><td>{candidate.match_basis}</td><td><button className="btn-sm btn-sm-ghost" onClick={async () => { await resolveCandidate(candidate.id, 'same_income'); await reload(); }}>Same Income</button><button className="btn-sm btn-sm-ghost" onClick={async () => { await resolveCandidate(candidate.id, 'separate_income'); await reload(); }}>Separate</button></td></tr>)}</tbody></table></div></section>}</div>;
 }

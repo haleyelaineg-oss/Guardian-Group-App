@@ -43,3 +43,20 @@ export function normalizeIncomeSources({ invoices = [], events = [], itinerary =
   ];
   return rows.sort((a, b) => (a.expectedOn || '9999-12-31').localeCompare(b.expectedOn || '9999-12-31'));
 }
+
+export function canonicalIncomeSummary({ incomes = [], links = [], paymentAllocations = [] }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const active = incomes.filter((income) => income.certainty_status !== 'cancelled');
+  const service = active.filter((income) => income.income_kind === 'service_revenue');
+  const paymentAmount = (incomeId, documentId) => paymentAllocations.filter((allocation) => allocation.income_id === incomeId && (!documentId || allocation.document_id === documentId)).reduce((sum, allocation) => sum + (allocation.payments?.direction === 'refund' ? -1 : 1) * number(allocation.allocated_amount), 0);
+  const activeIds = new Set(active.map((income) => income.id));
+  const invoiceLinks = links.filter((link) => activeIds.has(link.income_id) && link.documents?.doc_type === 'invoice' && link.documents?.status !== 'draft');
+  const confirmed = service.filter((income) => income.certainty_status === 'confirmed').reduce((sum, income) => sum + number(income.amount), 0);
+  const potential = service.filter((income) => income.certainty_status === 'potential').reduce((sum, income) => sum + number(income.amount), 0);
+  const invoiced = invoiceLinks.reduce((sum, link) => sum + number(link.allocated_amount), 0);
+  const received = active.reduce((sum, income) => sum + paymentAmount(income.id), 0);
+  const notInvoiced = active.filter((income) => income.certainty_status === 'confirmed').reduce((sum, income) => sum + Math.max(0, number(income.amount) - invoiceLinks.filter((link) => link.income_id === income.id).reduce((billed, link) => billed + number(link.allocated_amount), 0)), 0);
+  const receivable = invoiceLinks.reduce((sum, link) => sum + Math.max(0, number(link.allocated_amount) - paymentAmount(link.income_id, link.documents.id)), 0);
+  const overdue = invoiceLinks.filter((link) => link.documents?.due_date && link.documents.due_date < today).reduce((sum, link) => sum + Math.max(0, number(link.allocated_amount) - paymentAmount(link.income_id, link.documents.id)), 0);
+  return { potential, confirmed, notInvoiced, invoiced, received, receivable, overdue };
+}

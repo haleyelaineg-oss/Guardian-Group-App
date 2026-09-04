@@ -208,6 +208,9 @@ select.qt-select {
 
 .qt-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 24px 0; border-bottom: 1px solid var(--gg-pale); }
 .qt-party-name { font-size: 16px; font-weight: 700; color: var(--gg-dark); margin-top: 8px; }
+.qt-invoice-link { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; }
+.qt-invoice-link label { color: var(--gg-muted); font-size: 12px; font-weight: 600; }
+.qt-invoice-link .qt-select { flex: 1; min-width: 0; }
 .qt-party input.qt-field-line { display: block; margin-top: 3px; font-size: 13px; color: var(--gg-text); width: 100%; box-sizing: border-box; }
 .qt-party input.qt-field-line.first { margin-top: 6px; }
 .qt-party input.qt-field-line.company,

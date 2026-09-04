@@ -115,7 +115,7 @@ create table if not exists training_engagements (
   contact_participant_id    uuid references participants(id) on delete set null,
   status                    text not null default 'inquiry',
     -- 'inquiry' | 'proposal_sent' | 'contract_pending' | 'scheduled' | 'planning'
-    -- | 'ready' | 'completed' | 'invoice_pending' | 'payment_pending' | 'paid' | 'cancelled'
+    -- | 'ready' | 'completed' | 'invoice_sent' | 'payment_pending' | 'paid' | 'cancelled'
   title                     text not null,
   training_type             text,
   description               text,

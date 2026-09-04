@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import { supabase } from '../../lib/supabase.js';
 import { engagementForEvent } from '../calendar/calendarService.js';
-import { revenueSummary } from '../financial/financialCalculations.js';
+import { canonicalIncomeSummary } from '../financial/financialCalculations.js';
 import { formatCurrency, formatDate, todayIsoDate } from '../../utils/format.js';
 
 function eventWhen(event) {
@@ -24,19 +24,19 @@ export default function DashboardPage() {
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const [events, tasks, speaking, trainings, documents, revenueEvents, itinerary, manual] = await Promise.all([
+      const [events, tasks, speaking, trainings, incomes, links, paymentAllocations] = await Promise.all([
         supabase.from('events').select('id,title,event_type,starts_at,ends_at,all_day,location,status').gte('starts_at', new Date().toISOString()).neq('status', 'cancelled').order('starts_at').limit(8),
         supabase.from('tasks').select('id,title,due_date,status,owner,event_id').neq('status', 'done').order('due_date', { ascending: true, nullsFirst: false }).limit(8),
         supabase.from('speaking_engagements').select('id', { count: 'exact', head: true }).in('status', ['selected', 'contracting', 'planning', 'ready']),
         supabase.from('training_engagements').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'planning', 'ready']),
-        supabase.from('documents').select('id,doc_type,client_name,status,total,balance,amount_paid,due_date').eq('doc_type', 'invoice'),
-        supabase.from('events').select('id,status,income_amount').not('income_amount', 'is', null),
-        supabase.from('event_itinerary_items').select('id,income_amount,events!event_id(status)').not('income_amount', 'is', null),
-        supabase.from('income').select('amount,status'),
+        supabase.from('income').select('id,amount,certainty_status,income_kind'),
+        supabase.from('income_document_links').select('income_id,allocated_amount,documents(id,doc_type,status,due_date)'),
+        supabase.from('payment_allocations').select('income_id,document_id,allocated_amount,payments(direction)'),
       ]);
-      const failed = [events, tasks, speaking, trainings, documents, revenueEvents, itinerary, manual].find((result) => result.error);
+      const failed = [events, tasks, speaking, trainings, incomes, links, paymentAllocations].find((result) => result.error);
       if (failed) throw failed.error;
-      setData({ events: events.data || [], tasks: tasks.data || [], speaking: speaking.count || 0, trainings: trainings.count || 0, revenue: revenueSummary({ invoices: documents.data || [], events: revenueEvents.data || [], itinerary: itinerary.data || [], manual: manual.data || [] }) });
+      const summary = canonicalIncomeSummary({ incomes: incomes.data || [], links: links.data || [], paymentAllocations: paymentAllocations.data || [] });
+      setData({ events: events.data || [], tasks: tasks.data || [], speaking: speaking.count || 0, trainings: trainings.count || 0, revenue: { booked: summary.confirmed, earned: summary.invoiced, accountsReceivable: summary.receivable, collected: summary.received } });
     } catch (err) { setError(err); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
