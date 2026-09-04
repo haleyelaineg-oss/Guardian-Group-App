@@ -102,6 +102,11 @@ let state = {
   eventId: null,
   incomeId: null,
   incomeAllocation: '',
+  sourceType: null,
+  sourceId: null,
+  sourceTitle: '',
+  sourceExpectedOn: '',
+  contextAmbiguous: false,
   showNewClientModal: false,
   newClientSaving: false,
   newClientDraft: { name: '', contactName: '', email: '', phone: '' },
@@ -122,6 +127,8 @@ let state = {
   catalogPick: '',
   clients: [],
   events: [],
+  trainings: [],
+  speakingEngagements: [],
   incomes: [],
   catalogItems: [],
 
@@ -254,10 +261,7 @@ async function init() {
   if (biz.businessPhone) state.businessPhone = biz.businessPhone;
   if (biz.businessEmail) state.businessEmail = biz.businessEmail;
 
-  loadClients();
-  loadEvents();
-  loadIncomes();
-  loadCatalog();
+  await Promise.all([loadClients(), loadEvents(), loadTrainings(), loadSpeakingEngagements(), loadIncomes(), loadCatalog()]);
 
   const params = new URLSearchParams(window.location.search);
   const docId = params.get('doc');
@@ -269,7 +273,8 @@ async function init() {
     state.listStatusFilter = params.get('status') || 'all';
     qtOpenDocumentsList();
   } else {
-    resetToBlank('quote');
+    resetToBlank(params.get('new') === 'invoice' ? 'invoice' : 'quote');
+    if (params.get('source') && params.get('sourceId')) await qtApplyEngagementContext(params);
   }
 }
 
@@ -286,8 +291,18 @@ async function loadClients() {
 }
 async function loadEvents() {
   if (!sb) return;
-  const { data } = await sb.from('events').select('id,title,event_type,starts_at').order('starts_at', { ascending: false, nullsFirst: false });
+  const { data } = await sb.from('events').select('id,title,event_type,starts_at,company_id').order('starts_at', { ascending: false, nullsFirst: false });
   if (data) { state.events = data; render(); }
+}
+async function loadTrainings() {
+  if (!sb) return;
+  const { data } = await sb.from('training_engagements').select('id,title,event_id,company_id,starts_at').order('starts_at', { ascending: false, nullsFirst: false });
+  if (data) { state.trainings = data; render(); }
+}
+async function loadSpeakingEngagements() {
+  if (!sb) return;
+  const { data } = await sb.from('speaking_engagements').select('id,event_name,event_id,event_start_date').order('event_start_date', { ascending: false, nullsFirst: false });
+  if (data) { state.speakingEngagements = data; render(); }
 }
 async function loadIncomes() {
   if (!sb) return;
@@ -355,6 +370,52 @@ function qtSetIncomeLink(value) {
   render();
 }
 function qtSetIncomeAllocation(value) { state.incomeAllocation = value; }
+async function qtApplyEngagementContext(params) {
+  const sourceType = params.get('source');
+  const sourceId = params.get('sourceId');
+  const sourceField = { event: 'event_id', training: 'training_engagement_id', speaking: 'speaking_engagement_id' }[sourceType];
+  if (!sourceField || !sourceId) return;
+  state.sourceType = sourceType;
+  state.sourceId = sourceId;
+  state.sourceTitle = params.get('sourceTitle') || 'Engagement';
+  state.sourceExpectedOn = params.get('expectedOn') || '';
+  state.eventId = params.get('eventId') || null;
+  const companyId = params.get('companyId');
+  if (companyId) qtSelectClientOption(companyId);
+  const { data, error } = await sb.from('income').select('id,amount').eq(sourceField, sourceId).eq('income_kind', 'service_revenue').neq('certainty_status', 'cancelled').order('created_at');
+  if (error) return;
+  state.contextAmbiguous = (data || []).length > 1;
+  if ((data || []).length === 1) {
+    state.incomeId = data[0].id;
+    state.incomeAllocation = String(data[0].amount || '');
+  }
+  render();
+}
+async function qtSetEngagementContext(value) {
+  if (!value) return;
+  const [source, sourceId] = value.split(':');
+  let record;
+  if (source === 'training') record = state.trainings.find((row) => String(row.id) === sourceId);
+  else if (source === 'speaking') record = state.speakingEngagements.find((row) => String(row.id) === sourceId);
+  else record = state.events.find((row) => String(row.id) === sourceId);
+  if (!record) return;
+  const title = source === 'speaking' ? record.event_name : record.title;
+  const expectedOn = (record.starts_at || record.event_start_date || '').slice(0, 10);
+  const params = new URLSearchParams({ source, sourceId, sourceTitle: title || 'Engagement', ...(expectedOn ? { expectedOn } : {}), ...(record.event_id || source === 'event' ? { eventId: record.event_id || record.id } : {}), ...(record.company_id ? { companyId: record.company_id } : {}) });
+  await qtApplyEngagementContext(params);
+}
+function qtClearEngagementContext() {
+  state.sourceType = null; state.sourceId = null; state.sourceTitle = ''; state.sourceExpectedOn = ''; state.contextAmbiguous = false; state.incomeId = null; state.incomeAllocation = ''; render();
+}
+async function qtEnsureContextIncome(total) {
+  if (state.incomeId || !state.sourceType || !state.sourceId || !['quote', 'invoice'].includes(state.mode) || total <= 0) return;
+  const sourceField = { event: 'event_id', training: 'training_engagement_id', speaking: 'speaking_engagement_id' }[state.sourceType];
+  if (!sourceField) return;
+  const { data, error } = await sb.from('income').insert({ description: state.sourceTitle || 'Engagement value', amount: total, expected_on: state.sourceExpectedOn || state.docDate || null, certainty_status: state.mode === 'invoice' ? 'confirmed' : 'potential', income_kind: 'service_revenue', company_id: state.clientCompanyId || null, source_type: state.sourceType, [sourceField]: state.sourceId }).select('id,amount').single();
+  if (error) throw error;
+  state.incomeId = data.id;
+  state.incomeAllocation = String(data.amount || total);
+}
 function qtEventLabel(event) {
   const type = event.event_type ? labelize(event.event_type) : 'Event';
   const date = event.starts_at ? ` · ${event.starts_at.slice(0, 10)}` : '';
@@ -533,6 +594,7 @@ async function qtSaveDocument() {
       state.dueDate = computeDueDate(state.docDate, state.dueTerms);
     }
     const totals = computeTotals(state);
+    await qtEnsureContextIncome(totals.afterDiscount);
     const clientId = await upsertClient();
     const payload = Object.assign({}, buildDocPayload(totals), { doc_number: docNumber, client_id: clientId });
     let result;
@@ -611,6 +673,11 @@ async function qtOpenDocument(id) {
     clientEmail: data.client_email || '',
     clientPhone: data.client_phone || '',
     eventId: data.event_id || null,
+    sourceType: null,
+    sourceId: null,
+    sourceTitle: '',
+    sourceExpectedOn: '',
+    contextAmbiguous: false,
     items: items,
     discountType: data.discount_type || '$',
     discountValue: String(data.discount_value != null ? data.discount_value : 0),
@@ -766,6 +833,11 @@ function resetToBlank(mode) {
     eventId: null,
     incomeId: null,
     incomeAllocation: '',
+    sourceType: null,
+    sourceId: null,
+    sourceTitle: '',
+    sourceExpectedOn: '',
+    contextAmbiguous: false,
     items: [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }],
     discountType: '$',
     discountValue: '0',
@@ -1044,6 +1116,16 @@ function renderEditorView() {
       </div>
     </div>
 
+    ${(isQuote || isInvoice) && !s.sourceType ? `<div class="qt-invoice-link" data-noprint>
+      <label for="qtEngagementContext">What is this for?</label>
+      <select id="qtEngagementContext" class="qt-select" onchange="qtSetEngagementContext(this.value)">
+        <option value="">Other / no engagement</option>
+        ${s.trainings.map(training => `<option value="training:${escAttr(String(training.id))}">Training · ${esc(training.title || 'Untitled')}</option>`).join('')}
+        ${s.speakingEngagements.map(engagement => `<option value="speaking:${escAttr(String(engagement.id))}">Speaking · ${esc(engagement.event_name || 'Untitled')}</option>`).join('')}
+        ${s.events.filter(event => !['training', 'speaking'].includes(event.event_type)).map(event => `<option value="event:${escAttr(String(event.id))}">Event · ${esc(event.title || 'Untitled')}</option>`).join('')}
+      </select>
+    </div>` : ''}
+
     ${isInvoice ? `<div class="qt-invoice-link" data-noprint>
       <label for="qtEventLink">Linked engagement / event</label>
       <select id="qtEventLink" class="qt-select" onchange="qtSetEventLink(this.value)">
@@ -1053,11 +1135,11 @@ function renderEditorView() {
     </div>` : ''}
 
     ${(isQuote || isInvoice) ? `<div class="qt-invoice-link" data-noprint>
-      <label for="qtIncomeLink">Canonical Income</label>
-      <select id="qtIncomeLink" class="qt-select" onchange="qtSetIncomeLink(this.value)">
+      ${s.sourceType && !s.contextAmbiguous ? `<label>For</label><div class="qt-field-line">${esc(s.sourceTitle || 'Linked engagement')} <button class="qt-btn qt-btn-ghost" type="button" onclick="qtClearEngagementContext()">Change</button></div>` : `<label for="qtIncomeLink">${s.contextAmbiguous ? 'Choose engagement value' : 'Income record (optional)'}</label>`}
+      ${(!s.sourceType || s.contextAmbiguous) ? `<select id="qtIncomeLink" class="qt-select" onchange="qtSetIncomeLink(this.value)">
         <option value="">— No linked Income record —</option>
         ${s.incomes.map(income => `<option value="${escAttr(String(income.id))}" ${String(s.incomeId) === String(income.id) ? 'selected' : ''}>${esc(income.description)} · ${fmt(Number(income.amount || 0))}</option>`).join('')}
-      </select>
+      </select>` : ''}
       ${s.incomeId ? `<input class="qt-field-line" style="max-width:110px" type="number" min="0" step="0.01" value="${escAttr(s.incomeAllocation)}" placeholder="Allocation" oninput="qtSetIncomeAllocation(this.value)">` : ''}
     </div>` : ''}
 
