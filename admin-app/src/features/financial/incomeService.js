@@ -12,7 +12,7 @@ export async function fetchIncomeWorkspace() {
     supabase.from('events').select('id,title,event_type,starts_at').order('starts_at', { ascending: false }),
     supabase.from('training_engagements').select('id,title,starts_at').order('starts_at', { ascending: false }),
     supabase.from('speaking_engagements').select('id,event_name,event_start_date').order('event_start_date', { ascending: false }),
-    supabase.from('event_itinerary_items').select('id,title,starts_at').order('starts_at', { ascending: false }),
+    supabase.from('event_itinerary_items').select('id,event_id,title,starts_at').order('starts_at', { ascending: false }),
   ]);
   [incomes, links, allocations, candidates, companies, events, trainings, speaking, itinerary].forEach((result) => fail(result.error));
   return { incomes: incomes.data || [], links: links.data || [], allocations: allocations.data || [], candidates: candidates.data || [], companies: companies.data || [], events: events.data || [], trainings: trainings.data || [], speaking: speaking.data || [], itinerary: itinerary.data || [] };
