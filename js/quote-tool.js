@@ -620,6 +620,21 @@ async function qtSaveDocument() {
 async function qtDeleteDocument(id) {
   if (!sb) return;
   if (!confirm('Delete this document permanently? This cannot be undone.')) return;
+  // A legacy invoice-only Income record exists solely because its invoice was
+  // migrated into the new model. Remove it with the invoice, but never remove
+  // engagement, manual, or paid Income records.
+  const { data: invoiceOnlyIncome } = await sb.from('income').select('id').eq('source_type', 'manual').eq('legacy_document_id', id).limit(1);
+  if (invoiceOnlyIncome?.[0]) {
+    const incomeId = invoiceOnlyIncome[0].id;
+    const [{ data: otherLinks }, { data: payments }] = await Promise.all([
+      sb.from('income_document_links').select('document_id').eq('income_id', incomeId).neq('document_id', id),
+      sb.from('payment_allocations').select('id').eq('income_id', incomeId).limit(1),
+    ]);
+    if (!(otherLinks || []).length && !(payments || []).length) {
+      const { error: incomeError } = await sb.from('income').delete().eq('id', incomeId);
+      if (incomeError) { flashMessage('Could not remove the invoice Income record — try again.'); return; }
+    }
+  }
   const { error } = await sb.from('documents').delete().eq('id', id);
   if (error) { flashMessage('Could not delete — try again.'); return; }
   if (state.view === 'list') {

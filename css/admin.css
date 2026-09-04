@@ -427,6 +427,8 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   border-top: 3px solid var(--gg-pale);
 }
 .stat-card.accent { border-top-color: var(--gg-mid); }
+/* Inline label/value pairs used by the engagement billing summary. */
+.stat-card > span + strong { margin-left: 0.45rem; }
 .stat-value {
   font-family: var(--font-display);
   font-size: 40px;
