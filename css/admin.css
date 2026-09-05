@@ -360,6 +360,10 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 }
 .dashboard-operations-grid .stat-card { padding: 16px; }
 .dashboard-operations-grid .stat-value { font-size: 32px; }
+.dashboard-quick-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 8px 0 28px; padding: 18px 20px; background: var(--gg-off); border: 1px solid var(--gg-pale); border-radius: 10px; }
+.dashboard-quick-actions .detail-section-title { margin: 0; font-size: 20px; }
+.dashboard-quick-actions > div:last-child { display: flex; flex-wrap: wrap; gap: 12px; }
+@media (max-width: 640px) { .dashboard-quick-actions { align-items: flex-start; flex-direction: column; } }
 .loading-indicator {
   min-height: 160px;
   display: grid;
@@ -446,6 +450,12 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   font-family: var(--font-display);
 }
 .stat-card.accent-danger { border-top-color: #c0392b; }
+.stat-card.expense-total,
+.stat-card.net-negative { border-top-color: #c0392b; }
+.stat-card.expense-total .stat-value,
+.stat-card.net-negative .stat-value { color: #c0392b; }
+.stat-card.net-positive { border-top-color: #1f8a53; }
+.stat-card.net-positive .stat-value { color: #1f8a53; }
 .stat-card.clickable { cursor: pointer; transition: box-shadow 0.15s; }
 .stat-card.clickable:hover { box-shadow: 0 4px 14px rgba(22,67,91,0.12); }
 .stat-sub { font-size: 12px; color: var(--gg-muted); margin-top: 2px; }
@@ -779,10 +789,32 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .income-fields-grid + .responses-table-wrap + .create-form-actions { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; }
 .income-fields-grid + .responses-table-wrap + .create-form-actions .btn { width: 100%; color: var(--gg-white); background: var(--gg-mid); }
 .income-fields-grid + .responses-table-wrap + .create-form-actions .btn:hover { background: var(--gg-dark); }
-.invoice-number-link { padding: 0; color: var(--gg-mid); background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; }
+.invoice-number-link, .income-item-link { padding: 0; color: var(--gg-mid); background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; }
 .invoice-number-link + .invoice-number-link::before { content: ', '; color: var(--gg-text); text-decoration: none; }
 .engagement-financials > section + section { border-top: 1px solid var(--gg-pale); margin-top: 28px; padding-top: 28px; }
-.expense-add-action { margin-top: 12px; padding-bottom: 16px; display: flex;   justify-content: flex-end;}
+.expense-section-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.expense-section-header .detail-section-title { margin: 0; }
+.expense-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }
+.expense-amount-input { min-width: 110px; }
+.expense-amount-currency { min-width: 142px; }
+.receipt-upload-action input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
+label.receipt-upload-action { display: inline-flex; align-items: center; }
+.mileage-summary { display: flex; gap: 24px; margin: 12px 0 16px; color: var(--gg-text); }
+.mileage-summary span { display: inline-flex; gap: 4px; align-items: baseline; }
+.mileage-calculated { display: flex; align-items: center; }
+.engagement-financials > section:last-child .responses-table { table-layout: fixed; }
+.engagement-financials > section:last-child .responses-table th { padding: 14px 10px; text-align: center; }
+.engagement-financials > section:last-child .responses-table td { padding: 13px 10px; }
+.engagement-financials > section:last-child .responses-table th:nth-child(1), .engagement-financials > section:last-child .responses-table td:nth-child(1) { width: 16%; }
+.engagement-financials > section:last-child .responses-table th:nth-child(2), .engagement-financials > section:last-child .responses-table td:nth-child(2) { width: 13%; }
+.engagement-financials > section:last-child .responses-table th:nth-child(3), .engagement-financials > section:last-child .responses-table td:nth-child(3) { width: 15%; }
+.engagement-financials > section:last-child .responses-table th:nth-child(4), .engagement-financials > section:last-child .responses-table td:nth-child(4) { width: 13%; }
+.engagement-financials > section:last-child .responses-table th:nth-child(5), .engagement-financials > section:last-child .responses-table td:nth-child(5) { width: 10%; }
+.engagement-financials > section:last-child .responses-table th:nth-child(6), .engagement-financials > section:last-child .responses-table td:nth-child(6) { width: 16%; }
+.engagement-financials > section:last-child .responses-table th:nth-child(7), .engagement-financials > section:last-child .responses-table td:nth-child(7) { width: 17%; }
+.engagement-financials > section:last-child .expense-row-actions { min-width: 0; flex-wrap: wrap; justify-content: flex-start; white-space: normal; }
+.engagement-financials > section:last-child .expense-row-actions .btn-sm { flex: 1 1 auto; }
+@media (max-width: 640px) { .expense-section-header { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 640px) { .income-fields-grid { grid-template-columns: 1fr; } .income-save-action { justify-content: flex-start; } .income-fields-grid + .responses-table-wrap + .create-form-actions { grid-template-columns: 1fr; } }
 
 /* ── CREATE FORM ─────────────────────────────────────────── */

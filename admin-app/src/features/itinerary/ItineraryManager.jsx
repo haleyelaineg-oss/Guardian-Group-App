@@ -3,6 +3,7 @@ import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import SaveButton from '../../components/SaveButton.jsx';
 import { createExpense, createItineraryItem, deleteItineraryItem, fetchExpenses, fetchItinerary, updateItineraryItem } from '../events/eventResourcesService.js';
 import { useEventResource } from '../events/useEventResource.js';
+import { categoryForExpenseType } from '../expenses/expenseOptions.js';
 
 const TYPE_LABELS = { driving_to: 'Driving To', driving_home: 'Driving Home', departing_flight: 'Departing Flight', return_flight: 'Return Flight', hotel: 'Hotel', rental_car_pickup: 'Rental Car', rental_car_drop_off: 'Rental Car', car_rental: 'Rental Car', speaking_session: 'Speaking Session', training_session: 'Training Session', other: 'Other' };
 const TYPES = ['driving_to', 'driving_home', 'departing_flight', 'return_flight', 'hotel', 'car_rental', 'speaking_session', 'training_session', 'other'];
@@ -51,11 +52,13 @@ export default function ItineraryManager({ eventId, onItemsChange, itemTypes = T
     const amount = Number(enteredAmount);
     if (!Number.isFinite(amount) || amount < 0) { alert('Enter a valid expense amount.'); return; }
     const description = `${TYPE_LABELS[item.item_type] || item.item_type.replaceAll('_', ' ')}${item.provider ? ` — ${item.provider}` : ''}`;
+    const expense_type = expenseCategory(item.item_type);
+    const category = title === 'Travel Details' ? 'travel' : categoryForExpenseType(expense_type);
     setAddingExpense((current) => ({ ...current, [item.id]: true }));
     try {
       const expenses = await fetchExpenses(eventId);
-      const exists = expenses.some((expense) => expense.category === expenseCategory(item.item_type) && expense.description === description && Number(expense.amount) === amount);
-      if (!exists) await createExpense(eventId, { category: expenseCategory(item.item_type), description, amount, status: 'planned', incurred_on: item.starts_at?.slice(0, 10) || null, vendor: item.provider || null, reimbursable: false, reimbursement_status: 'not_applicable' });
+      const exists = expenses.some((expense) => (expense.expense_type || expense.category) === expense_type && expense.description === description && Number(expense.amount) === amount);
+      if (!exists) await createExpense(eventId, { category, expense_type, description, amount, status: 'planned', incurred_on: item.starts_at?.slice(0, 10) || null, vendor: item.provider || null, reimbursable: false, reimbursement_status: 'not_applicable' });
       if (item.cost == null) await updateItineraryItem(item.id, { cost: amount });
       setAddingExpense((current) => ({ ...current, [item.id]: 'done' }));
       await refresh();

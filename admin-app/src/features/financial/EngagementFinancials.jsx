@@ -5,6 +5,7 @@ import { useEventResource } from '../events/useEventResource.js';
 import { pendingReimbursements } from './financialCalculations.js';
 import { loadEngagementFinance } from './engagementFinanceService.js';
 import EngagementBillingPanel from './EngagementBillingPanel.jsx';
+import MileageManager from '../expenses/MileageManager.jsx';
 
 export default function EngagementFinancials({
   sourceType,
@@ -42,5 +43,6 @@ export default function EngagementFinancials({
     </section>
     {billingMessage || <EngagementBillingPanel sourceType={sourceType} sourceId={sourceId} eventId={eventId} companyId={companyId} title={title} expectedOn={expectedOn} initialValue={initialValue} initialCertainty={initialCertainty} onValueSaved={handleValueSaved} />}
     <ExpenseManager eventId={eventId} resource={expenseResource} showSummary={false} />
+    <MileageManager eventId={eventId} />
   </div>;
 }

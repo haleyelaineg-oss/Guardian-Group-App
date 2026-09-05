@@ -1,45 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import SaveButton from '../../components/SaveButton.jsx';
 import { formatCurrency, formatDate, todayIsoDate } from '../../utils/format.js';
-import { createGeneralExpense, deleteGeneralExpense, fetchGeneralExpenses } from '../financial/financialService.js';
+import { createGeneralExpense, deleteGeneralExpense, fetchAllExpenses, fetchExpenseTargets, updateGeneralExpense } from '../financial/financialService.js';
+import { EXPENSE_CATEGORIES, EXPENSE_STATUSES, EXPENSE_TYPES, categoryForExpenseType, labelForExpenseCategory, labelForExpenseType, normalizedExpense } from './expenseOptions.js';
+import { engagementForEvent } from '../calendar/calendarService.js';
+import { createExpense, uploadDocument } from '../events/eventResourcesService.js';
 
-const BLANK = { category: 'other', description: '', amount: '', incurred_on: todayIsoDate(), notes: '' };
-const CATEGORIES = ['software', 'office', 'marketing', 'insurance', 'professional_services', 'travel', 'meals', 'equipment', 'other'];
+const blank = () => ({ event_id: '', category: 'other_business_expense', expense_type: 'other', description: '', amount: '', incurred_on: todayIsoDate(), status: 'paid', notes: '' });
+function ExpenseForm({ values, setValues, eventOptions, showTarget = true }) { const set = (key, value) => setValues((current) => key === 'expense_type' ? { ...current, expense_type: value, category: categoryForExpenseType(value) } : { ...current, [key]: value }); return <div className="fields-grid">{showTarget && <label className="field-group full"><span className="field-label">Related event, engagement, or training</span><select className="field-input" value={values.event_id} onChange={(e) => set('event_id', e.target.value)}><option value="">No — general business expense</option>{eventOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><span className="field-hint">Choose a record to log this expense to its financials; otherwise it is a general business expense.</span></label>}<label className="field-group half"><span className="field-label">Description</span><input className="field-input" value={values.description} onChange={(e) => set('description', e.target.value)} /></label><label className="field-group half"><span className="field-label">Amount</span><input className="field-input" type="number" min="0" step="0.01" value={values.amount} onChange={(e) => set('amount', e.target.value)} /></label><label className="field-group half"><span className="field-label">Expense Category</span><select className="field-input" value={values.category} onChange={(e) => set('category', e.target.value)}>{EXPENSE_CATEGORIES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field-group half"><span className="field-label">Expense Type</span><select className="field-input" value={values.expense_type} onChange={(e) => set('expense_type', e.target.value)}>{EXPENSE_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={values.status} onChange={(e) => set('status', e.target.value)}>{EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label><label className="field-group half"><span className="field-label">Date</span><input className="field-input" type="date" value={values.incurred_on} onChange={(e) => set('incurred_on', e.target.value)} /></label></div>; }
 
 export default function ExpensesPage() {
-  const [rows, setRows] = useState([]);
-  const [values, setValues] = useState(BLANK);
-  const [show, setShow] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const reload = useCallback(async () => {
-    setLoading(true);
-    try {
-      setRows(await fetchGeneralExpenses());
-      setError(null);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  useEffect(() => { reload(); }, [reload]);
-  async function save() {
-    if (!values.description.trim() || values.amount === '') throw new Error('Description and amount are required.');
-    await createGeneralExpense({ ...values, description: values.description.trim(), amount: Number(values.amount), notes: values.notes.trim() || null });
-    await reload();
-    setValues(BLANK);
-    setShow(false);
-  }
-  async function remove(id) {
-    if (!confirm('Delete this general business expense?')) return;
-    try {
-      await deleteGeneralExpense(id);
-      await reload();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-  return <div className="view active"><div className="view-header"><h1 className="view-title">Expenses</h1><button className="btn btn-primary" onClick={() => setShow(true)}>+ Add Expense</button></div><p className="view-sub">General business expenses only; event-linked expenses live on the event record.</p>{show && <div className="create-form-card"><div className="fields-grid"><input className="field-input" placeholder="Description" value={values.description} onChange={(e) => setValues({ ...values, description: e.target.value })} /><input className="field-input" type="number" placeholder="Amount" value={values.amount} onChange={(e) => setValues({ ...values, amount: e.target.value })} /><input className="field-input" type="date" value={values.incurred_on} onChange={(e) => setValues({ ...values, incurred_on: e.target.value })} /><select className="field-input" value={values.category} onChange={(e) => setValues({ ...values, category: e.target.value })}>{CATEGORIES.map((category) => <option key={category} value={category}>{category.replaceAll('_', ' ')}</option>)}</select></div><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setShow(false)}>Cancel</button><SaveButton onSave={save} label="Add Expense →" /></div></div>}{error ? <section className="empty-hint" role="alert">Couldn’t load expenses. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading expenses…" /> : <div className="responses-table-wrap"><table className="responses-table"><thead><tr><th>Category</th><th>Description</th><th>Date</th><th>Amount</th><th></th></tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={row.id}><td>{row.category.replaceAll('_', ' ')}</td><td>{row.description}</td><td>{formatDate(row.incurred_on)}</td><td>{formatCurrency(row.amount)}</td><td><button className="btn-sm btn-sm-danger" onClick={() => remove(row.id)}>🗑️</button></td></tr>) : <tr><td colSpan="5">No expenses logged yet.</td></tr>}</tbody></table></div>}</div>;
+  const [rows, setRows] = useState([]); const [eventOptions, setEventOptions] = useState([]); const [values, setValues] = useState(blank); const [editing, setEditing] = useState(null); const [show, setShow] = useState(false); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); const [receiptExpense, setReceiptExpense] = useState(null); const receiptInputRef = useRef(null); const navigate = useNavigate();
+  const reload = useCallback(async () => { setLoading(true); try { const [expenses, targets] = await Promise.all([fetchAllExpenses(), fetchExpenseTargets()]); setRows(expenses); setEventOptions(targets); setError(null); } catch (err) { setError(err); } finally { setLoading(false); } }, []); useEffect(() => { reload(); }, [reload]);
+  const close = () => { setShow(false); setEditing(null); setValues(blank()); };
+  async function save() { if (!values.description.trim() || values.amount === '') throw new Error('Description and amount are required.'); const { event_id, notes, ...payload } = { ...values, description: values.description.trim(), amount: Number(values.amount) }; if (editing) await updateGeneralExpense(editing, { ...payload, notes: notes.trim() || null }); else if (event_id) await createExpense(event_id, payload); else await createGeneralExpense({ ...payload, notes: notes.trim() || null }); await reload(); close(); }
+  async function remove(id) { if (!confirm('Delete this general business expense?')) return; try { await deleteGeneralExpense(id); await reload(); } catch (err) { alert(err.message); } }
+  const startEdit = (row) => { setValues({ ...normalizedExpense(row), event_id: '', amount: String(row.amount ?? ''), incurred_on: row.incurred_on || todayIsoDate(), status: row.status || 'paid', notes: row.notes || '' }); setEditing(row.id); setShow(true); };
+  const openSource = async (row) => { if (row.source === 'general') return startEdit(row); try { if (['speaking', 'training'].includes(row.event_type)) { const engagement = await engagementForEvent(row.event_id, row.event_type); if (engagement) return navigate(`/admin/${row.event_type === 'speaking' ? 'speaking' : 'trainings'}/${engagement.id}`); } navigate(`/admin/events/${row.event_id}`); } catch (err) { alert(`Could not open entry source: ${err.message}`); } };
+  const chooseReceipt = (event, row) => { event.stopPropagation(); setReceiptExpense(row); receiptInputRef.current?.click(); };
+  const uploadReceipt = async (event) => { const file = event.target.files?.[0], expense = receiptExpense; event.target.value = ''; if (!file || !expense) return; try { await uploadDocument(expense.event_id, file, { expense_id: expense.id, notes: 'Receipt uploaded from Expenses' }); await reload(); } catch (err) { alert(`Could not upload receipt: ${err.message}`); } finally { setReceiptExpense(null); } };
+  return <div className="view active"><input ref={receiptInputRef} type="file" accept="image/*,.pdf" capture="environment" hidden onChange={uploadReceipt} /><div className="view-header"><h1 className="view-title">Expenses</h1><button className="btn btn-primary" onClick={() => { close(); setShow(true); }}>+ Add Expense</button></div><p className="view-sub">Click an expense to open its entry source. Receipts can be added to event-linked expenses.</p>{show && <div className="create-form-card"><ExpenseForm values={values} setValues={setValues} eventOptions={eventOptions} showTarget={!editing} /><div className="create-form-actions"><button className="btn btn-ghost" onClick={close}>Cancel</button><SaveButton onSave={save} label={editing ? 'Save Expense' : 'Add Expense →'} /></div></div>}{error ? <section className="empty-hint" role="alert">Couldn’t load expenses. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading expenses…" /> : <div className="responses-table-wrap"><table className="responses-table"><thead><tr><th>Expense Category</th><th>Expense Type</th><th>Description</th><th>Related Record</th><th>Receipt</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>{rows.length ? rows.map((rawRow) => { const row = normalizedExpense(rawRow); const isGeneral = rawRow.source === 'general'; return <tr className="clickable-row" key={`${rawRow.source}-${row.id}`} onClick={() => openSource(rawRow)}><td>{labelForExpenseCategory(row.category)}</td><td>{labelForExpenseType(row.expense_type)}</td><td>{row.description}</td><td>{rawRow.related_record}</td><td>{isGeneral ? '—' : rawRow.has_receipt ? 'Attached ✓' : 'No receipt'}</td><td>{formatCurrency(row.amount)}</td><td>{row.status || 'paid'}</td><td>{formatDate(row.incurred_on)}</td><td>{isGeneral ? <><button className="btn-sm btn-sm-ghost" onClick={(event) => { event.stopPropagation(); startEdit(rawRow); }}>Edit</button><button className="btn-sm btn-sm-danger" onClick={(event) => { event.stopPropagation(); remove(row.id); }}>🗑️</button></> : <button className="btn-sm btn-sm-ghost" onClick={(event) => chooseReceipt(event, rawRow)}>Add Receipt</button>}</td></tr>; }) : <tr><td colSpan="9">No expenses logged yet.</td></tr>}</tbody></table></div>}</div>;
 }

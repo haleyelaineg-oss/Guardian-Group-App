@@ -1,3 +1,2 @@
 I also want to make it so that there's an "invoice sent" field and adding and saving a date there automatically changes the invoice status to "Sent" and logs a "sent date". I'd like to be able to see the date sent and the due date and then days past due.
 
-A
