@@ -10,7 +10,7 @@ function Card({ value, label, sub, danger = false }) { return <div className={`s
 
 const documentTypes = ['all', 'quote', 'invoice', 'receipt'];
 const documentStatuses = ['all', 'past_due', 'draft', 'sent', 'accepted', 'declined', 'expired', 'partially_paid', 'paid', 'issued'];
-const labelize = (value) => value.replaceAll('_', ' ');
+const labelize = (value) => value.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 
 export default function FinancialOverviewPage() {
   const [data, setData] = useState(null);

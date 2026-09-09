@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { formatFileSize } from '../../utils/format.js';
+import { formatFileSize, formatLabel } from '../../utils/format.js';
 import * as clientsService from './clientsService.js';
 import SaveButton from '../../components/SaveButton.jsx';
 
@@ -71,7 +71,7 @@ export default function ClientDocumentsSection({ clientDocuments, invoices, onUp
         <input type="file" ref={fileInputRef} className="field-input" style={{ maxWidth: 280 }} />
         <select className="field-input" style={{ maxWidth: 240 }} value={linkedDocId} onChange={(e) => setLinkedDocId(e.target.value)}>
           <option value="">— Not linked to a specific quote/invoice —</option>
-          {invoices.map((d) => <option key={d.id} value={d.id}>{d.doc_number} ({d.doc_type})</option>)}
+{invoices.map((d) => <option key={d.id} value={d.id}>{d.doc_number} ({formatLabel(d.doc_type)})</option>)}
         </select>
         <SaveButton onSave={handleUpload} onSaved={resetUploadFields} label="+ Upload Document" className="btn-sm btn-sm-ghost" />
       </div>

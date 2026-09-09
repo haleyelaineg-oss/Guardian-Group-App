@@ -8,7 +8,7 @@ export const EXPENSE_TYPES = [
 
 export const EXPENSE_STATUSES = ['planned', 'paid', 'reimbursed'];
 export const TAX_TREATMENT_OPTIONS = [{ value: 'deductible', label: 'Deductible' }, { value: 'non_deductible', label: 'Non-deductible' }, { value: 'partially_deductible', label: 'Partially deductible' }, { value: 'needs_review', label: 'Needs review' }];
-export const REIMBURSEMENT_OPTIONS = [{ value: 'not_applicable', label: 'None' }, { value: 'submitted', label: 'Pending Reimbursement' }, { value: 'reimbursed', label: 'Reimbursement Received' }];
+export const REIMBURSEMENT_OPTIONS = [{ value: 'not_applicable', label: 'None' }, { value: 'submitted', label: 'Pending Reimbursement' }, { value: 'partial', label: 'Partially Reimbursed' }, { value: 'reimbursed', label: 'Reimbursement Received' }];
 
 const TYPE_CATEGORY = {
   travel: 'travel', airfare: 'travel', lodging: 'travel', rental_car: 'travel', mileage: 'car_truck_expenses', parking: 'travel', tolls: 'travel', baggage: 'travel', ground_transportation: 'travel', fuel: 'fuel', fuel_rental_vehicle: 'travel', fuel_personal_vehicle: 'car_truck_expenses', business_mileage: 'car_truck_expenses',
@@ -18,6 +18,8 @@ const TYPE_CATEGORY = {
 };
 
 export function categoryForExpenseType(type) { return TYPE_CATEGORY[type] || 'other_business_expense'; }
-export function labelForExpenseCategory(value) { return EXPENSE_CATEGORIES.find((option) => option.value === value)?.label || String(value || 'other_business_expense').replaceAll('_', ' '); }
-export function labelForExpenseType(value) { return EXPENSE_TYPES.find((option) => option.value === value)?.label || String(value || 'other').replaceAll('_', ' '); }
+const fallbackLabel = (value) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
+export function labelForExpenseCategory(value) { return EXPENSE_CATEGORIES.find((option) => option.value === value)?.label || fallbackLabel(value || 'other_business_expense'); }
+export function labelForExpenseType(value) { return EXPENSE_TYPES.find((option) => option.value === value)?.label || fallbackLabel(value || 'other'); }
+export function labelForExpenseStatus(value) { return fallbackLabel(value || 'planned'); }
 export function normalizedExpense(item) { const expenseType = item.expense_type || item.category || 'other'; return { ...item, expense_type: expenseType, category: item.expense_type ? item.category : categoryForExpenseType(expenseType) }; }

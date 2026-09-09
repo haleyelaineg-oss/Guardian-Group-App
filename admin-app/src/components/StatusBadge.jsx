@@ -5,8 +5,9 @@ const TONES = {
   inquiry: 'pending', opportunity: 'pending', preparing_submission: 'pending', applied: 'pending', application_pending_response: 'pending', under_review: 'pending', proposal_sent: 'pending', contract_pending: 'pending', invoice_pending: 'pending', invoice_sent: 'pending', payment_pending: 'pending',
 };
 const LABELS = { invoice_pending: 'Invoice Sent', invoice_sent: 'Invoice Sent', application_pending_response: 'Application Pending Response', submission_accepted: 'Submission Accepted', submission_rejected: 'Submission Rejected', completed_payment_pending: 'Completed: Payment Pending', completed_paid: 'Completed: Paid', cancelled_submission_withdrawn: 'Cancelled: Submission Withdrawn', cancelled_event_cancelled: 'Cancelled: Event Cancelled' };
+const labelize = (value) => value.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 
 export default function StatusBadge({ status }) {
   const value = status || 'unknown';
-  return <span className={`status-badge tone-${TONES[value] || 'neutral'}`}>{LABELS[value] || value.replaceAll('_', ' ')}</span>;
+  return <span className={`status-badge tone-${TONES[value] || 'neutral'}`}>{LABELS[value] || labelize(value)}</span>;
 }
