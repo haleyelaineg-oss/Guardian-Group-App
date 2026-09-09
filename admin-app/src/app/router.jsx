@@ -21,6 +21,8 @@ const SpeakingDetailPage = lazy(() => import('../features/speaking/SpeakingDetai
 const SpeakingCreatePage = lazy(() => import('../features/speaking/SpeakingCreatePage.jsx'));
 const TrainingListPage = lazy(() => import('../features/trainings/TrainingListPage.jsx'));
 const TrainingDetailPage = lazy(() => import('../features/trainings/TrainingDetailPage.jsx'));
+const SessionsPage = lazy(() => import('../features/sessions/SessionsPage.jsx'));
+const SessionDetailPage = lazy(() => import('../features/sessions/SessionDetailPage.jsx'));
 
 // Nav-visible sections, used to render the Sidebar.
 export const navSections = [
@@ -64,6 +66,11 @@ export const navSections = [
     path: '/admin/speaking',
   },
   {
+    icon: 'library-big',
+    label: 'Sessions',
+    path: '/admin/sessions',
+  },
+  {
     icon: 'graduation-cap',
     label: 'Trainings',
     path: '/admin/trainings',
@@ -90,6 +97,8 @@ export const routes = [
   { path: '/admin/speaking', element: <SpeakingListPage /> },
   { path: '/admin/speaking/new', element: <SpeakingCreatePage /> },
   { path: '/admin/speaking/:id', element: <SpeakingDetailPage /> },
+  { path: '/admin/sessions', element: <SessionsPage /> },
+  { path: '/admin/sessions/:id', element: <SessionDetailPage /> },
   { path: '/admin/trainings', element: <TrainingListPage /> },
   { path: '/admin/trainings/:id', element: <TrainingDetailPage /> },
 ];

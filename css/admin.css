@@ -360,7 +360,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 }
 .dashboard-operations-grid .stat-card { padding: 16px; }
 .dashboard-operations-grid .stat-value { font-size: 32px; }
-.dashboard-quick-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 8px 0 28px; padding: 18px 20px; background: var(--gg-off); border: 1px solid var(--gg-pale); border-radius: 10px; }
+.dashboard-quick-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 8px 0 28px; padding: 18px 20px; background: #fff; border: 1px solid var(--gg-pale); border-radius: 10px; }
 .dashboard-quick-actions .detail-section-title { margin: 0; font-size: 20px; }
 .dashboard-quick-actions > div:last-child { display: flex; flex-wrap: wrap; gap: 12px; }
 @media (max-width: 640px) { .dashboard-quick-actions { align-items: flex-start; flex-direction: column; } }
