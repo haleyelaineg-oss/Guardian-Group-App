@@ -13,6 +13,7 @@ const AddressBookPage = lazy(() => import('../features/addressBook/AddressBookPa
 const FinancialOverviewPage = lazy(() => import('../features/financial/FinancialOverviewPage.jsx'));
 const IncomePage = lazy(() => import('../features/financial/IncomePage.jsx'));
 const ExpensesPage = lazy(() => import('../features/expenses/ExpensesPage.jsx'));
+const ReceiptInboxPage = lazy(() => import('../features/expenses/ReceiptInboxPage.jsx'));
 const QuoteToolPage = lazy(() => import('../features/financial/QuoteToolPage.jsx'));
 const SpeakingListPage = lazy(() => import('../features/speaking/SpeakingListPage.jsx'));
 const SpeakingDetailPage = lazy(() => import('../features/speaking/SpeakingDetailPage.jsx'));
@@ -53,6 +54,7 @@ export const navSections = [
       { label: 'Quotes / Invoices / Receipts', path: '/admin/quotes' },
       { label: 'Income', path: '/admin/income' },
       { label: 'Expenses', path: '/admin/expenses' },
+      { label: 'Receipt Inbox', path: '/admin/receipts' },
     ],
   },
   {
@@ -81,6 +83,7 @@ export const routes = [
   { path: '/admin/financial', element: <FinancialOverviewPage /> },
   { path: '/admin/income', element: <IncomePage /> },
   { path: '/admin/expenses', element: <ExpensesPage /> },
+  { path: '/admin/receipts', element: <ReceiptInboxPage /> },
   { path: '/admin/quotes', element: <QuoteToolPage /> },
   { path: '/admin/speaking', element: <SpeakingListPage /> },
   { path: '/admin/speaking/new', element: <SpeakingCreatePage /> },

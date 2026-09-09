@@ -892,6 +892,10 @@ label.receipt-upload-action { display: inline-flex; align-items: center; }
   font-size: 15px;
   padding: 13px 30px;
 }
+.mileage-section > .field-hint::after {
+  content: " Only business mileage driven in a personal vehicle should be recorded here.";
+}
+.receipt-new-expense { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 8px; margin-top: 8px; }
 
 /* Engagement billing and expense actions need a little separation from
    the financial summary/table that follows. */

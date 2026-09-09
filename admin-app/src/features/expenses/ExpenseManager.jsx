@@ -16,7 +16,7 @@ function reimbursementLabel(expense) {
   return status === 'partial' ? `${label} · ${formatCurrency(reimbursementReceived(expense))} of ${formatCurrency(expense.amount)}` : label;
 }
 
-function ExpenseForm({ values, setValues }) {
+export function ExpenseForm({ values, setValues }) {
   const set = (key, value) => setValues((old) => {
     if (key === 'expense_type') return { ...old, expense_type: value, category: categoryForExpenseType(value) };
     if (key === 'reimbursement_status') return { ...old, reimbursement_status: value, reimbursable: value !== 'not_applicable', reimbursement_amount: value === 'not_applicable' ? '' : value === 'reimbursed' && old.reimbursement_amount === '' ? old.amount : old.reimbursement_amount };
