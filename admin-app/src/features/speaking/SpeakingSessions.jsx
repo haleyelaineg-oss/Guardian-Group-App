@@ -4,12 +4,24 @@ import { createSpeakingSession, deleteSpeakingSession, fetchSpeakingSessions, up
 
 const BLANK = { title: '', session_type: '', starts_at: '', ends_at: '', speakers: '', description: '', learning_objectives: '', av_requirements: '' };
 
+function toLocalDateTimeInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function toUtcTimestamp(value) {
+  return value ? new Date(value).toISOString() : null;
+}
+
 function formValues(row) {
   return {
     title: row.title || '',
     session_type: row.session_type || '',
-    starts_at: row.starts_at ? row.starts_at.slice(0, 16) : '',
-    ends_at: row.ends_at ? row.ends_at.slice(0, 16) : '',
+    starts_at: toLocalDateTimeInput(row.starts_at),
+    ends_at: toLocalDateTimeInput(row.ends_at),
     speakers: Array.isArray(row.speakers) ? row.speakers.map((speaker) => typeof speaker === 'string' ? speaker : speaker.name).filter(Boolean).join(', ') : '',
     description: row.description || '',
     learning_objectives: row.learning_objectives || '',
@@ -37,8 +49,8 @@ export default function SpeakingSessions({ eventId }) {
       ...values,
       title: values.title.trim(),
       session_type: values.session_type.trim() || null,
-      starts_at: values.starts_at || null,
-      ends_at: values.ends_at || null,
+      starts_at: toUtcTimestamp(values.starts_at),
+      ends_at: toUtcTimestamp(values.ends_at),
       speakers: values.speakers.split(',').map((speaker) => speaker.trim()).filter(Boolean),
       description: values.description.trim() || null,
       learning_objectives: values.learning_objectives.trim() || null,

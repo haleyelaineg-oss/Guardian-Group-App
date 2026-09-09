@@ -7,6 +7,7 @@ import DocumentManager from '../documents/DocumentManager.jsx';
 import EngagementFinancials from '../financial/EngagementFinancials.jsx';
 import { createEvent, deleteEvent, fetchEvent, updateEvent } from './eventsService.js';
 import { formatLabel } from '../../utils/format.js';
+import AddressBookContactSelect from '../../components/AddressBookContactSelect.jsx';
 const blank = {
   title: '',
   event_type: 'other',
@@ -14,6 +15,8 @@ const blank = {
   starts_at: null,
   ends_at: null,
   all_day: true,
+  company_id: '',
+  contact_participant_id: '',
   location: '',
   link_url: '',
   income_amount: null,
@@ -71,6 +74,8 @@ function Overview({
     starts_at: event.starts_at ? event.starts_at.slice(0, 16) : '',
     ends_at: event.ends_at ? event.ends_at.slice(0, 16) : '',
     all_day: !!event.all_day,
+    company_id: event.company_id || '',
+    contact_participant_id: event.contact_participant_id || '',
     location: event.location || '',
     link_url: event.link_url || '',
     income_amount: event.income_amount ?? '',
@@ -87,6 +92,8 @@ function Overview({
       title: v.title.trim(),
       starts_at: v.starts_at,
       ends_at: v.ends_at || null,
+      company_id: v.company_id || null,
+      contact_participant_id: v.contact_participant_id || null,
       location: v.location.trim() || null,
       link_url: v.link_url.trim() || null,
       income_amount: v.income_amount === '' ? null : Number(v.income_amount),
@@ -97,5 +104,6 @@ function Overview({
       await onSaved();
     }
   }
-  return <section><div className="fields-grid"><label className="field-group half"><span className="field-label">Title</span><input className="field-input" value={v.title} onChange={e => set('title', e.target.value)} /></label><label className="field-group half"><span className="field-label">Type</span><select className="field-input" value={v.event_type} onChange={e => set('event_type', e.target.value)}>{['workshop', 'travel', 'meeting', 'speaking', 'training', 'other'].map(type => <option key={type} value={type}>{formatLabel(type)}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{['application_sent', 'application_denied', 'planning', 'confirmed', 'cancelled', 'completed'].map(status => <option key={status} value={status}>{formatLabel(status)}</option>)}</select></label><label className="field-group half"><span className="field-label">All day</span><input type="checkbox" checked={v.all_day} onChange={e => set('all_day', e.target.checked)} /></label><label className="field-group half"><span className="field-label">Starts</span><input className="field-input" type="datetime-local" value={v.starts_at} onChange={e => set('starts_at', e.target.value)} /></label><label className="field-group half"><span className="field-label">Ends</span><input className="field-input" type="datetime-local" value={v.ends_at} onChange={e => set('ends_at', e.target.value)} /></label><label className="field-group half"><span className="field-label">Location</span><input className="field-input" value={v.location} onChange={e => set('location', e.target.value)} /></label><label className="field-group half"><span className="field-label">Engagement value</span><input className="field-input" type="number" value={v.income_amount} onChange={e => set('income_amount', e.target.value)} /></label><label className="field-group full"><span className="field-label">Link</span><input className="field-input" type="url" value={v.link_url} onChange={e => set('link_url', e.target.value)} /></label><label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label={creating ? 'Create Event →' : 'Save Event →'} />{onDelete && <button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Event</button>}</div></section>;
+  const chooseAddressBookContact = (contact) => setV((current) => ({ ...current, contact_participant_id: contact?.id || '', company_id: contact?.company_id || current.company_id }));
+  return <section><div className="fields-grid"><label className="field-group half"><span className="field-label">Title</span><input className="field-input" value={v.title} onChange={e => set('title', e.target.value)} /></label><label className="field-group half"><span className="field-label">Type</span><select className="field-input" value={v.event_type} onChange={e => set('event_type', e.target.value)}>{['workshop', 'travel', 'meeting', 'speaking', 'training', 'other'].map(type => <option key={type} value={type}>{formatLabel(type)}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{['application_sent', 'application_denied', 'planning', 'confirmed', 'cancelled', 'completed'].map(status => <option key={status} value={status}>{formatLabel(status)}</option>)}</select></label><label className="field-group half"><span className="field-label">All day</span><input type="checkbox" checked={v.all_day} onChange={e => set('all_day', e.target.checked)} /></label><label className="field-group half"><span className="field-label">Starts</span><input className="field-input" type="datetime-local" value={v.starts_at} onChange={e => set('starts_at', e.target.value)} /></label><label className="field-group half"><span className="field-label">Ends</span><input className="field-input" type="datetime-local" value={v.ends_at} onChange={e => set('ends_at', e.target.value)} /></label><label className="field-group half"><span className="field-label">Location</span><input className="field-input" value={v.location} onChange={e => set('location', e.target.value)} /></label><label className="field-group half"><span className="field-label">Engagement value</span><input className="field-input" type="number" value={v.income_amount} onChange={e => set('income_amount', e.target.value)} /></label><AddressBookContactSelect value={v.contact_participant_id} onChange={chooseAddressBookContact} className="field-group full" /><label className="field-group full"><span className="field-label">Link</span><input className="field-input" type="url" value={v.link_url} onChange={e => set('link_url', e.target.value)} /></label><label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label={creating ? 'Create Event →' : 'Save Event →'} />{onDelete && <button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Event</button>}</div></section>;
 }

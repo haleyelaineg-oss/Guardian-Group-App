@@ -3,10 +3,11 @@ import { supabase } from '../../lib/supabase.js';
 function fail(error) { if (error) throw error; }
 
 export async function fetchIncomeWorkspace() {
-  const [incomes, links, allocations, candidates, companies, events, trainings, speaking, itinerary] = await Promise.all([
+  const [incomes, links, allocations, attachments, candidates, companies, events, trainings, speaking, itinerary] = await Promise.all([
     supabase.from('income').select('*').order('expected_on', { ascending: true }),
     supabase.from('income_document_links').select('income_id,allocated_amount,documents(id,doc_number,doc_type,status,due_date,total,client_name)'),
     supabase.from('payment_allocations').select('income_id,document_id,allocated_amount,payments(direction,received_at,payment_method)'),
+    supabase.from('income_attachments').select('*').order('created_at', { ascending: false }),
     supabase.from('income_reconciliation_candidates').select('id,left_income_id,right_income_id,match_basis,status,notes').eq('status', 'pending'),
     supabase.from('companies').select('id,name').order('name'),
     supabase.from('events').select('id,title,event_type,starts_at').order('starts_at', { ascending: false }),
@@ -14,8 +15,33 @@ export async function fetchIncomeWorkspace() {
     supabase.from('speaking_engagements').select('id,event_name,event_start_date').order('event_start_date', { ascending: false }),
     supabase.from('event_itinerary_items').select('id,event_id,title,starts_at').order('starts_at', { ascending: false }),
   ]);
-  [incomes, links, allocations, candidates, companies, events, trainings, speaking, itinerary].forEach((result) => fail(result.error));
-  return { incomes: incomes.data || [], links: links.data || [], allocations: allocations.data || [], candidates: candidates.data || [], companies: companies.data || [], events: events.data || [], trainings: trainings.data || [], speaking: speaking.data || [], itinerary: itinerary.data || [] };
+  [incomes, links, allocations, attachments, candidates, companies, events, trainings, speaking, itinerary].forEach((result) => fail(result.error));
+  return { incomes: incomes.data || [], links: links.data || [], allocations: allocations.data || [], attachments: attachments.data || [], candidates: candidates.data || [], companies: companies.data || [], events: events.data || [], trainings: trainings.data || [], speaking: speaking.data || [], itinerary: itinerary.data || [] };
+}
+
+export async function uploadIncomeAttachment(incomeId, file) {
+  const storagePath = `${incomeId}/${crypto.randomUUID()}-${file.name}`;
+  const { error: uploadError } = await supabase.storage.from('income-attachments').upload(storagePath, file);
+  fail(uploadError);
+  const { data, error } = await supabase.from('income_attachments').insert({ income_id: incomeId, file_name: file.name, file_size: file.size, storage_path: storagePath }).select().single();
+  if (error) {
+    await supabase.storage.from('income-attachments').remove([storagePath]);
+    fail(error);
+  }
+  return data;
+}
+
+export async function incomeAttachmentUrl(storagePath) {
+  const { data, error } = await supabase.storage.from('income-attachments').createSignedUrl(storagePath, 300);
+  fail(error);
+  return data.signedUrl;
+}
+
+export async function deleteIncomeAttachment(attachment) {
+  const { error } = await supabase.from('income_attachments').delete().eq('id', attachment.id);
+  fail(error);
+  const { error: storageError } = await supabase.storage.from('income-attachments').remove([attachment.storage_path]);
+  fail(storageError);
 }
 
 export async function createCanonicalIncome(values) { const { data, error } = await supabase.from('income').insert(values).select().single(); fail(error); return data; }

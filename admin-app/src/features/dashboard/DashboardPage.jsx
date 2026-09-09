@@ -94,7 +94,11 @@ export default function DashboardPage() {
       (trainingOptions.data || []).forEach((training) => targets.set(training.event_id, { id: training.event_id, label: `${training.title} · Training` }));
       (speakingOptions.data || []).forEach((speaking) => targets.set(speaking.event_id, { id: speaking.event_id, label: `${speaking.event_name} · Speaking engagement` }));
       const summary = canonicalIncomeSummary({ incomes: incomes.data || [], links: links.data || [], paymentAllocations: paymentAllocations.data || [] });
-      setData({ events: events.data || [], tasks: tasks.data || [], eventOptions: [...targets.values()].sort((a, b) => a.label.localeCompare(b.label)), speaking: speaking.count || 0, trainings: trainings.count || 0, revenue: { booked: summary.confirmed, earned: summary.invoiced, accountsReceivable: summary.receivable, collected: summary.received } });
+      const pendingReceivable = (incomes.data || []).filter((income) => income.certainty_status === 'confirmed').reduce((total, income) => {
+        const received = (paymentAllocations.data || []).filter((allocation) => allocation.income_id === income.id).reduce((sum, allocation) => sum + (allocation.payments?.direction === 'refund' ? -1 : 1) * Number(allocation.allocated_amount || 0), 0);
+        return total + Math.max(0, Number(income.amount || 0) - received);
+      }, 0);
+      setData({ events: events.data || [], tasks: tasks.data || [], eventOptions: [...targets.values()].sort((a, b) => a.label.localeCompare(b.label)), speaking: speaking.count || 0, trainings: trainings.count || 0, revenue: { booked: summary.confirmed, earned: summary.invoiced, accountsReceivable: pendingReceivable, collected: summary.received } });
     } catch (err) { setError(err); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
