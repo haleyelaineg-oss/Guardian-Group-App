@@ -14,6 +14,7 @@ const FinancialOverviewPage = lazy(() => import('../features/financial/Financial
 const IncomePage = lazy(() => import('../features/financial/IncomePage.jsx'));
 const ExpensesPage = lazy(() => import('../features/expenses/ExpensesPage.jsx'));
 const ReceiptInboxPage = lazy(() => import('../features/expenses/ReceiptInboxPage.jsx'));
+const MobileReceiptCapturePage = lazy(() => import('../features/expenses/MobileReceiptCapturePage.jsx'));
 const QuoteToolPage = lazy(() => import('../features/financial/QuoteToolPage.jsx'));
 const SpeakingListPage = lazy(() => import('../features/speaking/SpeakingListPage.jsx'));
 const SpeakingDetailPage = lazy(() => import('../features/speaking/SpeakingDetailPage.jsx'));
@@ -84,6 +85,7 @@ export const routes = [
   { path: '/admin/income', element: <IncomePage /> },
   { path: '/admin/expenses', element: <ExpensesPage /> },
   { path: '/admin/receipts', element: <ReceiptInboxPage /> },
+  { path: '/admin/receipts/capture', element: <MobileReceiptCapturePage /> },
   { path: '/admin/quotes', element: <QuoteToolPage /> },
   { path: '/admin/speaking', element: <SpeakingListPage /> },
   { path: '/admin/speaking/new', element: <SpeakingCreatePage /> },

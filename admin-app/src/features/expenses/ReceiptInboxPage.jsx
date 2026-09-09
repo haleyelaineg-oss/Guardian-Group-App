@@ -22,11 +22,14 @@ export default function ReceiptInboxPage() {
   const [error, setError] = useState(null);
   const reload = async () => { setLoading(true); try { const [inbox, choices, eventChoices] = await Promise.all([fetchReceiptInbox(), fetchExpenseChoices(), fetchReceiptEvents()]); setReceipts(inbox); setExpenses(choices); setEvents(eventChoices); setError(null); } catch (err) { setError(err); } finally { setLoading(false); } };
   useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    setSelections((current) => Object.fromEntries(receipts.map((receipt) => [receipt.id, { eventId: receipt.related_event_id || '', ...current[receipt.id] }])));
+  }, [receipts]);
   const setSelection = (receiptId, key, value) => setSelections((current) => ({ ...current, [receiptId]: { ...current[receiptId], [key]: value, ...(key === 'eventId' ? { expenseId: '' } : {}) } }));
   const upload = async () => { const file = inputRef.current?.files?.[0]; if (!file) throw new Error('Choose a receipt image or PDF first.'); await uploadInboxReceipt(file); };
   const uploaded = async () => { inputRef.current.value = ''; await reload(); };
   const view = async (receipt) => { window.open(await getInboxReceiptUrl(receipt.storage_path), '_blank', 'noopener'); };
-  const openNewExpense = (receipt) => { setReceiptToCreate(receipt); setNewExpense(blankExpense()); };
+  const openNewExpense = (receipt) => { setReceiptToCreate(receipt); setNewExpense({ ...blankExpense(), description: receipt.suggested_description || '', amount: receipt.suggested_amount == null ? '' : String(receipt.suggested_amount), category: receipt.suggested_category || 'other_business_expense', expense_type: receipt.suggested_expense_type || 'other', status: receipt.suggested_status || 'paid', reimbursement_status: receipt.suggested_reimbursement_status || 'not_applicable' }); };
   const saveNewExpense = async () => {
     const selected = selection[receiptToCreate.id] || {};
     if (!newExpense.description.trim() || newExpense.amount === '') throw new Error('Description and amount are required.');

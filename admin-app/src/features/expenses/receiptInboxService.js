@@ -26,11 +26,11 @@ export async function createGeneralReceiptExpense(values) {
   return createGeneralExpense(values);
 }
 
-export async function uploadInboxReceipt(file) {
+export async function uploadInboxReceipt(file, values = {}) {
   const path = `unprocessed/${crypto.randomUUID()}-${file.name}`;
   const { error: uploadError } = await supabase.storage.from('receipt-inbox').upload(path, file);
   fail(uploadError);
-  const { error } = await supabase.from('receipt_inbox').insert({ file_name: file.name, file_size: file.size, storage_path: path });
+  const { error } = await supabase.from('receipt_inbox').insert({ file_name: file.name, file_size: file.size, storage_path: path, ...values });
   if (error) {
     await supabase.storage.from('receipt-inbox').remove([path]);
     throw error;

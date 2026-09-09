@@ -106,7 +106,7 @@ export default function DashboardPage() {
     button.className = 'btn btn-primary';
     button.textContent = '+ Add Receipt';
     button.dataset.receiptInboxAction = 'true';
-    const openInbox = () => navigate('/admin/receipts');
+    const openInbox = () => navigate(window.matchMedia('(max-width: 640px)').matches ? '/admin/receipts/capture' : '/admin/receipts');
     button.addEventListener('click', openInbox);
     actions.append(button);
     return () => { button.removeEventListener('click', openInbox); button.remove(); };
