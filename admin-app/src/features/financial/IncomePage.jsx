@@ -58,11 +58,16 @@ function InvoiceNumbers({ links, onOpen }) {
 }
 
 function IncomeTable({ data, navigate, onRecordPayment }) {
+  const generateReceipt = (income, totals) => {
+    const latestPayment = data.allocations.filter((allocation) => allocation.income_id === income.id && allocation.payments?.direction !== 'refund').sort((a, b) => String(b.payments?.received_at || '').localeCompare(String(a.payments?.received_at || '')))[0];
+    const params = new URLSearchParams({ new: 'receipt', incomeId: income.id, amount: String(totals.received), description: income.description || 'Payment received', ...(income.company_id ? { companyId: income.company_id } : {}), ...(latestPayment?.payments?.received_at ? { receivedAt: latestPayment.payments.received_at.slice(0, 10) } : {}) });
+    navigate(`/admin/quotes?${params}`);
+  };
   return <div className="responses-table-wrap income-table-wrap"><table className="responses-table"><thead><tr><th>Item</th><th>Invoice Status</th><th>Invoice Number</th><th>Amount</th><th>Amount Due</th><th>Amount Paid</th><th>Due Date</th><th></th></tr></thead><tbody>{data.incomes.map((income) => {
     const totals = summary(income, data.links, data.allocations);
     const source = linkedSource(income, data);
     const dueDates = [...new Set(totals.invoiceLinks.map((link) => link.documents?.due_date).filter(Boolean))];
-    return <tr key={income.id}><td>{source ? <button className="income-item-link" onClick={() => navigate(source.path)}>{income.description || source.label}</button> : <strong>{income.description}</strong>}{source && income.description && income.description !== source.label && <div className="field-hint">{source.label}</div>}</td><td>{invoiceStatus(income, totals)}</td><td><InvoiceNumbers links={totals.invoiceLinks} onOpen={(documentId) => navigate(`/admin/quotes?doc=${documentId}`)} /></td><td>{formatCurrency(income.amount)}</td><td>{formatCurrency(totals.amountDue)}</td><td>{formatCurrency(totals.received)}</td><td>{dueDates.length ? dueDates.map(formatDate).join(', ') : '—'}</td><td><button className="btn-sm btn-sm-ghost" onClick={() => onRecordPayment(income, totals.amountDue)}>Record Payment</button></td></tr>;
+    return <tr key={income.id}><td>{source ? <button className="income-item-link" onClick={() => navigate(source.path)}>{income.description || source.label}</button> : <strong>{income.description}</strong>}{source && income.description && income.description !== source.label && <div className="field-hint">{source.label}</div>}</td><td>{invoiceStatus(income, totals)}</td><td><InvoiceNumbers links={totals.invoiceLinks} onOpen={(documentId) => navigate(`/admin/quotes?doc=${documentId}`)} /></td><td>{formatCurrency(income.amount)}</td><td>{formatCurrency(totals.amountDue)}</td><td>{formatCurrency(totals.received)}</td><td>{dueDates.length ? dueDates.map(formatDate).join(', ') : '—'}</td><td><button className="btn-sm btn-sm-ghost" onClick={() => onRecordPayment(income, totals.amountDue)}>Record Payment</button>{totals.received > 0 && <button className="btn-sm btn-sm-ghost" onClick={() => generateReceipt(income, totals)}>Generate Receipt</button>}</td></tr>;
   })}{data.incomes.length === 0 && <tr><td colSpan="8">No Income records yet.</td></tr>}</tbody></table></div>;
 }
 

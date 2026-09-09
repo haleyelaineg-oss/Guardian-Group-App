@@ -98,6 +98,19 @@ export default function DashboardPage() {
     } catch (err) { setError(err); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    if (!data) return undefined;
+    const actions = document.querySelector('.dashboard-quick-actions > div:last-child');
+    if (!actions || actions.querySelector('[data-receipt-inbox-action]')) return undefined;
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.textContent = '+ Add Receipt';
+    button.dataset.receiptInboxAction = 'true';
+    const openInbox = () => navigate('/admin/receipts');
+    button.addEventListener('click', openInbox);
+    actions.append(button);
+    return () => { button.removeEventListener('click', openInbox); button.remove(); };
+  }, [data, navigate]);
   const openCalendarResource = async (event) => {
     if (!['speaking', 'training'].includes(event.event_type)) return navigate(`/admin/events/${event.id}`);
     try { const engagement = await engagementForEvent(event.id, event.event_type); if (engagement) return navigate(`/admin/${event.event_type === 'speaking' ? 'speaking' : 'trainings'}/${engagement.id}`); } catch { /* Fall through to Event workspace. */ }

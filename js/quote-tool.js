@@ -273,9 +273,23 @@ async function init() {
     state.listStatusFilter = params.get('status') || 'all';
     qtOpenDocumentsList();
   } else {
-    resetToBlank(params.get('new') === 'invoice' ? 'invoice' : 'quote');
-    if (params.get('source') && params.get('sourceId')) await qtApplyEngagementContext(params);
+    const newMode = ['invoice', 'receipt'].includes(params.get('new')) ? params.get('new') : 'quote';
+    resetToBlank(newMode);
+    if (newMode === 'receipt') qtApplyIncomeReceiptContext(params);
+    else if (params.get('source') && params.get('sourceId')) await qtApplyEngagementContext(params);
   }
+}
+
+function qtApplyIncomeReceiptContext(params) {
+  const amount = Number(params.get('amount') || 0);
+  state.status = 'issued';
+  state.datePaid = params.get('receivedAt') || todayIso();
+  state.amountPaid = String(amount);
+  state.incomeId = params.get('incomeId') || null;
+  state.incomeAllocation = String(amount);
+  state.items = [{ id: 1, date: '', description: params.get('description') || 'Payment received', type: 'flat', qty: '1', rate: String(amount) }];
+  if (params.get('companyId')) qtSelectClientOption(params.get('companyId'));
+  render();
 }
 
 // ── Data loading ─────────────────────────────────────────────
