@@ -101,9 +101,6 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
           );
         })}
 
-        <a className="nav-item" href="/resources/" target="_blank" rel="noopener noreferrer" onClick={onNavigate}>
-          <LibraryBig className="lucide-nav-icon" size={18} /> Resource Library
-        </a>
       </nav>
 
       <div className="sidebar-footer">

@@ -172,6 +172,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   letter-spacing: inherit;
   cursor: pointer;
   text-align: left;
+  white-space: nowrap;
   border-radius: 8px 0 0 8px;
 }
 .nav-group-caret-btn {
@@ -338,6 +339,11 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   margin-top: 4px;
   margin-bottom: 10px;
 }
+.resource-library-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.resource-library-card { background: var(--gg-white); border: 1px solid var(--gg-pale); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.resource-library-card h2 { margin: 0; color: var(--gg-dark); font-family: var(--font-display); font-size: 22px; }
+.resource-library-card p { margin: 0; color: var(--gg-muted); flex: 1; }
+@media (max-width: 620px) { .resource-library-grid { grid-template-columns: 1fr; } }
 
 /* ── STAT CARDS ──────────────────────────────────────────── */
 .stat-cards {
@@ -749,6 +755,7 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
   border: 1px solid var(--gg-pale);
 }
 .btn-sm-ghost:hover { border-color: var(--gg-steel); color: var(--gg-dark); }
+.session-add-button { margin-bottom: 14px; }
 .btn-sm-danger { background: #fdf0ef; color: #c0392b; border: 1px solid #f5c6c2; }
 .btn-sm-danger:hover { background: #f9dbd8; }
 
@@ -789,7 +796,12 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .income-fields-grid + .responses-table-wrap + .create-form-actions { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; }
 .income-fields-grid + .responses-table-wrap + .create-form-actions .btn { width: 100%; color: var(--gg-white); background: var(--gg-mid); }
 .income-fields-grid + .responses-table-wrap + .create-form-actions .btn:hover { background: var(--gg-dark); }
-.invoice-number-link, .income-item-link { padding: 0; color: var(--gg-mid); background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; }
+.invoice-number-link, .income-item-link { padding: 0; color: var(--gg-mid); background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; text-align: left; }
+.income-table-wrap .responses-table th:first-child,
+.income-table-wrap .responses-table td:first-child { text-align: left; }
+.income-table-wrap .responses-table th:last-child,
+.income-table-wrap .responses-table td:last-child { min-width: 168px; }
+.income-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .invoice-number-link + .invoice-number-link::before { content: ', '; color: var(--gg-text); text-decoration: none; }
 .engagement-financials > section + section { border-top: 1px solid var(--gg-pale); margin-top: 28px; padding-top: 28px; }
 .expense-section-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }

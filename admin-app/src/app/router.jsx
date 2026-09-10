@@ -23,6 +23,7 @@ const TrainingListPage = lazy(() => import('../features/trainings/TrainingListPa
 const TrainingDetailPage = lazy(() => import('../features/trainings/TrainingDetailPage.jsx'));
 const SessionsPage = lazy(() => import('../features/sessions/SessionsPage.jsx'));
 const SessionDetailPage = lazy(() => import('../features/sessions/SessionDetailPage.jsx'));
+const ResourceLibraryPage = lazy(() => import('../features/resources/ResourceLibraryPage.jsx'));
 
 // Nav-visible sections, used to render the Sidebar.
 export const navSections = [
@@ -30,15 +31,6 @@ export const navSections = [
     icon: 'shield-check',
     label: 'Dashboard',
     path: '/admin',
-  },
-    {
-    icon: 'users-round',
-    label: 'Clients',
-    path: '/admin/clients',
-    children: [
-      { label: 'Client List', path: '/admin/clients' },
-      { label: 'Address Book', path: '/admin/address-book' },
-    ],
   },
   {
     icon: 'calendar-days',
@@ -48,6 +40,16 @@ export const navSections = [
       { label: 'Events', path: '/admin/events' },
       { label: 'Tasks', path: '/admin/tasks' },
     ],
+  },
+  {
+    icon: 'presentation',
+    label: 'Speaking Engagements',
+    path: '/admin/speaking',
+  },
+  {
+    icon: 'graduation-cap',
+    label: 'Trainings',
+    path: '/admin/trainings',
   },
   {
     icon: 'receipt',
@@ -61,19 +63,24 @@ export const navSections = [
     ],
   },
   {
-    icon: 'presentation',
-    label: 'Speaking Engagements',
-    path: '/admin/speaking',
+    icon: 'users-round',
+    label: 'Clients',
+    path: '/admin/clients',
+    children: [
+      { label: 'Client List', path: '/admin/clients' },
+      { label: 'Address Book', path: '/admin/address-book' },
+    ],
   },
   {
     icon: 'library-big',
-    label: 'Sessions',
-    path: '/admin/sessions',
-  },
-  {
-    icon: 'graduation-cap',
-    label: 'Trainings',
-    path: '/admin/trainings',
+    label: 'Resource Library',
+    path: '/admin/resources',
+    children: [
+      { label: 'Sessions & Presentations', path: '/admin/sessions' },
+      { label: 'Printables', path: '/admin/resources/printables' },
+      { label: 'Digital Tools', path: '/admin/resources/digital-tools' },
+      { label: 'Training Materials', path: '/admin/resources/training-materials' },
+    ],
   },
 ];
 
@@ -99,6 +106,8 @@ export const routes = [
   { path: '/admin/speaking/:id', element: <SpeakingDetailPage /> },
   { path: '/admin/sessions', element: <SessionsPage /> },
   { path: '/admin/sessions/:id', element: <SessionDetailPage /> },
+  { path: '/admin/resources', element: <ResourceLibraryPage /> },
+  { path: '/admin/resources/:category', element: <ResourceLibraryPage /> },
   { path: '/admin/trainings', element: <TrainingListPage /> },
   { path: '/admin/trainings/:id', element: <TrainingDetailPage /> },
 ];
