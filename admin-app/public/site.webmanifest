@@ -3,8 +3,8 @@
   "short_name": "Guardian Group",
   "start_url": "/admin/",
   "display": "standalone",
-  "background_color": "#12384f",
-  "theme_color": "#12384f",
+  "background_color": "#2A5C76",
+  "theme_color": "#2A5C76",
   "icons": [
     {
       "src": "/icon-192.png",
