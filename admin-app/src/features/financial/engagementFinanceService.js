@@ -21,12 +21,12 @@ export async function loadEngagementFinance({ sourceType, sourceId }) {
   return { income, links: links.data || [], allocations: allocations.data || [], ambiguous: [] };
 }
 
-export async function saveEngagementValue({ sourceType, sourceId, companyId, title, amount, certaintyStatus, expectedOn }) {
+export async function saveEngagementValue({ sourceType, sourceId, companyId, title, amount, certaintyStatus = 'confirmed', paymentPath, expectedOn }) {
   const field = sourceField[sourceType];
   if (!field || !sourceId) throw new Error('Save the engagement before setting its value.');
   const current = await loadEngagementFinance({ sourceType, sourceId });
   if (current.ambiguous.length) throw new Error('This engagement has multiple active service-revenue records. Resolve them in Income before changing its value.');
-  const payload = { amount: number(amount), certainty_status: certaintyStatus, company_id: companyId || null, description: title || 'Engagement value', expected_on: expectedOn || null };
+  const payload = { amount: number(amount), certainty_status: certaintyStatus, payment_path: paymentPath || (sourceType === 'training' ? 'invoice' : 'direct'), company_id: companyId || null, description: title || 'Engagement value', expected_on: expectedOn || null };
   if (current.income) {
     const { error } = await supabase.from('income').update(payload).eq('id', current.income.id); fail(error);
     return current.income.id;

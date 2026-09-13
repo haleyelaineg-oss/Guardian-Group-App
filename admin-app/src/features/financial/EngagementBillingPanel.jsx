@@ -4,11 +4,11 @@ import SaveButton from '../../components/SaveButton.jsx';
 import { formatCurrency, todayIsoDate } from '../../utils/format.js';
 import { engagementTotals, loadEngagementFinance, recordEngagementPayment, saveEngagementValue } from './engagementFinanceService.js';
 
-export default function EngagementBillingPanel({ sourceType, sourceId, eventId, companyId, title, expectedOn, initialValue, initialCertainty = 'potential', onValueSaved }) {
+export default function EngagementBillingPanel({ sourceType, sourceId, eventId, companyId, title, expectedOn, initialValue, initialCertainty = 'confirmed', onValueSaved }) {
   const navigate = useNavigate();
   const [finance, setFinance] = useState(null);
   const [value, setValue] = useState(initialValue ?? '');
-  const [certainty, setCertainty] = useState(initialCertainty);
+  const [certainty, setCertainty] = useState(initialCertainty === 'potential' ? 'confirmed' : initialCertainty);
   const [showPayment, setShowPayment] = useState(false);
   const [payment, setPayment] = useState({ amount: '', documentId: '', receivedAt: todayIsoDate(), paymentMethod: '', reference: '', notes: '' });
   const reload = useCallback(async () => { const next = await loadEngagementFinance({ sourceType, sourceId }); setFinance(next); if (next.income) { setValue(next.income.amount); setCertainty(next.income.certainty_status); } }, [sourceType, sourceId]);

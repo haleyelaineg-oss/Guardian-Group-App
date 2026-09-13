@@ -19,6 +19,26 @@ begin
   where id = p_document_id;
 end $$;
 
+-- Payment route is operational metadata, separate from revenue and payment
+-- status. Speaking defaults to direct payment; training defaults to invoice.
+alter table income add column if not exists payment_path text;
+update income
+set payment_path = case
+  when source_type = 'speaking' then 'direct'
+  when source_type = 'training' then 'invoice'
+  else 'direct'
+end
+where payment_path is null;
+alter table income alter column payment_path set default 'direct';
+alter table income alter column payment_path set not null;
+alter table income drop constraint if exists income_payment_path_check;
+alter table income add constraint income_payment_path_check check (payment_path in ('invoice', 'direct', 'no_charge'));
+
+-- Prospects remain on their event/engagement record; they are not financial
+-- records. New income is confirmed by default. Existing potential rows are
+-- retained for history but excluded from financial summaries.
+alter table income alter column certainty_status set default 'confirmed';
+
 create or replace function public.sync_invoice_payment_summary_from_allocation()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
