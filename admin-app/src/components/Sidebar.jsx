@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   ShieldCheck, CalendarDays, Receipt, UsersRound, Presentation,
-  GraduationCap, ChevronDown, LibraryBig,
+  GraduationCap, ChevronDown, LibraryBig, Settings,
 } from 'lucide-react';
 import { navSections } from '../app/router.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -15,6 +15,7 @@ const ICONS = {
   presentation: Presentation,
   'graduation-cap': GraduationCap,
   'library-big': LibraryBig,
+  settings: Settings,
 };
 
 export default function Sidebar({ isOpen = false, onNavigate }) {

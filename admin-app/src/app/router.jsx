@@ -24,6 +24,7 @@ const TrainingDetailPage = lazy(() => import('../features/trainings/TrainingDeta
 const SessionsPage = lazy(() => import('../features/sessions/SessionsPage.jsx'));
 const SessionDetailPage = lazy(() => import('../features/sessions/SessionDetailPage.jsx'));
 const ResourceLibraryPage = lazy(() => import('../features/resources/ResourceLibraryPage.jsx'));
+const SettingsPage = lazy(() => import('../features/settings/SettingsPage.jsx'));
 
 // Nav-visible sections, used to render the Sidebar.
 export const navSections = [
@@ -82,6 +83,11 @@ export const navSections = [
       { label: 'Training Materials', path: '/admin/resources/training-materials' },
     ],
   },
+  {
+    icon: 'settings',
+    label: 'Settings',
+    path: '/admin/settings',
+  },
 ];
 
 // Every routable path, including detail routes that aren't nav items.
@@ -110,4 +116,5 @@ export const routes = [
   { path: '/admin/resources/:category', element: <ResourceLibraryPage /> },
   { path: '/admin/trainings', element: <TrainingListPage /> },
   { path: '/admin/trainings/:id', element: <TrainingDetailPage /> },
+  { path: '/admin/settings', element: <SettingsPage /> },
 ];

@@ -285,23 +285,10 @@ async function init() {
     state.listStatusFilter = params.get('status') || 'all';
     qtOpenDocumentsList();
   } else {
-    const newMode = ['invoice', 'receipt'].includes(params.get('new')) ? params.get('new') : 'quote';
+    const newMode = params.get('new') === 'invoice' ? 'invoice' : 'quote';
     resetToBlank(newMode);
-    if (newMode === 'receipt') qtApplyIncomeReceiptContext(params);
-    else if (params.get('source') && params.get('sourceId')) await qtApplyEngagementContext(params);
+    if (params.get('source') && params.get('sourceId')) await qtApplyEngagementContext(params);
   }
-}
-
-function qtApplyIncomeReceiptContext(params) {
-  const amount = Number(params.get('amount') || 0);
-  state.status = 'issued';
-  state.datePaid = params.get('receivedAt') || todayIso();
-  state.amountPaid = String(amount);
-  state.incomeId = params.get('incomeId') || null;
-  state.incomeAllocation = String(amount);
-  state.items = [{ id: 1, date: '', description: params.get('description') || 'Payment received', type: 'flat', qty: '1', rate: String(amount) }];
-  if (params.get('companyId')) qtSelectClientOption(params.get('companyId'));
-  render();
 }
 
 // ── Data loading ─────────────────────────────────────────────
@@ -362,13 +349,6 @@ function qtOpenDocumentsList(type) {
 function qtCreateNewFromList(mode = 'quote') {
   resetToBlank(mode);
 }
-function qtCreateNewReceipt() {
-  resetToBlank('receipt');
-  state.status = 'issued';
-  state.datePaid = todayIso();
-  render();
-}
-
 // ── Client / catalog interactions ───────────────────────────
 
 function qtSelectClientOption(value) {
@@ -794,79 +774,6 @@ async function qtConvertToInvoice() {
   }
 }
 
-async function qtMarkPaidCreateReceipt() {
-  if (state.mode !== 'invoice' || !state.currentDocId || !sb) return;
-  if (!state.paymentMethod) { flashMessage('Select a payment method first.'); return; }
-  if (state.paymentMethod === 'other' && !(state.paymentMethodOther || '').trim()) {
-    flashMessage('Specify the payment method.');
-    return;
-  }
-  state.saving = true;
-  render();
-  try {
-    const totals = computeTotals(state);
-    const fullAmount = totals.afterDiscount;
-    const paidDate = state.datePaid || todayIso();
-    const outstandingAmount = fullAmount - (parseFloat(state.amountPaid) || 0);
-    if (outstandingAmount > 0.005) {
-      const { error: paymentError } = await sb.rpc('record_invoice_payment', {
-        p_document_id: state.currentDocId,
-        p_amount: outstandingAmount,
-        p_received_at: paidDate,
-        p_payment_method: state.paymentMethod === 'other' ? state.paymentMethodOther : state.paymentMethod,
-        p_notes: state.paymentDetails || null
-      });
-      if (paymentError) throw paymentError;
-    }
-    const { error: detailError } = await sb.from('documents').update({
-      payment_method: state.paymentMethod,
-      payment_method_other: state.paymentMethodOther || null,
-      payment_details: state.paymentDetails || null
-    }).eq('id', state.currentDocId);
-    if (detailError) throw detailError;
-    const { data: numData, error: numErr } = await sb.rpc('next_doc_number', { p_type: 'receipt' });
-    if (numErr) throw numErr;
-    const payload = Object.assign({}, buildDocPayload(totals), {
-      doc_type: 'receipt',
-      doc_number: numData,
-      status: 'issued',
-      due_terms: null,
-      due_date: null,
-      valid_for: null,
-      payment_method: state.paymentMethod,
-      payment_method_other: state.paymentMethodOther || null,
-      date_paid: paidDate,
-      doc_date: formatToday(),
-      amount_paid: fullAmount,
-      balance: 0,
-      notes: state.notesReceipt,
-      parent_doc_id: state.currentDocId,
-      client_id: state.clientId,
-      company_id: state.clientCompanyId || null
-    });
-    const ins = await sb.from('documents').insert(payload).select().single();
-    if (ins.error) throw ins.error;
-    Object.assign(state, {
-      currentDocId: ins.data.id,
-      parentDocId: state.currentDocId,
-      parentDocNumber: state.docNumber,
-      mode: 'receipt',
-      status: 'issued',
-      docNumber: numData,
-      docDate: formatToday(),
-      datePaid: paidDate,
-      amountPaid: fullAmount.toFixed(2),
-      saving: false
-    });
-    render();
-    flashMessage('Receipt created ✓');
-  } catch (e) {
-    state.saving = false;
-    render();
-    flashMessage('Could not create receipt — try again.');
-  }
-}
-
 function resetToBlank(mode) {
   itemIdCounter = 1;
   Object.assign(state, {
@@ -1006,11 +913,11 @@ function renderUnlocked() {
       <div class="qt-topbar" data-noprint>
         <div class="qt-topbar-left">
           <img src="../assets/gg-shield.png" alt="" style="width:22px;height:22px;object-fit:contain;">
-          <div class="qt-eyebrow">Quote &middot; Invoice &middot; Receipt Tool</div>
+          <div class="qt-eyebrow">Quote &middot; Invoice Tool</div>
         </div>
         <div class="qt-topbar-right">
           ${isListView
-            ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('quote')">+ New Quote</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('invoice')">+ New Invoice</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewReceipt()">+ New Receipt</button>`
+            ? `<button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('quote')">+ New Quote</button><button class="qt-btn qt-btn-primary" onclick="qtCreateNewFromList('invoice')">+ New Invoice</button>`
             : `<button class="qt-btn qt-btn-ghost" onclick="qtOpenDocumentsList('all')">All Documents</button>`}
           ${isEditorView ? renderModeTabsAndActions() : ''}
         </div>
@@ -1139,7 +1046,6 @@ function renderEditorView() {
   const showMarkPaid = !isQuote && !isPaidInFull && totals.afterDiscount > 0;
   const showRemainingNote = isReceipt && !isPaidInFull;
   const canConvertToInvoice = isQuote && isSaved;
-  const canMarkPaidReceipt = isInvoice && isSaved && s.status !== 'paid';
   const needsSaveFirst = !isSaved && (isQuote || isInvoice);
   const notes = isQuote ? s.notesQuote : (isInvoice ? s.notesInvoice : s.notesReceipt);
   const notesField = isQuote ? 'notesQuote' : (isInvoice ? 'notesInvoice' : 'notesReceipt');
@@ -1308,7 +1214,6 @@ function renderEditorView() {
           </div>
         </div>` : ''}
         ${canConvertToInvoice ? `<button class="qt-btn-cta-block" data-noprint onclick="qtConvertToInvoice()">Convert to Invoice →</button>` : ''}
-        ${canMarkPaidReceipt ? `<button class="qt-btn-cta-block" data-noprint onclick="qtMarkPaidCreateReceipt()">Mark Paid &amp; Create Receipt →</button>` : ''}
         ${needsSaveFirst ? `<div class="qt-save-first-note" data-noprint>Save this document to convert it or record payment.</div>` : ''}
       </div>
     </div>

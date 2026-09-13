@@ -803,6 +803,26 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .income-table-wrap .responses-table td:last-child { min-width: 168px; }
 .income-table-wrap .income-column-filters th { padding: 8px 6px; background: var(--gg-off); }
 .income-table-wrap .income-column-filters .field-input { width: 100%; min-width: 76px; padding: 6px 7px; font-size: 12px; }
+.income-table-wrap .attachment-delete-button { min-width: 22px; padding: 1px 5px; margin-left: 4px; line-height: 1.1; }
+
+.income-column-filters th:last-child .btn-sm,
+.expense-column-filters th:last-child .btn-sm { font-size: 0; }
+.income-column-filters th:last-child .btn-sm::after,
+.expense-column-filters th:last-child .btn-sm::after { content: 'Clear Filters'; font-size: 12px; }
+
+.settings-page { max-width: 1120px; }
+.settings-intro { display: flex; gap: 12px; align-items: baseline; margin: 0 0 20px; color: var(--gg-text); }
+.settings-intro span { color: var(--gg-muted); }
+.settings-card { margin: 18px 0; padding: 24px; background: #fff; border: 1px solid var(--gg-border); border-radius: 14px; box-shadow: 0 4px 14px rgba(20, 70, 96, .06); }
+.settings-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.settings-card h2 { margin: 0; color: var(--gg-dark); font-size: 21px; }
+.settings-option-list { display: grid; gap: 10px; }
+.settings-option-row { display: grid; grid-template-columns: minmax(180px, 1.3fr) minmax(150px, 1fr) minmax(180px, 1fr) 28px; align-items: end; gap: 10px; }
+.settings-option-row label { display: grid; gap: 4px; min-width: 0; color: var(--gg-muted); font-size: 12px; font-weight: 700; }
+.settings-option-row .settings-delete { min-width: 26px; padding: 4px; line-height: 1; font-size: 18px; }
+.settings-card:first-of-type .settings-option-row { grid-template-columns: minmax(180px, 1.3fr) minmax(150px, 1fr) 28px; }
+.settings-actions { justify-content: space-between; margin-top: 24px; }
+@media (max-width: 760px) { .settings-intro, .settings-card-header { display: grid; } .settings-option-row, .settings-card:first-of-type .settings-option-row { grid-template-columns: 1fr; } .settings-option-row .settings-delete { justify-self: end; } }
 .expenses-table-wrap .expense-column-filters th { padding: 8px 6px; background: var(--gg-off); }
 .expenses-table-wrap .expense-column-filters .field-input { width: 100%; min-width: 92px; padding: 6px 7px; font-size: 12px; }
 .income-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
