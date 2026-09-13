@@ -823,6 +823,10 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .settings-card:first-of-type .settings-option-row { grid-template-columns: minmax(180px, 1.3fr) minmax(150px, 1fr) 28px; }
 .settings-actions { justify-content: space-between; margin-top: 24px; }
 @media (max-width: 760px) { .settings-intro, .settings-card-header { display: grid; } .settings-option-row, .settings-card:first-of-type .settings-option-row { grid-template-columns: 1fr; } .settings-option-row .settings-delete { justify-self: end; } }
+
+/* Revenue is the primary dashboard summary; operational counts live in their
+   respective workspaces rather than occupying the dashboard header. */
+.dashboard-operations-grid { display: none; }
 .expenses-table-wrap .expense-column-filters th { padding: 8px 6px; background: var(--gg-off); }
 .expenses-table-wrap .expense-column-filters .field-input { width: 100%; min-width: 92px; padding: 6px 7px; font-size: 12px; }
 .income-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }

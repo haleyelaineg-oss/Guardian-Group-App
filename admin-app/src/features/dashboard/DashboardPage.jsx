@@ -20,7 +20,9 @@ function eventWhen(event) {
 }
 
 function RevenueCard({ value, label, sub, danger = false, accent = false }) {
-  return <div className={`stat-card ${danger ? 'accent-danger' : accent ? 'accent' : ''}`}><div className="stat-value">{formatCurrency(value)}</div><div className="stat-label">{label}</div><div className="stat-sub">{sub}</div></div>;
+  const snapshot = { 'Total Revenue': ['YTD Revenue Received', 'payments received this year'], 'Earned Revenue': ['Planned Income / Pending Payments', 'confirmed income not yet received'], 'Accounts Receivable': ['Due in the Next 30 Days', 'open invoice balances'], 'Collected Revenue': ['Past Due Invoices', 'open invoice balances'] }[label] || [label, sub];
+  const pastDue = label === 'Collected Revenue';
+  return <div className={`stat-card ${danger || pastDue ? 'accent-danger' : accent ? 'accent' : ''}`}><div className="stat-value">{formatCurrency(value)}</div><div className="stat-label">{snapshot[0]}</div><div className="stat-sub">{snapshot[1]}</div></div>;
 }
 
 function QuickTaskModal({ eventOptions, onClose, onSaved }) {
@@ -81,9 +83,9 @@ export default function DashboardPage() {
         supabase.from('tasks').select('id,title,due_date,status,owner,event_id').neq('status', 'done').order('due_date', { ascending: true, nullsFirst: false }).limit(8),
         supabase.from('speaking_engagements').select('id', { count: 'exact', head: true }).in('status', ['selected', 'contracting', 'planning', 'ready']),
         supabase.from('training_engagements').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'planning', 'ready']),
-        supabase.from('income').select('id,amount,certainty_status,income_kind'),
+        supabase.from('income').select('id,amount,certainty_status,income_kind,payment_path'),
         supabase.from('income_document_links').select('income_id,allocated_amount,documents(id,doc_type,status,due_date)'),
-        supabase.from('payment_allocations').select('income_id,document_id,allocated_amount,payments(direction)'),
+        supabase.from('payment_allocations').select('income_id,document_id,allocated_amount,payments(direction,received_at)'),
         supabase.from('events').select('id,title,event_type,starts_at,status').neq('status', 'cancelled').order('starts_at').limit(100),
         supabase.from('training_engagements').select('title,event_id').not('event_id', 'is', null),
         supabase.from('speaking_engagements').select('event_name,event_id').not('event_id', 'is', null),
@@ -94,11 +96,18 @@ export default function DashboardPage() {
       (trainingOptions.data || []).forEach((training) => targets.set(training.event_id, { id: training.event_id, label: `${training.title} · Training` }));
       (speakingOptions.data || []).forEach((speaking) => targets.set(speaking.event_id, { id: speaking.event_id, label: `${speaking.event_name} · Speaking engagement` }));
       const summary = canonicalIncomeSummary({ incomes: incomes.data || [], links: links.data || [], paymentAllocations: paymentAllocations.data || [] });
-      const pendingReceivable = (incomes.data || []).filter((income) => income.certainty_status === 'confirmed').reduce((total, income) => {
+      const confirmedIncome = (incomes.data || []).filter((income) => income.certainty_status === 'confirmed' && income.payment_path !== 'no_charge');
+      const pendingReceivable = confirmedIncome.reduce((total, income) => {
         const received = (paymentAllocations.data || []).filter((allocation) => allocation.income_id === income.id).reduce((sum, allocation) => sum + (allocation.payments?.direction === 'refund' ? -1 : 1) * Number(allocation.allocated_amount || 0), 0);
         return total + Math.max(0, Number(income.amount || 0) - received);
       }, 0);
-      setData({ events: events.data || [], tasks: tasks.data || [], eventOptions: [...targets.values()].sort((a, b) => a.label.localeCompare(b.label)), speaking: speaking.count || 0, trainings: trainings.count || 0, revenue: { booked: summary.confirmed, earned: summary.invoiced, accountsReceivable: pendingReceivable, collected: summary.received } });
+      const today = todayIsoDate(), thirtyDays = new Date(); thirtyDays.setDate(thirtyDays.getDate() + 30); const deadline = thirtyDays.toISOString().slice(0, 10), yearStart = `${new Date().getFullYear()}-01-01`;
+      const invoiceBalance = (link) => Math.max(0, Number(link.allocated_amount || 0) - (paymentAllocations.data || []).filter((allocation) => allocation.income_id === link.income_id && allocation.document_id === link.documents?.id).reduce((sum, allocation) => sum + (allocation.payments?.direction === 'refund' ? -1 : 1) * Number(allocation.allocated_amount || 0), 0));
+      const invoiceLinks = (links.data || []).filter((link) => link.documents?.doc_type === 'invoice' && link.documents?.status !== 'draft');
+      const dueSoon = invoiceLinks.filter((link) => link.documents?.due_date >= today && link.documents.due_date <= deadline).reduce((sum, link) => sum + invoiceBalance(link), 0);
+      const pastDue = invoiceLinks.filter((link) => link.documents?.due_date < today).reduce((sum, link) => sum + invoiceBalance(link), 0);
+      const ytdReceived = (paymentAllocations.data || []).reduce((sum, allocation) => allocation.payments?.received_at?.slice(0, 10) >= yearStart ? sum + (allocation.payments.direction === 'refund' ? -1 : 1) * Number(allocation.allocated_amount || 0) : sum, 0);
+      setData({ events: events.data || [], tasks: tasks.data || [], eventOptions: [...targets.values()].sort((a, b) => a.label.localeCompare(b.label)), speaking: speaking.count || 0, trainings: trainings.count || 0, revenue: { booked: ytdReceived, earned: pendingReceivable, accountsReceivable: dueSoon, collected: pastDue } });
     } catch (err) { setError(err); }
   }, []);
   useEffect(() => { reload(); }, [reload]);
