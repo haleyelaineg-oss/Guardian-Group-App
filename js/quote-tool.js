@@ -39,10 +39,11 @@ function computeDueDate(docDateStr, dueTermsStr) {
 }
 function statusListFor(mode) {
   if (mode === 'quote') return ['draft', 'sent', 'accepted', 'declined', 'expired'];
-  if (mode === 'invoice') return ['draft', 'sent', 'partially_paid', 'paid'];
+  if (mode === 'invoice') return ['draft', 'sent', 'partially_paid'];
   return ['issued'];
 }
 function labelize(s) {
+  if (s === 'paid') return 'Paid in Full';
   return String(s).split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 function statusTone(s) {
@@ -90,6 +91,7 @@ let state = {
   datePaid: '',
   paymentMethod: '',
   paymentMethodOther: '',
+  paymentDetails: '',
   businessContactName: '',
   businessPhone: '',
   businessEmail: '',
@@ -563,6 +565,7 @@ function buildDocPayload(totals) {
     due_date: s.mode === 'invoice' ? (s.dueDate || null) : null,
     payment_method: !isQuote ? s.paymentMethod : null,
     payment_method_other: !isQuote ? s.paymentMethodOther : null,
+    payment_details: !isQuote ? (s.paymentDetails || null) : null,
     date_paid: !isQuote ? (s.datePaid || null) : null,
     items: s.items,
     discount_type: s.discountType,
@@ -570,8 +573,11 @@ function buildDocPayload(totals) {
     subtotal: totals.subtotal,
     discount_amount: totals.discountAmount,
     total: totals.afterDiscount,
-    amount_paid: amountPaidNum,
-    balance: balance,
+    // Invoice amounts are maintained from payment allocations in Supabase.
+    // Leaving these undefined prevents an invoice edit from overwriting the
+    // shared payment ledger summary.
+    amount_paid: s.mode === 'invoice' ? undefined : amountPaidNum,
+    balance: s.mode === 'invoice' ? undefined : balance,
     notes: isQuote ? s.notesQuote : (s.mode === 'invoice' ? s.notesInvoice : s.notesReceipt),
     parent_doc_id: s.parentDocId || null
   };
@@ -692,6 +698,7 @@ async function qtOpenDocument(id) {
     datePaid: data.date_paid || '',
     paymentMethod: data.payment_method || '',
     paymentMethodOther: data.payment_method_other || '',
+    paymentDetails: data.payment_details || '',
     businessContactName: data.business_contact_name || state.businessContactName,
     businessPhone: data.business_phone || state.businessPhone,
     businessEmail: data.business_email || state.businessEmail,
@@ -740,6 +747,7 @@ async function qtConvertToInvoice() {
       valid_for: null,
       payment_method: null,
       payment_method_other: null,
+      payment_details: null,
       date_paid: null,
       doc_date: newDocDate,
       amount_paid: 0,
@@ -789,10 +797,23 @@ async function qtMarkPaidCreateReceipt() {
     const totals = computeTotals(state);
     const fullAmount = totals.afterDiscount;
     const paidDate = state.datePaid || todayIso();
-    await sb.from('documents').update({
-      status: 'paid', amount_paid: fullAmount, balance: 0, date_paid: paidDate,
-      payment_method: state.paymentMethod, payment_method_other: state.paymentMethodOther || null
+    const outstandingAmount = fullAmount - (parseFloat(state.amountPaid) || 0);
+    if (outstandingAmount > 0.005) {
+      const { error: paymentError } = await sb.rpc('record_invoice_payment', {
+        p_document_id: state.currentDocId,
+        p_amount: outstandingAmount,
+        p_received_at: paidDate,
+        p_payment_method: state.paymentMethod === 'other' ? state.paymentMethodOther : state.paymentMethod,
+        p_notes: state.paymentDetails || null
+      });
+      if (paymentError) throw paymentError;
+    }
+    const { error: detailError } = await sb.from('documents').update({
+      payment_method: state.paymentMethod,
+      payment_method_other: state.paymentMethodOther || null,
+      payment_details: state.paymentDetails || null
     }).eq('id', state.currentDocId);
+    if (detailError) throw detailError;
     const { data: numData, error: numErr } = await sb.rpc('next_doc_number', { p_type: 'receipt' });
     if (numErr) throw numErr;
     const payload = Object.assign({}, buildDocPayload(totals), {
@@ -853,6 +874,7 @@ function resetToBlank(mode) {
     datePaid: '',
     paymentMethod: '',
     paymentMethodOther: '',
+    paymentDetails: '',
     clientId: null,
     clientCompanyId: null,
     clientCompany: '',
@@ -892,10 +914,32 @@ function qtNewDocument() {
 function qtPrintDoc() {
   window.print();
 }
-function qtMarkPaidInFull() {
-  const totals = computeTotals(state);
-  state.amountPaid = totals.afterDiscount.toFixed(2);
+async function qtMarkPaidInFull() {
+  if (state.mode !== 'invoice' || !state.currentDocId || !sb) return;
+  if (!state.paymentMethod) { flashMessage('Select a payment method first.'); return; }
+  if (state.paymentMethod === 'other' && !(state.paymentMethodOther || '').trim()) { flashMessage('Specify the payment method.'); return; }
+  const outstandingAmount = computeTotals(state).afterDiscount - (parseFloat(state.amountPaid) || 0);
+  if (outstandingAmount <= 0.005) return;
+  state.saving = true;
   render();
+  try {
+    const { error: paymentError } = await sb.rpc('record_invoice_payment', {
+      p_document_id: state.currentDocId,
+      p_amount: outstandingAmount,
+      p_received_at: state.datePaid || todayIso(),
+      p_payment_method: state.paymentMethod === 'other' ? state.paymentMethodOther : state.paymentMethod,
+      p_notes: state.paymentDetails || null
+    });
+    if (paymentError) throw paymentError;
+    const { error: detailError } = await sb.from('documents').update({ payment_method: state.paymentMethod, payment_method_other: state.paymentMethodOther || null, payment_details: state.paymentDetails || null }).eq('id', state.currentDocId);
+    if (detailError) throw detailError;
+    await qtOpenDocument(state.currentDocId);
+    flashMessage('Paid in Full ✓');
+  } catch (e) {
+    state.saving = false;
+    render();
+    flashMessage('Could not record payment — try again.');
+  }
 }
 
 // ── List view ────────────────────────────────────────────────
@@ -1079,7 +1123,7 @@ function renderEditorView() {
   const isSaved = !!s.currentDocId;
   const docTitle = isQuote ? 'QUOTE' : (isInvoice ? 'INVOICE' : 'RECEIPT');
   const billToLabel = isQuote ? 'Prepared For' : (isInvoice ? 'Bill To' : 'Received From');
-  const totalLineLabel = isQuote ? 'Estimated Total' : (isInvoice ? 'Balance Due' : 'Amount Received');
+  const totalLineLabel = isQuote ? 'Estimated Total' : (isInvoice ? 'Balance Due' : 'Payments Made');
   const totalLineValue = isQuote ? fmt(totals.afterDiscount) : (isInvoice ? fmt(balance) : fmt(amountPaidNum));
   const statusOptions = statusListFor(s.mode);
   const showMarkPaid = !isQuote && !isPaidInFull && totals.afterDiscount > 0;
@@ -1206,11 +1250,11 @@ function renderEditorView() {
         </div>
         ${!isQuote ? `
         <div class="qt-totals-line with-border">
-          <span>${isInvoice ? 'Deposit Paid' : 'Amount Received'}</span>
-          <input class="qt-field-line paid" value="${escAttr(s.amountPaid)}" oninput="qtSetFieldRecalc('amountPaid', this.value)">
+          <span>${isInvoice ? 'Payments Made' : 'Amount Received'}</span>
+          <span class="qt-field-line paid">${fmt(amountPaidNum)}</span>
         </div>` : ''}
         <div class="qt-mark-paid-row" data-noprint id="qtMarkPaidRow" style="display:${showMarkPaid ? '' : 'none'};">
-          <button class="qt-btn-text" onclick="qtMarkPaidInFull()">Mark deposit as paid in full</button>
+          <button class="qt-btn-text" onclick="qtMarkPaidInFull()">Mark remaining balance paid in full</button>
         </div>
         <div class="qt-total-box" style="background:var(--gg-mid);">
           <span class="label">${esc(totalLineLabel)}</span>
@@ -1244,6 +1288,13 @@ function renderEditorView() {
           <div class="qt-paidvia-right">
             <input type="date" class="qt-field-line" data-noprint value="${escAttr(s.datePaid)}" oninput="qtSetField('datePaid', this.value)">
             <span data-printonly style="display:none;font-weight:600;color:var(--gg-dark);">${esc(s.datePaid || '—')}</span>
+          </div>
+        </div>
+        <div class="qt-paidvia-row">
+          <span>Payment Details</span>
+          <div class="qt-paidvia-right">
+            <input class="qt-field-line" data-noprint value="${escAttr(s.paymentDetails)}" placeholder="Check number, card note, or reference" oninput="qtSetField('paymentDetails', this.value)">
+            <span data-printonly style="display:none;font-weight:600;color:var(--gg-dark);">${esc(s.paymentDetails || '—')}</span>
           </div>
         </div>` : ''}
         ${canConvertToInvoice ? `<button class="qt-btn-cta-block" data-noprint onclick="qtConvertToInvoice()">Convert to Invoice →</button>` : ''}

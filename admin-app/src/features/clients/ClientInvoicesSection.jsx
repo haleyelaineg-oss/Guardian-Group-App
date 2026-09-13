@@ -22,7 +22,7 @@ export default function ClientInvoicesSection({ invoices }) {
                 <tr key={d.id}>
                   <td>{d.doc_number}</td>
                   <td>{d.doc_type}</td>
-                  <td><span className="reg-card-status-badge">{isPastDue ? 'Past Due' : d.status}</span></td>
+                  <td><span className="reg-card-status-badge">{isPastDue ? 'Past Due' : d.status === 'paid' ? 'Paid in Full' : d.status}</span></td>
                   <td>{formatCurrency(d.total)}</td>
                   <td>{dateLabel}</td>
                   <td><button type="button" className="btn-sm btn-sm-ghost" onClick={() => navigate(`/admin/quotes?doc=${d.id}`)}>View →</button></td>

@@ -27,7 +27,7 @@ function invoiceStatus(income, totals) {
   if (income.certainty_status === 'potential') return 'Potential';
   if (income.certainty_status === 'cancelled') return 'Cancelled';
   if (totals.overdue) return 'Past Due';
-  if (totals.received >= Number(income.amount || 0) && Number(income.amount || 0) > 0) return 'Paid';
+  if (totals.received >= Number(income.amount || 0) && Number(income.amount || 0) > 0) return 'Paid in Full';
   if (totals.invoiceLinks.length) return 'Invoiced';
   return 'Confirmed (Not Yet Invoiced)';
 }
