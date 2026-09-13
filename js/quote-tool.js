@@ -39,7 +39,7 @@ function computeDueDate(docDateStr, dueTermsStr) {
 }
 function statusListFor(mode) {
   if (mode === 'quote') return ['draft', 'sent', 'accepted', 'declined', 'expired'];
-  if (mode === 'invoice') return ['draft', 'sent', 'partially_paid'];
+  if (mode === 'invoice') return ['draft', 'sent', 'partially_paid', 'paid'];
   return ['issued'];
 }
 function labelize(s) {
@@ -156,6 +156,16 @@ function qtSetField(field, value) {
 function qtSetFieldRecalc(field, value) {
   state[field] = value;
   qtRecalc();
+}
+function qtSetDocumentStatus(value) {
+  // “Paid in Full” is a payment action, not a standalone document flag.
+  // Route it through the ledger so Financials, Income, and the invoice agree.
+  if (state.mode === 'invoice' && value === 'paid' && state.status !== 'paid') {
+    qtMarkPaidInFull();
+    return;
+  }
+  state.status = value;
+  render();
 }
 function qtSetItemField(id, field, value) {
   const it = state.items.find(i => i.id === id);
@@ -916,8 +926,8 @@ function qtPrintDoc() {
 }
 async function qtMarkPaidInFull() {
   if (state.mode !== 'invoice' || !state.currentDocId || !sb) return;
-  if (!state.paymentMethod) { flashMessage('Select a payment method first.'); return; }
-  if (state.paymentMethod === 'other' && !(state.paymentMethodOther || '').trim()) { flashMessage('Specify the payment method.'); return; }
+  if (!state.paymentMethod) { flashMessage('Select a payment method first.'); render(); return; }
+  if (state.paymentMethod === 'other' && !(state.paymentMethodOther || '').trim()) { flashMessage('Specify the payment method.'); render(); return; }
   const outstandingAmount = computeTotals(state).afterDiscount - (parseFloat(state.amountPaid) || 0);
   if (outstandingAmount <= 0.005) return;
   state.saving = true;
@@ -1156,7 +1166,7 @@ function renderEditorView() {
           ${isInvoice ? `<div class="qt-doc-meta-row"><span>Due</span><input type="date" class="qt-field-line" value="${escAttr(s.dueDate)}" oninput="qtSetField('dueDate', this.value)"></div>` : ''}
           <div class="qt-doc-meta-row" data-noprint>
             <span>Status</span>
-            <select class="qt-status-select" onchange="qtSetField('status', this.value); render();">
+            <select class="qt-status-select" onchange="qtSetDocumentStatus(this.value);">
               ${statusOptions.map(v => `<option value="${v}" ${s.status === v ? 'selected' : ''}>${esc(labelize(v))}</option>`).join('')}
             </select>
           </div>
@@ -1322,6 +1332,7 @@ function renderItemRow(it) {
   const amount = isFlat ? rate : qty * rate;
   const qtyLabel = isHours ? 'HRS' : 'QTY';
   const rateLabel = isFlat ? 'PRICE' : (isHours ? 'RATE/HR' : 'UNIT PRICE');
+  const amountLabel = isFlat ? 'PRICE' : 'AMOUNT';
   return `
     <div class="qt-item-row">
       ${QT_SHOW_ITEM_DATES ? `
@@ -1343,11 +1354,11 @@ function renderItemRow(it) {
         ? `<div class="qt-item-col-qty"><span class="qt-item-label">${qtyLabel}</span><input class="qt-field-line" style="text-align:center;" value="${escAttr(it.qty)}" oninput="qtSetItemField(${it.id}, 'qty', this.value)"></div>`
         : `<div style="width:50px;flex-shrink:0;"></div>`}
       <div class="qt-item-col-rate">
-        <span class="qt-item-label">${rateLabel}</span>
+        <span class="qt-item-label">${isFlat ? '&nbsp;' : rateLabel}</span>
         <input class="qt-field-line" data-noprint style="text-align:right;" value="${escAttr(it.rate)}" oninput="qtSetItemField(${it.id}, 'rate', this.value)">
         ${!isFlat ? `<span class="qt-field-line" data-printonly style="display:none;text-align:right;">${fmt(rate)}</span>` : ''}
       </div>
-      <div class="qt-item-col-amount" id="qtAmt${it.id}">${fmt(amount)}</div>
+      <div class="qt-item-col-amount"><span class="qt-item-label">${amountLabel}</span><span id="qtAmt${it.id}">${fmt(amount)}</span></div>
       <button class="qt-item-remove" data-noprint onclick="qtRemoveItem(${it.id})">&times;</button>
     </div>`;
 }

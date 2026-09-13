@@ -33,13 +33,39 @@
   box-sizing: border-box;
 }
 
-@page { size: letter; margin: 0.45in; }
+@page { size: letter; margin: 0.2in 0.35in; }
 @media print {
   [data-noprint] { display: none !important; }
   [data-printonly] { display: inline !important; }
   body { background: #fff !important; }
-  #docPage { box-shadow: none !important; margin: 0 !important; max-width: none !important; width: auto !important; border-radius: 0 !important; }
+  #docPage { box-shadow: none !important; margin: 0.15in auto 0 !important; max-width: none !important; width: auto !important; border-radius: 0 !important; padding: 0.08in 0.25in !important; zoom: 0.9; }
   #app { padding: 0 !important; background: #fff !important; }
+
+  /* Keep standard invoices compact enough to export as one Letter page. */
+  .qt-doc-head { padding-bottom: 10px; gap: 16px; }
+  .qt-doc-brand img { width: 68px; height: 68px; }
+  .qt-doc-brand-name { font-size: 24px; }
+  .qt-doc-title { font-size: 30px; }
+  .qt-doc-meta-rows { margin-top: 5px; font-size: 11px; row-gap: 2px; }
+  .qt-doc-meta-rows > [data-printonly] { grid-column: 2; text-align: right; justify-self: end; }
+  .qt-parties { gap: 24px; padding: 12px 0; }
+  .qt-party-name { margin-top: 4px; }
+  .qt-party .qt-field-line.company[data-printonly] { display: block !important; margin-top: 10px; padding: 0; line-height: normal; }
+  .qt-party input.qt-field-line { margin-top: 1px; font-size: 12px; }
+  .qt-items-wrap { padding-top: 8px; }
+  .qt-item-row { padding: 5px 0; }
+  .qt-items-actions, .qt-hide-totals-row { margin-top: 6px; }
+  .qt-totals-line { padding: 3px 0; }
+  .qt-total-box { margin-top: 5px; padding: 9px 12px; }
+  .qt-total-box .value { font-size: 19px; }
+  .qt-paid-badge-row, .qt-balance-note { margin-top: 5px; }
+  .qt-paidvia-row { padding-top: 5px; font-size: 12px; }
+  .qt-notes-block { margin-top: 8px; padding-top: 5px; }
+  .qt-notes-block textarea { margin-top: 2px; font-size: 10px; line-height: 1.15; }
+  .qt-thankyou { margin-top: 6px; padding-top: 5px; }
+  .qt-eyebrow { font-size: 10px; }
+  .qt-field-line, .qt-field-area { border: 0 !important; outline: 0 !important; resize: none !important; }
+  .qt-parties, .qt-items-wrap, .qt-totals-wrap, .qt-notes-block, .qt-thankyou { break-inside: avoid; }
 }
 
 /* ── Eyebrow / status pill (mirrors the brand design system) ── */
@@ -193,10 +219,10 @@ select.qt-select {
 
 /* ── Editor / document page ──────────────────────────────── */
 .qt-doc-page { max-width: 8.5in; margin: 0 auto; background: var(--gg-white); box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); padding: 0.6in 0.65in; box-sizing: border-box; }
-.qt-doc-head { display: flex; justify-content: space-between; align-items: center; gap: 24px; border-bottom: 3px solid var(--gg-mid); padding-bottom: 24px; }
+.qt-doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; border-bottom: 3px solid var(--gg-mid); padding-bottom: 24px; }
 .qt-doc-brand { display: flex; align-items: center; gap: 14px; }
-.qt-doc-brand img { height: 60px; width: 60px; object-fit: contain; }
-.qt-doc-brand-name { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; color: var(--gg-dark); text-transform: uppercase; line-height: 1.1; }
+.qt-doc-brand img { height: 90px; width: 90px; object-fit: contain; }
+.qt-doc-brand-name { font-family: var(--font-display); font-weight: 700; font-size: 29px; letter-spacing: -0.01em; color: var(--gg-dark); text-transform: uppercase; line-height: 1.1; }
 .qt-doc-meta { text-align: right; }
 .qt-doc-title { font-family: var(--font-display); font-size: 38px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; color: var(--gg-dark); text-transform: uppercase; }
 .qt-doc-meta-rows { margin-top: 10px; font-size: var(--fs-2xs); color: var(--gg-muted); display: grid; grid-template-columns: auto 130px; column-gap: 8px; row-gap: 4px; justify-content: end; align-items: baseline; }
@@ -213,8 +239,7 @@ select.qt-select {
 .qt-invoice-link .qt-select { flex: 1; min-width: 0; }
 .qt-party input.qt-field-line { display: block; margin-top: 3px; font-size: 13px; color: var(--gg-text); width: 100%; box-sizing: border-box; }
 .qt-party input.qt-field-line.first { margin-top: 6px; }
-.qt-party input.qt-field-line.company,
-.qt-party select.qt-field-line.company { margin-top: 8px; font-size: 16px; font-weight: 700; color: var(--gg-dark); }
+.qt-party .qt-field-line.company { display: block; margin-top: 8px; width: 100%; box-sizing: border-box; font-size: 16px; font-weight: 700; color: var(--gg-dark); }
 .qt-party select.qt-field-line.company { width: 100%; box-sizing: border-box; cursor: pointer; border-bottom: 1px dotted transparent; }
 .qt-party select.qt-field-line.company:hover { border-bottom-color: var(--gg-pale); }
 
@@ -250,7 +275,7 @@ select.qt-select {
 .qt-item-col-desc { flex: 1; min-width: 220px; display: flex; flex-direction: column; }
 .qt-item-col-qty { width: 50px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
 .qt-item-col-rate { width: 76px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; }
-.qt-item-col-amount { width: 76px; flex-shrink: 0; text-align: right; font-weight: 700; font-size: 14px; color: var(--gg-dark); margin-top: 14px; }
+.qt-item-col-amount { width: 76px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-weight: 700; font-size: 14px; color: var(--gg-dark); }
 .qt-item-label { font-family: var(--font-display); font-size: 10px; color: var(--gg-muted); letter-spacing: 0.1em; }
 .qt-item-row input.qt-field-line { width: 100%; font-size: 13px; color: var(--gg-text); box-sizing: border-box; }
 .qt-item-row textarea.qt-field-line.desc {
