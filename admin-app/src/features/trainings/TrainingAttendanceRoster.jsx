@@ -18,7 +18,7 @@ const STATUS_OPTIONS = [
 export default function TrainingAttendanceRoster({ training }) {
   const [roster, setRoster] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [person, setPerson] = useState({ firstName: '', lastName: '', companyId: training.company_id || '', position: '' });
+  const [person, setPerson] = useState({ firstName: '', lastName: '', email: '', companyId: training.company_id || '', position: '' });
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState('');
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ export default function TrainingAttendanceRoster({ training }) {
 
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => {
-    setPerson({ firstName: '', lastName: '', companyId: training.company_id || '', position: '' });
+    setPerson({ firstName: '', lastName: '', email: '', companyId: training.company_id || '', position: '' });
   }, [training.id, training.company_id]);
   const completedCount = roster.filter((row) => row.status === 'completed').length;
   const presentCount = roster.filter((row) => row.status === 'attended' || row.status === 'completed').length;
@@ -49,14 +49,19 @@ export default function TrainingAttendanceRoster({ training }) {
     const values = {
       firstName: person.firstName.trim(),
       lastName: person.lastName.trim(),
+      email: person.email.trim(),
       companyId: person.companyId,
       position: person.position.trim(),
     };
     if (!values.firstName || !values.lastName || !values.companyId) return;
+    if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      alert('Enter a valid email address, or leave Email blank.');
+      return;
+    }
     setWorkingId('add');
     try {
       await addTrainingAttendee(training, values);
-      setPerson((current) => ({ ...current, firstName: '', lastName: '', position: '' }));
+      setPerson((current) => ({ ...current, firstName: '', lastName: '', email: '', position: '' }));
       await reload();
     } catch (err) {
       alert(err.message || 'Could not add this person to the roster.');
@@ -108,7 +113,7 @@ export default function TrainingAttendanceRoster({ training }) {
   return (
     <section className="training-attendance-roster">
       <div className="detail-section-title">Attendance Roster</div>
-      <p className="view-sub">Add attendees from your client list, track attendance, and issue certificates. Each record appears in the selected company’s client portal.</p>
+      <p className="view-sub">Add attendees to the roster and Address Book, track attendance, and issue certificates. Each record appears in the selected company’s client portal.</p>
 
       <div className="reg-summary-bar training-roster-summary">
         <div className="reg-summary-stat"><span className="reg-summary-num">{roster.length}</span><span className="reg-summary-label">On roster</span></div>
@@ -126,6 +131,10 @@ export default function TrainingAttendanceRoster({ training }) {
           <label className="field-group">
             <span className="field-label">Last Name</span>
             <input className="field-input" autoComplete="family-name" value={person.lastName} onChange={(event) => setPerson({ ...person, lastName: event.target.value })} />
+          </label>
+          <label className="field-group">
+            <span className="field-label">Email</span>
+            <input type="email" className="field-input" autoComplete="email" placeholder="name@company.com" value={person.email} onChange={(event) => setPerson({ ...person, email: event.target.value })} />
           </label>
           <label className="field-group">
             <span className="field-label">Company</span>

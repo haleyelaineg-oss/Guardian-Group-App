@@ -43,28 +43,56 @@ export async function fetchTrainingAttendanceRoster(trainingId) {
   return { roster: rosterResult.data || [], companies };
 }
 
-export async function addTrainingAttendee(training, { firstName, lastName, companyId, position }) {
+export async function addTrainingAttendee(training, { firstName, lastName, email, companyId, position }) {
   const fullName = `${firstName} ${lastName}`.trim();
-  const { data: matches, error: lookupError } = await supabase
-    .from('participants')
-    .select('id, title')
-    .eq('company_id', companyId)
-    .ilike('full_name', fullName)
-    .limit(1);
-  fail(lookupError);
+  const cleanEmail = (email || '').trim();
+  const normalizedEmail = cleanEmail.toLowerCase();
 
-  let participantId = matches?.[0]?.id;
+  let match = null;
+  if (normalizedEmail) {
+    const { data, error } = await supabase
+      .from('participants')
+      .select('id, full_name, email, title, company_id, company:company_id(name)')
+      .eq('email_lower', normalizedEmail)
+      .maybeSingle();
+    fail(error);
+    if (data?.company_id && data.company_id !== companyId) {
+      const companyName = data.company?.name || 'another client';
+      throw new Error(`That email is already assigned to ${companyName} in the Address Book.`);
+    }
+    match = data;
+  }
+
+  if (!match) {
+    const { data, error } = await supabase
+      .from('participants')
+      .select('id, full_name, email, title, company_id')
+      .eq('company_id', companyId)
+      .ilike('full_name', fullName)
+      .limit(1);
+    fail(error);
+    match = data?.[0] || null;
+  }
+
+  let participantId = match?.id;
   if (participantId) {
-    if (position && matches[0].title !== position) {
-      const { error } = await supabase.from('participants').update({ title: position }).eq('id', participantId);
+    const updates = {};
+    if (match.full_name !== fullName) updates.full_name = fullName;
+    if (normalizedEmail && match.email?.trim().toLowerCase() !== normalizedEmail) updates.email = cleanEmail;
+    if (!match.company_id) updates.company_id = companyId;
+    if (position && match.title !== position) updates.title = position;
+    if (Object.keys(updates).length) {
+      const { error } = await supabase.from('participants').update(updates).eq('id', participantId);
+      if (error?.code === '23505') throw new Error('That email is already on file for another Address Book contact.');
       fail(error);
     }
   } else {
     const { data: participant, error } = await supabase
       .from('participants')
-      .insert({ full_name: fullName, company_id: companyId, title: position || null })
+      .insert({ full_name: fullName, email: cleanEmail || null, company_id: companyId, title: position || null })
       .select('id')
       .single();
+    if (error?.code === '23505') throw new Error('That email is already on file for another Address Book contact.');
     fail(error);
     participantId = participant.id;
   }
