@@ -1008,6 +1008,18 @@ section > .stats-grid + div[style] {
   letter-spacing: 0.06em;
   font-weight: 600;
 }
+
+.training-roster-summary { margin: 18px 0; }
+.training-roster-add { margin-bottom: 18px; }
+.training-roster-add-row { display: flex; align-items: center; gap: 10px; }
+.training-roster-add-row .field-input { flex: 1; }
+.training-roster-table tr { cursor: default; }
+.training-roster-table td { vertical-align: middle; }
+.training-roster-table td:first-child strong { display: block; }
+
+@media (max-width: 640px) {
+  .training-roster-add-row { align-items: stretch; flex-direction: column; }
+}
 .reg-cards {
   display: flex;
   flex-direction: column;

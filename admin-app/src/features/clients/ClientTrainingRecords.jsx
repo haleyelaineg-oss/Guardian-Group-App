@@ -12,7 +12,7 @@ export default function ClientTrainingRecords({ attendance, roster }) {
             {attendance.map((a) => (
               <tr key={a.id}>
                 <td>{rosterById[a.participant_id]?.full_name || '—'}</td>
-                <td>{a.workshop?.title || '—'}</td>
+                <td>{a.workshop?.title || a.training_title || '—'}{a.training_date && <span className="table-secondary">{new Date(a.training_date).toLocaleDateString()}</span>}</td>
                 <td><span className={`reg-card-status-badge ${a.status}`}>{a.status}</span></td>
                 <td>{a.certificate_issued ? 'Issued' : '—'}</td>
               </tr>

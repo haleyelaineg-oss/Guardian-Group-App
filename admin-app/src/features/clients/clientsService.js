@@ -122,7 +122,7 @@ export async function fetchClientDetail(companyId) {
 
   const [{ data: attendanceRows }, { data: invoiceRows }, { data: clientDocRows }] = await Promise.all([
     memberIds.length
-      ? supabase.from('attendance').select('id, participant_id, status, certificate_issued, workshop:workshop_id(title)').in('participant_id', memberIds)
+      ? supabase.from('attendance').select('id, participant_id, status, certificate_issued, training_title, training_date, workshop:workshop_id(title)').in('participant_id', memberIds)
       : Promise.resolve({ data: [] }),
     supabase.from('documents').select('id, doc_type, doc_number, status, total, doc_date, due_date').eq('company_id', companyId).order('created_at', { ascending: false }),
     supabase.from('client_documents').select('id, document_id, file_name, storage_path, file_size, created_at').eq('company_id', companyId).order('created_at', { ascending: false }),

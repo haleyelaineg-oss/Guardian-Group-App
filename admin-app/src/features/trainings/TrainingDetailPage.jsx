@@ -8,6 +8,7 @@ import CareArrangements from '../engagements/CareArrangements.jsx';
 import DocumentManager from '../documents/DocumentManager.jsx';
 import EngagementFinancials from '../financial/EngagementFinancials.jsx';
 import ItineraryManager, { TRAVEL_TYPES } from '../itinerary/ItineraryManager.jsx';
+import TrainingAttendanceRoster from './TrainingAttendanceRoster.jsx';
 import { createTraining, deleteTrainingAndCalendar, fetchTrainingDetail, listTrainingCompanies, listTrainingContacts, syncTrainingCalendar, updateTraining } from './trainingService.js';
 import { formatLabel } from '../../utils/format.js';
 const STATUSES = ['inquiry', 'proposal_sent', 'contract_pending', 'scheduled', 'planning', 'ready', 'completed', 'invoice_sent', 'payment_pending', 'paid', 'cancelled'];
@@ -55,7 +56,7 @@ export default function TrainingDetailPage() {
     reload();
   }, [id]);
   if (!training) return <LoadingIndicator label="Loading training…" />;
-  const tabs = ['Overview', 'Delivery & Logistics', 'Prep', ...(training.delivery_method === 'virtual' ? [] : ['Travel', 'Care']), 'Financials', 'Documents', 'Completion'];
+  const tabs = ['Overview', 'Attendance Roster', 'Delivery & Logistics', 'Prep', ...(training.delivery_method === 'virtual' ? [] : ['Travel', 'Care']), 'Financials', 'Documents', 'Completion'];
   const needsSave = creating && tab !== 'Overview';
   const changeStatusInstead = () => {
     setShowDeleteDialog(false);
@@ -72,7 +73,7 @@ export default function TrainingDetailPage() {
   return <div className="view active">{showDeleteDialog && <Modal title="Delete Training?" onClose={() => setShowDeleteDialog(false)}><p>Are you sure you want to delete this training? Deleting permanently deletes its linked itinerary, expenses, documents, and care arrangements.</p><p className="field-hint">To keep this data, change the status to Cancelled instead. Cancelled trainings are removed from the Calendar.</p><div className="create-form-actions"><button className="btn btn-ghost" onClick={() => setShowDeleteDialog(false)}>Cancel</button><button className="btn btn-ghost" onClick={changeStatusInstead}>Change Status Instead</button><button className="btn-sm btn-sm-danger" onClick={deleteRecord}>Delete Training</button></div></Modal>}<Link to={closeTo} aria-label="Close training workspace">← Trainings</Link><div className="view-header event-workspace-header"><h1 className="view-title">{creating ? 'New Training' : training.title}</h1></div><div className="tab-bar">{tabs.map(name => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{needsSave ? <p className="empty-hint">Save the Overview first to set up this training’s planning workspace.</p> : <>{tab === 'Overview' && <Overview training={training} creating={creating} onSaved={reload} onCreated={record => navigate(`/admin/trainings/${record.id}`, {
         replace: true,
         state: location.state
-      })} onDelete={creating ? undefined : () => setShowDeleteDialog(true)} />}{tab === 'Delivery & Logistics' && <Delivery training={training} onSaved={reload} />}{tab === 'Prep' && <Checklist kind="training" engagementId={training.id} deliveryMethod={training.delivery_method} />}{tab === 'Travel' && <ItineraryManager eventId={training.event_id} itemTypes={TRAVEL_TYPES} title="Travel Details" />}{tab === 'Care' && <CareArrangements eventId={training.event_id} />}{tab === 'Financials' && <EngagementFinancials sourceType="training" sourceId={training.id} eventId={training.event_id} companyId={training.company_id} title={training.title} expectedOn={training.starts_at?.slice(0, 10)} initialCertainty={['scheduled', 'planning', 'ready', 'completed', 'invoice_sent', 'payment_pending', 'paid'].includes(training.status) ? 'confirmed' : 'potential'} />}{tab === 'Documents' && <DocumentManager eventId={training.event_id} />}{tab === 'Completion' && <Completion training={training} onSaved={reload} />}</>}</div>;
+      })} onDelete={creating ? undefined : () => setShowDeleteDialog(true)} />}{tab === 'Attendance Roster' && <TrainingAttendanceRoster training={training} />}{tab === 'Delivery & Logistics' && <Delivery training={training} onSaved={reload} />}{tab === 'Prep' && <Checklist kind="training" engagementId={training.id} deliveryMethod={training.delivery_method} />}{tab === 'Travel' && <ItineraryManager eventId={training.event_id} itemTypes={TRAVEL_TYPES} title="Travel Details" />}{tab === 'Care' && <CareArrangements eventId={training.event_id} />}{tab === 'Financials' && <EngagementFinancials sourceType="training" sourceId={training.id} eventId={training.event_id} companyId={training.company_id} title={training.title} expectedOn={training.starts_at?.slice(0, 10)} initialCertainty={['scheduled', 'planning', 'ready', 'completed', 'invoice_sent', 'payment_pending', 'paid'].includes(training.status) ? 'confirmed' : 'potential'} />}{tab === 'Documents' && <DocumentManager eventId={training.event_id} />}{tab === 'Completion' && <Completion training={training} onSaved={reload} />}</>}</div>;
 }
 function Field({
   v,
@@ -134,6 +135,8 @@ function Overview({
   });
   const save = async () => {
     if (!v.company_id || !v.title.trim()) throw new Error('Client and training title are required.');
+    if (v.attendee_count !== '' && Number(v.attendee_count) < 0) throw new Error('Expected attendees cannot be negative.');
+    if (v.starts_at && v.ends_at && new Date(v.ends_at) < new Date(v.starts_at)) throw new Error('The training end time must be after its start time.');
     const payload = values();
     if (creating) onCreated(await createTraining(payload));else {
       await syncTrainingCalendar(await updateTraining(training.id, payload));

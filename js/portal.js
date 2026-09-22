@@ -180,6 +180,9 @@ async function loadTrainingRecords() {
       certificate_issued,
       certificate_issued_at,
       certificate_number,
+      training_title,
+      training_date,
+      training_facilitator,
       participant:participant_id(id, full_name, email),
       workshop:workshop_id(id, title, subtitle, facilitator, scheduled_at, workshop_date)
     `)
@@ -213,7 +216,7 @@ function renderTrainingRecords() {
   const query = document.getElementById('trainingSearch')?.value.trim().toLowerCase() || '';
   const status = document.getElementById('trainingStatusFilter')?.value || '';
   const rows = trainingRecords.filter(record => {
-    const searchable = `${record.participant?.full_name || ''} ${record.participant?.email || ''} ${record.workshop?.title || ''}`.toLowerCase();
+    const searchable = `${record.participant?.full_name || ''} ${record.participant?.email || ''} ${record.workshop?.title || record.training_title || ''}`.toLowerCase();
     return (!query || searchable.includes(query)) && (!status || record.status === status);
   });
 
@@ -236,10 +239,10 @@ function renderTrainingRecords() {
                 <span class="portal-table-secondary">${escHtml(record.participant?.email || '')}</span>
               </td>
               <td>
-                <strong>${escHtml(record.workshop?.title || 'Workshop')}</strong>
-                <span class="portal-table-secondary">${escHtml(record.workshop?.facilitator ? `Facilitated by ${record.workshop.facilitator}` : '')}</span>
+                <strong>${escHtml(record.workshop?.title || record.training_title || 'Training')}</strong>
+                <span class="portal-table-secondary">${escHtml(record.workshop?.facilitator || record.training_facilitator ? `Facilitated by ${record.workshop?.facilitator || record.training_facilitator}` : '')}</span>
               </td>
-              <td>${escHtml(portalFormatWorkshopDate(record.workshop))}</td>
+              <td>${escHtml(record.workshop ? portalFormatWorkshopDate(record.workshop) : portalFormatDate(record.training_date))}</td>
               <td><span class="reg-card-status-badge ${escHtml(record.status || 'registered')}">${escHtml(portalStatusLabel(record.status))}</span></td>
               <td>${record.certificate_issued
                 ? `<a class="btn-sm btn-sm-ghost" href="/portal/certificate.html?id=${encodeURIComponent(record.id)}">View / Print</a>`
@@ -272,7 +275,7 @@ async function initCertificatePage() {
 
   const { data: cert, error } = await pdb
     .from('attendance')
-    .select('id, certificate_number, certificate_issued_at, participant:participant_id(full_name), workshop:workshop_id(title)')
+    .select('id, certificate_number, certificate_issued_at, training_title, participant:participant_id(full_name), workshop:workshop_id(title)')
     .eq('id', id)
     .eq('certificate_issued', true)
     .single();
@@ -285,7 +288,7 @@ async function initCertificatePage() {
   }
 
   document.getElementById('certName').textContent = cert.participant?.full_name || '';
-  document.getElementById('certWorkshop').textContent = cert.workshop?.title || '';
+  document.getElementById('certWorkshop').textContent = cert.workshop?.title || cert.training_title || '';
   document.getElementById('certDate').textContent = portalFormatDate(cert.certificate_issued_at);
   document.getElementById('certNumber').textContent = cert.certificate_number || '—';
 
