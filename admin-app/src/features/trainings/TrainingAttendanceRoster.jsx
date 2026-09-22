@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import {
   addTrainingAttendee,
@@ -17,8 +17,8 @@ const STATUS_OPTIONS = [
 
 export default function TrainingAttendanceRoster({ training }) {
   const [roster, setRoster] = useState([]);
-  const [participants, setParticipants] = useState([]);
-  const [selectedParticipantId, setSelectedParticipantId] = useState('');
+  const [companies, setCompanies] = useState([]);
+  const [person, setPerson] = useState({ firstName: '', lastName: '', companyId: training.company_id || '', position: '' });
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState('');
   const [error, setError] = useState('');
@@ -26,34 +26,37 @@ export default function TrainingAttendanceRoster({ training }) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchTrainingAttendanceRoster(training.id, training.company_id);
+      const result = await fetchTrainingAttendanceRoster(training.id);
       setRoster(result.roster);
-      setParticipants(result.participants);
+      setCompanies(result.companies);
       setError('');
     } catch (err) {
       setError(err.message || 'Could not load the attendance roster.');
     } finally {
       setLoading(false);
     }
-  }, [training.id, training.company_id]);
+  }, [training.id]);
 
   useEffect(() => { reload(); }, [reload]);
-
-  const rosterParticipantIds = useMemo(
-    () => new Set(roster.map((row) => row.participant_id)),
-    [roster],
-  );
-  const availableParticipants = participants.filter((participant) => !rosterParticipantIds.has(participant.id));
+  useEffect(() => {
+    setPerson({ firstName: '', lastName: '', companyId: training.company_id || '', position: '' });
+  }, [training.id, training.company_id]);
   const completedCount = roster.filter((row) => row.status === 'completed').length;
   const presentCount = roster.filter((row) => row.status === 'attended' || row.status === 'completed').length;
   const certificateCount = roster.filter((row) => row.certificate_issued).length;
 
   async function addParticipant() {
-    if (!selectedParticipantId) return;
+    const values = {
+      firstName: person.firstName.trim(),
+      lastName: person.lastName.trim(),
+      companyId: person.companyId,
+      position: person.position.trim(),
+    };
+    if (!values.firstName || !values.lastName || !values.companyId) return;
     setWorkingId('add');
     try {
-      await addTrainingAttendee(training, selectedParticipantId);
-      setSelectedParticipantId('');
+      await addTrainingAttendee(training, values);
+      setPerson((current) => ({ ...current, firstName: '', lastName: '', position: '' }));
       await reload();
     } catch (err) {
       alert(err.message || 'Could not add this person to the roster.');
@@ -105,7 +108,7 @@ export default function TrainingAttendanceRoster({ training }) {
   return (
     <section className="training-attendance-roster">
       <div className="detail-section-title">Attendance Roster</div>
-      <p className="view-sub">Add employees from this client, track attendance, and issue certificates. These records appear in the client portal.</p>
+      <p className="view-sub">Add attendees from your client list, track attendance, and issue certificates. Each record appears in the selected company’s client portal.</p>
 
       <div className="reg-summary-bar training-roster-summary">
         <div className="reg-summary-stat"><span className="reg-summary-num">{roster.length}</span><span className="reg-summary-label">On roster</span></div>
@@ -115,27 +118,35 @@ export default function TrainingAttendanceRoster({ training }) {
       </div>
 
       <div className="create-form-card training-roster-add">
-        <div className="field-group full">
-          <label className="field-label" htmlFor="trainingRosterParticipant">Add employee</label>
-          <div className="training-roster-add-row">
-            <select
-              id="trainingRosterParticipant"
-              className="field-input"
-              value={selectedParticipantId}
-              onChange={(event) => setSelectedParticipantId(event.target.value)}
-            >
-              <option value="">— Choose from {training.companies?.name || 'client'} contacts —</option>
-              {availableParticipants.map((participant) => (
-                <option key={participant.id} value={participant.id}>
-                  {participant.full_name}{participant.email ? ` — ${participant.email}` : ''}
-                </option>
-              ))}
+        <div className="training-roster-person-grid">
+          <label className="field-group">
+            <span className="field-label">First Name</span>
+            <input className="field-input" autoComplete="given-name" value={person.firstName} onChange={(event) => setPerson({ ...person, firstName: event.target.value })} />
+          </label>
+          <label className="field-group">
+            <span className="field-label">Last Name</span>
+            <input className="field-input" autoComplete="family-name" value={person.lastName} onChange={(event) => setPerson({ ...person, lastName: event.target.value })} />
+          </label>
+          <label className="field-group">
+            <span className="field-label">Company</span>
+            <select className="field-input" value={person.companyId} onChange={(event) => setPerson({ ...person, companyId: event.target.value })}>
+              <option value="">— Select client —</option>
+              {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
             </select>
-            <button className="btn btn-primary" disabled={!selectedParticipantId || workingId === 'add'} onClick={addParticipant}>
-              {workingId === 'add' ? 'Adding…' : 'Add to Roster'}
-            </button>
-          </div>
-          {availableParticipants.length === 0 && <p className="field-hint">Everyone currently associated with this client is already on the roster. Add new employees from the client’s Address Book.</p>}
+          </label>
+          <label className="field-group">
+            <span className="field-label">Position</span>
+            <input className="field-input" autoComplete="organization-title" value={person.position} onChange={(event) => setPerson({ ...person, position: event.target.value })} />
+          </label>
+        </div>
+        <div className="create-form-actions">
+          <button
+            className="btn btn-primary"
+            disabled={!person.firstName.trim() || !person.lastName.trim() || !person.companyId || workingId === 'add'}
+            onClick={addParticipant}
+          >
+            {workingId === 'add' ? 'Adding…' : 'Add to Roster'}
+          </button>
         </div>
       </div>
 
@@ -144,12 +155,14 @@ export default function TrainingAttendanceRoster({ training }) {
       ) : (
         <div className="responses-table-wrap">
           <table className="responses-table training-roster-table">
-            <thead><tr><th>Employee</th><th>Status</th><th>Certificate</th><th></th></tr></thead>
+            <thead><tr><th>Employee</th><th>Company</th><th>Position</th><th>Status</th><th>Certificate</th><th></th></tr></thead>
             <tbody>
-              {roster.length === 0 && <tr><td colSpan={4}>No one has been added to this training yet.</td></tr>}
+              {roster.length === 0 && <tr><td colSpan={6}>No one has been added to this training yet.</td></tr>}
               {roster.map((row) => (
                 <tr key={row.id}>
                   <td><strong>{row.participant?.full_name || '—'}</strong><span className="table-secondary">{row.participant?.email || ''}</span></td>
+                  <td>{row.participant?.company?.name || '—'}</td>
+                  <td>{row.participant?.title || '—'}</td>
                   <td>
                     <select
                       className="attendance-status-select"
@@ -178,4 +191,3 @@ export default function TrainingAttendanceRoster({ training }) {
     </section>
   );
 }
-

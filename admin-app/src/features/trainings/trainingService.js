@@ -30,26 +30,45 @@ async function syncTrainingRosterSnapshot(training) {
   fail(error);
 }
 
-export async function fetchTrainingAttendanceRoster(trainingId, companyId) {
-  const [rosterResult, participantResult] = await Promise.all([
+export async function fetchTrainingAttendanceRoster(trainingId) {
+  const [rosterResult, companies] = await Promise.all([
     supabase
       .from('attendance')
-      .select('id, participant_id, status, certificate_issued, certificate_number, certificate_issued_at, participant:participant_id(id, full_name, email)')
+      .select('id, participant_id, status, certificate_issued, certificate_number, certificate_issued_at, participant:participant_id(id, full_name, email, title, company:company_id(id, name))')
       .eq('training_engagement_id', trainingId)
       .order('created_at', { ascending: true }),
-    supabase
-      .from('participants')
-      .select('id, full_name, email')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .order('full_name', { ascending: true }),
+    fetchCompaniesForSelect(),
   ]);
   fail(rosterResult.error);
-  fail(participantResult.error);
-  return { roster: rosterResult.data || [], participants: participantResult.data || [] };
+  return { roster: rosterResult.data || [], companies };
 }
 
-export async function addTrainingAttendee(training, participantId) {
+export async function addTrainingAttendee(training, { firstName, lastName, companyId, position }) {
+  const fullName = `${firstName} ${lastName}`.trim();
+  const { data: matches, error: lookupError } = await supabase
+    .from('participants')
+    .select('id, title')
+    .eq('company_id', companyId)
+    .ilike('full_name', fullName)
+    .limit(1);
+  fail(lookupError);
+
+  let participantId = matches?.[0]?.id;
+  if (participantId) {
+    if (position && matches[0].title !== position) {
+      const { error } = await supabase.from('participants').update({ title: position }).eq('id', participantId);
+      fail(error);
+    }
+  } else {
+    const { data: participant, error } = await supabase
+      .from('participants')
+      .insert({ full_name: fullName, company_id: companyId, title: position || null })
+      .select('id')
+      .single();
+    fail(error);
+    participantId = participant.id;
+  }
+
   const { error } = await supabase.from('attendance').insert({
     participant_id: participantId,
     training_engagement_id: training.id,
