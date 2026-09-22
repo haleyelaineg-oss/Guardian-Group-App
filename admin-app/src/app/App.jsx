@@ -68,10 +68,33 @@ function AuthedShell() {
 }
 
 function Gate() {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, isStaff, isClient, hasAccessError, signOut } = useAuth();
 
   if (isLoading) return <LoadingIndicator label="Loading admin dashboard…" />;
-  return isAuthenticated ? <AuthedShell /> : <LoginPage />;
+  if (!isAuthenticated) return <LoginPage />;
+  if (isStaff) return <AuthedShell />;
+  if (isClient) return <PortalRedirect />;
+  if (hasAccessError) {
+    return (
+      <div className="login-screen">
+        <div className="login-card">
+          <div className="login-wordmark">ADMIN ACCESS UNAVAILABLE</div>
+          <p className="portal-login-hint">We couldn’t verify your Guardian Group staff access.</p>
+          <button className="btn btn-primary login-btn" onClick={() => window.location.reload()}>Try Again</button>
+          <button className="portal-link-btn" onClick={signOut}>Sign Out</button>
+        </div>
+      </div>
+    );
+  }
+  return <LoginPage />;
+}
+
+function PortalRedirect() {
+  useEffect(() => {
+    window.location.replace('/portal/dashboard.html');
+  }, []);
+
+  return <LoadingIndicator label="Opening your client portal…" />;
 }
 
 export default function App() {

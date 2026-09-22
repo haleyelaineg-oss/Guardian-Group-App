@@ -25,7 +25,7 @@ export default function LoginPage() {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
           <div className="login-wordmark">GUARDIAN GROUP</div>
-          <div className="login-sub">Client Portal</div>
+          <div className="login-sub">Admin Portal</div>
         </div>
         <form className="login-form" onSubmit={handleSubmit} noValidate>
           <div className="field-group full">
