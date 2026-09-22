@@ -1,4 +1,4 @@
-// Pure Supabase data access for Clients — companies, company_membership,
+// Pure Supabase data access for Clients — companies, company portal access,
 // participants (roster), attendance (training records), documents
 // (invoices, read-only here), and client_documents/'client-documents'
 // storage. Mirrors js/admin.js's Clients section 1:1, including its exact
@@ -6,14 +6,6 @@
 // in wording between call sites in the vanilla app — preserved as-is
 // rather than consolidated).
 import { supabase } from '../../lib/supabase.js';
-
-// no DB — a shared pure helper, ported from generateClientCode() in admin.js
-export function generateClientCode() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L — avoids read-aloud ambiguity
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
-}
 
 // Shared by the New Client contact-row company picker and Address Book's
 // company filter/select — same query, same shape, one implementation.
@@ -26,24 +18,24 @@ export async function fetchCompaniesForSelect() {
 export async function fetchClientsList() {
   const { data: companies, error } = await supabase
     .from('companies')
-    .select('id, name, contact_name, contact_email, org_admin_participant_id')
+    .select('id, name, contact_name, contact_email')
     .order('name', { ascending: true });
   if (error) throw error;
-  if (!companies || companies.length === 0) return { companies: [], participantsByCompany: {}, membershipByCompany: {} };
+  if (!companies || companies.length === 0) return { companies: [], participantsByCompany: {}, portalAccountByCompany: {} };
 
-  const [{ data: allParticipants }, { data: memberships }] = await Promise.all([
-    supabase.from('participants').select('id, company_id, is_active, auth_user_id').in('company_id', companies.map((c) => c.id)),
-    supabase.from('company_membership').select('company_id, client_code, membership_tier, max_seats').in('company_id', companies.map((c) => c.id)),
+  const [{ data: allParticipants }, { data: portalAccounts }] = await Promise.all([
+    supabase.from('participants').select('id, company_id').in('company_id', companies.map((c) => c.id)),
+    supabase.from('company_portal_accounts').select('company_id, auth_user_id, email').in('company_id', companies.map((c) => c.id)),
   ]);
 
   const participantsByCompany = {};
   (allParticipants || []).forEach((p) => {
     (participantsByCompany[p.company_id] ||= []).push(p);
   });
-  const membershipByCompany = {};
-  (memberships || []).forEach((m) => { membershipByCompany[m.company_id] = m; });
+  const portalAccountByCompany = {};
+  (portalAccounts || []).forEach((account) => { portalAccountByCompany[account.company_id] = account; });
 
-  return { companies, participantsByCompany, membershipByCompany };
+  return { companies, participantsByCompany, portalAccountByCompany };
 }
 
 // Multi-step create — mirrors createCompany() in admin.js, minus its
@@ -52,10 +44,10 @@ export async function fetchClientsList() {
 // client; reassigning a contact to a different company is an Address Book
 // edit-contact concern now). The first named contact is the primary
 // contact; it does NOT roll back the company row if a later step
-// (contacts, membership) fails — reports each failure as a warning and
+// (contacts) fails — reports each failure as a warning and
 // still leaves the company created. Only a failure on the initial
 // `companies` insert itself aborts and throws.
-export async function createCompany({ name, contacts, billingAddress, tier, maxSeats, unlimitedSeats }) {
+export async function createCompany({ name, contacts, billingAddress }) {
   const primary = contacts[0] || null;
   const others = contacts.slice(1);
 
@@ -105,14 +97,6 @@ export async function createCompany({ name, contacts, billingAddress, tier, maxS
       : 'Client created, but saving contacts failed: ' + contactErr.message);
   }
 
-  const { error: memErr } = await supabase.from('company_membership').insert({
-    company_id: co.id,
-    client_code: generateClientCode(),
-    membership_tier: tier || null,
-    max_seats: unlimitedSeats ? null : (maxSeats || 5),
-  });
-  if (memErr) warnings.push('Client created, but membership setup failed: ' + memErr.message);
-
   return { company: co, warnings };
 }
 
@@ -126,9 +110,9 @@ export async function deleteCompany(companyId) {
 }
 
 export async function fetchClientDetail(companyId) {
-  const [{ data: company }, { data: membership }, { data: roster }] = await Promise.all([
-    supabase.from('companies').select('id, name, contact_name, contact_email, phones, billing_address, primary_contact_participant_id, org_admin_participant_id').eq('id', companyId).single(),
-    supabase.from('company_membership').select('company_id, client_code, membership_tier, max_seats').eq('company_id', companyId).maybeSingle(),
+  const [{ data: company }, { data: portalAccount }, { data: roster }] = await Promise.all([
+    supabase.from('companies').select('id, name, contact_name, contact_email, phones, billing_address, primary_contact_participant_id').eq('id', companyId).single(),
+    supabase.from('company_portal_accounts').select('company_id, auth_user_id, email').eq('company_id', companyId).maybeSingle(),
     supabase.from('participants').select('id, full_name, email, phone, title, is_active, auth_user_id').eq('company_id', companyId).order('full_name', { ascending: true }),
   ]);
   if (!company) return null;
@@ -146,7 +130,7 @@ export async function fetchClientDetail(companyId) {
 
   return {
     company,
-    membership: membership || null,
+    portalAccount: portalAccount || null,
     roster: members,
     attendance: attendanceRows || [],
     invoices: invoiceRows || [],
@@ -186,30 +170,22 @@ export async function saveClientOverview(companyId, { contactName, contactEmail,
   if (error) throw new Error('Could not save: ' + error.message);
 }
 
-export async function setCompanyOrgAdmin(companyId, participantId) {
-  const { error } = await supabase.from('companies').update({ org_admin_participant_id: participantId || null }).eq('id', companyId);
-  if (error) throw new Error('Could not update org admin: ' + error.message);
+export async function provisionCompanyPortal(companyId, email) {
+  const { data, error } = await supabase.functions.invoke('manage-company-portal', {
+    body: { action: 'provision', companyId, email },
+  });
+  if (error) throw new Error(data?.error || error.message || 'Could not create portal access.');
+  if (!data?.success) throw new Error(data?.error || 'Could not create portal access.');
+  return data;
 }
 
-export async function enableMembership(companyId) {
-  const { error } = await supabase.from('company_membership').insert({ company_id: companyId, client_code: generateClientCode(), max_seats: 5 });
-  if (error) throw new Error('Could not enable membership: ' + error.message);
-}
-
-// Batched save for the whole membership panel (tier, seats, unlimited) —
-// one "Save Membership" click, not a per-field immediate save. Only Copy
-// and Regenerate stay immediate, per Haley's request.
-export async function saveMembership(companyId, { tier, maxSeats, unlimited }) {
-  const { error } = await supabase.from('company_membership').update({
-    membership_tier: tier?.trim() || null,
-    max_seats: unlimited ? null : (parseInt(maxSeats, 10) || 0),
-  }).eq('company_id', companyId);
-  if (error) throw new Error('Could not save: ' + error.message);
-}
-
-export async function regenerateClientCode(companyId) {
-  const { error } = await supabase.from('company_membership').update({ client_code: generateClientCode() }).eq('company_id', companyId);
-  if (error) throw new Error('Could not regenerate code: ' + error.message);
+export async function disableCompanyPortal(companyId) {
+  const { data, error } = await supabase.functions.invoke('manage-company-portal', {
+    body: { action: 'disable', companyId },
+  });
+  if (error) throw new Error(data?.error || error.message || 'Could not disable portal access.');
+  if (!data?.success) throw new Error(data?.error || 'Could not disable portal access.');
+  return data;
 }
 
 export async function createRosterContact(companyId, { fullName, email, phone, title, notes }) {

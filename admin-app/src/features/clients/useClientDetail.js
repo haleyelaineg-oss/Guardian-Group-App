@@ -38,23 +38,16 @@ export function useClientDetail(companyId) {
     });
   }
 
-  async function setOrgAdmin(participantId) {
-    await clientsService.setCompanyOrgAdmin(companyId, participantId);
+  async function provisionPortal(email) {
+    const result = await clientsService.provisionCompanyPortal(companyId, email);
     await reload();
+    return result;
   }
 
-  async function enableMembership() {
-    await clientsService.enableMembership(companyId);
+  async function disablePortal() {
+    const result = await clientsService.disableCompanyPortal(companyId);
     await reload();
-  }
-
-  async function saveMembership(values) {
-    await clientsService.saveMembership(companyId, values);
-  }
-
-  async function regenerateClientCode() {
-    await clientsService.regenerateClientCode(companyId);
-    await reload();
+    return result;
   }
 
   async function createRosterContact(values) {
@@ -78,10 +71,8 @@ export function useClientDetail(companyId) {
     error,
     reload,
     saveOverview,
-    setOrgAdmin,
-    enableMembership,
-    saveMembership,
-    regenerateClientCode,
+    provisionPortal,
+    disablePortal,
     createRosterContact,
     uploadDocument,
     deleteDocument,

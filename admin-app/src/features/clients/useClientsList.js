@@ -4,7 +4,7 @@ import * as clientsService from './clientsService.js';
 export function useClientsList() {
   const [companies, setCompanies] = useState([]);
   const [participantsByCompany, setParticipantsByCompany] = useState({});
-  const [membershipByCompany, setMembershipByCompany] = useState({});
+  const [portalAccountByCompany, setPortalAccountByCompany] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,7 +18,7 @@ export function useClientsList() {
       const result = await clientsService.fetchClientsList();
       setCompanies(result.companies);
       setParticipantsByCompany(result.participantsByCompany);
-      setMembershipByCompany(result.membershipByCompany);
+      setPortalAccountByCompany(result.portalAccountByCompany);
       setError(null);
     } catch (err) {
       setError(err);
@@ -34,5 +34,5 @@ export function useClientsList() {
     await reload();
   }
 
-  return { companies, participantsByCompany, membershipByCompany, loading, error, reload, deleteClient };
+  return { companies, participantsByCompany, portalAccountByCompany, loading, error, reload, deleteClient };
 }

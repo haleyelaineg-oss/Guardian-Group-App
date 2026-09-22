@@ -15,28 +15,9 @@ export default function ClientDetailPage() {
   const { id } = useParams();
   const {
     detail, loading, error, reload,
-    saveOverview, setOrgAdmin, enableMembership, saveMembership,
-    regenerateClientCode, createRosterContact,
+    saveOverview, provisionPortal, disablePortal, createRosterContact,
     uploadDocument, deleteDocument,
   } = useClientDetail(id);
-
-  async function guard(fn, ...args) {
-    try {
-      await fn(...args);
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  function handleCopyCode() {
-    navigator.clipboard.writeText(detail.membership.client_code);
-    alert('Client code copied!');
-  }
-
-  function handleRegenerateCode() {
-    if (!confirm("Regenerating immediately invalidates the current code — anyone who hasn't signed up yet will need the new one. Continue?")) return;
-    guard(regenerateClientCode);
-  }
 
   if (loading) {
     return (
@@ -65,8 +46,6 @@ export default function ClientDetailPage() {
     );
   }
 
-  const activeCount = detail.roster.filter((m) => m.is_active && m.auth_user_id).length;
-
   return (
     <div className="view active">
       <Link className="btn-sm btn-sm-ghost" to="/admin/clients">← Back to Clients</Link>
@@ -77,20 +56,15 @@ export default function ClientDetailPage() {
 
       <ClientOverviewSection
         company={detail.company}
-        roster={detail.roster}
         onSave={saveOverview}
         onSaved={reload}
-        onSetOrgAdmin={(participantId) => guard(setOrgAdmin, participantId)}
       />
 
       <ClientMembershipPanel
-        membership={detail.membership}
-        activeCount={activeCount}
-        onCopyCode={handleCopyCode}
-        onRegenerateCode={handleRegenerateCode}
-        onSaveMembership={saveMembership}
-        onSaved={reload}
-        onEnableMembership={() => guard(enableMembership)}
+        company={detail.company}
+        portalAccount={detail.portalAccount}
+        onProvision={provisionPortal}
+        onDisable={disablePortal}
       />
 
       <ClientRosterSection

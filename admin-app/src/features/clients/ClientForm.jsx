@@ -11,9 +11,6 @@ export default function ClientForm({ onSubmit, onSaved, onCancel }) {
   const [name, setName] = useState('');
   const [contacts, setContacts] = useState([BLANK_CONTACT()]);
   const [billingAddress, setBillingAddress] = useState('');
-  const [tier, setTier] = useState('');
-  const [maxSeats, setMaxSeats] = useState('');
-  const [unlimitedSeats, setUnlimitedSeats] = useState(false);
 
   function updateContact(index, updated) {
     setContacts((prev) => prev.map((c, i) => (i === index ? updated : c)));
@@ -49,9 +46,6 @@ export default function ClientForm({ onSubmit, onSaved, onCancel }) {
       name: trimmedName,
       contacts: rawContacts.filter((c) => c.name),
       billingAddress: billingAddress.trim() || null,
-      tier: tier.trim() || null,
-      maxSeats: maxSeats ? parseInt(maxSeats, 10) : null,
-      unlimitedSeats,
     });
   }
 
@@ -81,30 +75,6 @@ export default function ClientForm({ onSubmit, onSaved, onCancel }) {
         <div className="field-group full">
           <label className="field-label">Billing Address</label>
           <textarea className="field-input" rows={2} placeholder={'123 Main St, Suite 100\nChicago, IL 60601'} value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} />
-        </div>
-        <div className="field-group half">
-          <label className="field-label">Membership Tier</label>
-          <select className="field-input" value={tier} onChange={(e) => setTier(e.target.value)}>
-            <option value="">— Select —</option>
-            <option value="Blue">Blue</option>
-            <option value="Silver">Silver</option>
-            <option value="Gold">Gold</option>
-            <option value="Platinum">Platinum</option>
-          </select>
-        </div>
-        <div className="field-group half">
-          <label className="field-label">Max Seats</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <input
-              type="number" className="field-input" placeholder="0" min="0" step="1"
-              value={maxSeats} disabled={unlimitedSeats}
-              onChange={(e) => setMaxSeats(e.target.value)}
-            />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', fontSize: 13, color: 'var(--gg-muted)' }}>
-              <input type="checkbox" checked={unlimitedSeats} onChange={(e) => setUnlimitedSeats(e.target.checked)} />
-              Unlimited
-            </label>
-          </div>
         </div>
       </div>
       <div className="create-form-actions">

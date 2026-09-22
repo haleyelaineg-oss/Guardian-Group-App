@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-export default function ClientsTable({ companies, participantsByCompany, membershipByCompany, onDelete }) {
+export default function ClientsTable({ companies, participantsByCompany, portalAccountByCompany, onDelete }) {
   const navigate = useNavigate();
 
   if (!companies.length) return <p className="empty-hint">No clients yet.</p>;
@@ -9,19 +9,20 @@ export default function ClientsTable({ companies, participantsByCompany, members
     <div className="responses-table-wrap">
       <table className="responses-table">
         <thead>
-          <tr><th>Client</th><th>Code</th><th>Tier</th><th>Seats</th><th></th></tr>
+          <tr><th>Client</th><th>Primary Contact</th><th>Portal Login</th><th>Contacts</th><th></th></tr>
         </thead>
         <tbody>
           {companies.map((c) => {
             const members = participantsByCompany[c.id] || [];
-            const activeCount = members.filter((m) => m.is_active && m.auth_user_id).length;
-            const membership = membershipByCompany[c.id];
+            const portalAccount = portalAccountByCompany[c.id];
             return (
               <tr key={c.id} className="client-list-row" onClick={() => navigate(`/admin/clients/${c.id}`)}>
                 <td>{c.name}</td>
-                <td>{membership ? <span className="client-code-chip">{membership.client_code}</span> : '—'}</td>
-                <td>{membership?.membership_tier || '—'}</td>
-                <td>{membership ? (membership.max_seats === null ? 'Unlimited' : `${activeCount} / ${membership.max_seats}`) : '—'}</td>
+                <td>{c.contact_name || '—'}<div className="table-secondary">{c.contact_email || ''}</div></td>
+                <td>{portalAccount?.auth_user_id
+                  ? <><span className="reg-card-status-badge attended">Active</span><div className="table-secondary">{portalAccount.email}</div></>
+                  : <span className="reg-card-status-badge no_show">Not configured</span>}</td>
+                <td>{members.length}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>
                   <button
                     className="btn-sm btn-sm-ghost"

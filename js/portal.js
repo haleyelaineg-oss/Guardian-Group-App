@@ -8,7 +8,6 @@ const pdb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('loginForm'))       initLoginPage();
-  if (document.getElementById('signupForm'))      initSignupPage();
   if (document.getElementById('setPasswordForm')) initSetPasswordPage();
   if (document.getElementById('dashboard'))       initDashboardPage();
   if (document.getElementById('certificatePage')) initCertificatePage();
@@ -68,69 +67,6 @@ async function initLoginPage() {
   });
 }
 
-// ── SIGNUP PAGE ──────────────────────────────────────────────
-async function initSignupPage() {
-  // Already signed in? Skip straight to the dashboard.
-  const { data: { session } } = await pdb.auth.getSession();
-  if (session) { window.location.href = '/portal/dashboard.html'; return; }
-
-  document.getElementById('signupForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const clientCode = document.getElementById('signupCode').value.trim();
-    const fullName   = document.getElementById('signupName').value.trim();
-    const email      = document.getElementById('signupEmail').value.trim();
-    const password   = document.getElementById('signupPassword').value;
-    const confirm    = document.getElementById('signupConfirmPassword').value;
-    const errEl      = document.getElementById('signupError');
-    const btn        = document.getElementById('signupBtn');
-
-    errEl.style.display = 'none';
-
-    if (password.length < 8) {
-      errEl.textContent = 'Password must be at least 8 characters.';
-      errEl.style.display = 'block';
-      return;
-    }
-    if (password !== confirm) {
-      errEl.textContent = 'Passwords do not match.';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Creating Account...';
-
-    try {
-      const resp = await fetch('/.netlify/functions/portal-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientCode, fullName, email, password })
-      });
-      const result = await resp.json().catch(() => ({}));
-
-      if (!resp.ok || !result.success) {
-        errEl.textContent = result.error || 'Could not create your account. Please try again.';
-        errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Create Account →';
-        return;
-      }
-
-      const { error: signInErr } = await pdb.auth.signInWithPassword({ email, password });
-      if (signInErr) {
-        window.location.href = '/portal/index.html';
-        return;
-      }
-      window.location.href = '/portal/dashboard.html';
-    } catch (err) {
-      errEl.textContent = 'Could not create your account. Please try again.';
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Create Account →';
-    }
-  });
-}
-
 // ── SET PASSWORD PAGE ──────────────────────────────────────
 async function initSetPasswordPage() {
   const { data: { session } } = await pdb.auth.getSession();
@@ -184,196 +120,136 @@ async function initSetPasswordPage() {
 }
 
 // ── DASHBOARD PAGE ──────────────────────────────────────────
-let myParticipant = null;
+let portalAccount = null;
 let myCompany = null;
-let isOrgAdmin = false;
+let trainingRecords = [];
 
 async function initDashboardPage() {
   const { data: { session } } = await pdb.auth.getSession();
   if (!session) { window.location.href = '/portal/index.html'; return; }
 
-  const { data: participant, error: pErr } = await pdb
-    .from('participants')
-    .select('id, full_name, email, company_id')
+  const { data: account, error: accountError } = await pdb
+    .from('company_portal_accounts')
+    .select('company_id, email')
     .eq('auth_user_id', session.user.id)
     .single();
 
-  if (pErr || !participant) {
-    document.getElementById('registrationsContent').innerHTML =
-      '<p class="empty-hint">We couldn\'t find your participant record. Please contact info@guardiangroupsls.com.</p>';
+  if (accountError || !account) {
+    document.getElementById('trainingRecordsContent').innerHTML = `
+      <div class="portal-empty-state">
+        <h2>This login is not connected to a client organization.</h2>
+        <p>Please contact <a href="mailto:info@guardiangroupsls.com">info@guardiangroupsls.com</a> for help.</p>
+      </div>`;
+    document.getElementById('portalUserTag').textContent = session.user.email || '';
     return;
   }
 
-  myParticipant = participant;
-  document.getElementById('welcomeLabel').textContent = `Welcome, ${participant.full_name}`;
-  document.getElementById('portalUserTag').textContent = participant.email;
+  portalAccount = account;
+  const { data: company, error: companyError } = await pdb
+    .from('companies')
+    .select('id, name')
+    .eq('id', account.company_id)
+    .single();
 
-  if (participant.company_id) {
-    const { data: company } = await pdb
-      .from('companies')
-      .select('id, name, org_admin_participant_id')
-      .eq('id', participant.company_id)
-      .single();
-    myCompany = company || null;
-    isOrgAdmin = !!(company && company.org_admin_participant_id === participant.id);
+  if (companyError || !company) {
+    document.getElementById('trainingRecordsContent').innerHTML =
+      '<p class="empty-hint">We couldn\'t load your organization. Please contact Guardian Group.</p>';
+    return;
   }
 
-  if (isOrgAdmin) {
-    document.getElementById('companyNavItem').style.display = 'flex';
-    document.getElementById('companySub').textContent = `Training status for everyone at ${myCompany?.name || 'your organization'}.`;
-  }
+  myCompany = company;
+  document.getElementById('welcomeLabel').textContent = company.name;
+  document.getElementById('portalUserTag').textContent = account.email || session.user.email || '';
+  document.getElementById('trainingRecordsSub').textContent = `Training history for everyone at ${company.name}.`;
+  document.getElementById('trainingSearch').addEventListener('input', renderTrainingRecords);
+  document.getElementById('trainingStatusFilter').addEventListener('change', renderTrainingRecords);
 
-  loadRegistrationsView();
+  loadTrainingRecords();
 }
 
-function setView(viewName, btnEl) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(`view-${viewName}`)?.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  btnEl?.classList.add('active');
-
-  if (viewName === 'registrations') loadRegistrationsView();
-  if (viewName === 'certificates')  loadCertificatesView();
-  if (viewName === 'company')       loadCompanyView();
-}
-
-async function loadRegistrationsView() {
-  const container = document.getElementById('registrationsContent');
+async function loadTrainingRecords() {
+  const container = document.getElementById('trainingRecordsContent');
   container.innerHTML = '<p class="empty-hint">Loading...</p>';
 
   const { data: rows, error } = await pdb
     .from('attendance')
-    .select('id, status, workshop:workshop_id(id, title, subtitle, facilitator, scheduled_at, workshop_date)')
-    .order('id', { ascending: false });
+    .select(`
+      id,
+      created_at,
+      status,
+      certificate_issued,
+      certificate_issued_at,
+      certificate_number,
+      participant:participant_id(id, full_name, email),
+      workshop:workshop_id(id, title, subtitle, facilitator, scheduled_at, workshop_date)
+    `)
+    .order('created_at', { ascending: false });
 
-  if (error || !rows || rows.length === 0) {
-    container.innerHTML = '<p class="empty-hint">No registrations yet. Once you register for a workshop, it\'ll show up here.</p>';
+  if (error) {
+    container.innerHTML = '<p class="empty-hint">We couldn\'t load your training records. Please try again shortly.</p>';
     return;
   }
 
-  container.innerHTML = `
-    <div class="reg-cards">
-      ${rows.map(r => `
-        <div class="reg-card">
-          <div class="reg-card-header">
-            <div>
-              <div class="reg-card-name">${escHtml(r.workshop?.title || 'Workshop')}</div>
-              <div class="reg-card-email">${escHtml(r.workshop?.facilitator ? `Facilitated by ${r.workshop.facilitator}` : '')}</div>
-            </div>
-            <div class="reg-card-meta-right">
-              <span class="wc-badge">${escHtml(portalFormatWorkshopDate(r.workshop))}</span>
-              <span class="reg-card-status-badge ${escHtml(r.status)}">${escHtml(r.status)}</span>
-            </div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
+  trainingRecords = rows || [];
+  renderTrainingSummary();
+  renderTrainingRecords();
+}
+
+function renderTrainingSummary() {
+  const employeeCount = new Set(trainingRecords.map(record => record.participant?.id).filter(Boolean)).size;
+  const completedCount = trainingRecords.filter(record => record.status === 'completed').length;
+  const certificateCount = trainingRecords.filter(record => record.certificate_issued).length;
+
+  document.getElementById('trainingSummary').innerHTML = `
+    <div class="portal-summary-card"><strong>${trainingRecords.length}</strong><span>Total records</span></div>
+    <div class="portal-summary-card"><strong>${employeeCount}</strong><span>Employees</span></div>
+    <div class="portal-summary-card"><strong>${completedCount}</strong><span>Completed</span></div>
+    <div class="portal-summary-card"><strong>${certificateCount}</strong><span>Certificates</span></div>
   `;
 }
 
-async function loadCertificatesView() {
-  const container = document.getElementById('certificatesContent');
-  container.innerHTML = '<p class="empty-hint">Loading...</p>';
+function renderTrainingRecords() {
+  const container = document.getElementById('trainingRecordsContent');
+  const query = document.getElementById('trainingSearch')?.value.trim().toLowerCase() || '';
+  const status = document.getElementById('trainingStatusFilter')?.value || '';
+  const rows = trainingRecords.filter(record => {
+    const searchable = `${record.participant?.full_name || ''} ${record.participant?.email || ''} ${record.workshop?.title || ''}`.toLowerCase();
+    return (!query || searchable.includes(query)) && (!status || record.status === status);
+  });
 
-  const { data: rows, error } = await pdb
-    .from('attendance')
-    .select('id, certificate_number, certificate_issued_at, workshop:workshop_id(title)')
-    .eq('certificate_issued', true)
-    .order('certificate_issued_at', { ascending: false });
-
-  if (error || !rows || rows.length === 0) {
-    container.innerHTML = '<p class="empty-hint">No certificates yet. Certificates appear here once a workshop is marked complete.</p>';
+  if (rows.length === 0) {
+    container.innerHTML = `<div class="portal-empty-state"><h2>${trainingRecords.length ? 'No matching records' : 'No training records yet'}</h2><p>${trainingRecords.length ? 'Try changing your search or status filter.' : 'Training records will appear here as employees register and complete workshops.'}</p></div>`;
     return;
   }
 
   container.innerHTML = `
-    <div class="reg-cards">
-      ${rows.map(c => `
-        <div class="reg-card">
-          <div class="reg-card-header">
-            <div>
-              <div class="reg-card-name">${escHtml(c.workshop?.title || 'Workshop')}</div>
-              <div class="reg-card-email">Certificate No. ${escHtml(c.certificate_number || '—')}</div>
-            </div>
-            <div class="reg-card-meta-right">
-              <span class="wc-badge active-badge">Issued ${portalFormatDate(c.certificate_issued_at)}</span>
-              <a class="btn-sm btn-sm-ghost" href="/portal/certificate.html?id=${encodeURIComponent(c.id)}">View / Print</a>
-            </div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-async function loadCompanyView() {
-  const container = document.getElementById('companyContent');
-  if (!isOrgAdmin || !myParticipant?.company_id) {
-    container.innerHTML = '<p class="empty-hint">Company records are only visible to your organization\'s admin.</p>';
-    return;
-  }
-  container.innerHTML = '<p class="empty-hint">Loading...</p>';
-
-  const [{ data: roster }, { data: seatStatus }] = await Promise.all([
-    pdb
-      .from('participants')
-      .select('id, full_name, email, is_active, auth_user_id')
-      .eq('company_id', myParticipant.company_id)
-      .order('full_name', { ascending: true }),
-    pdb.rpc('org_admin_seat_status', { p_company_id: myParticipant.company_id }).maybeSingle()
-  ]);
-
-  if (!roster || roster.length === 0) {
-    container.innerHTML = '<p class="empty-hint">No one from your company has joined the portal yet.</p>';
-    return;
-  }
-
-  const seatLine = seatStatus
-    ? `<p class="view-sub">${seatStatus.active_count} of ${seatStatus.max_seats} seats used${seatStatus.membership_tier ? ` — ${escHtml(seatStatus.membership_tier)}` : ''}</p>`
-    : '';
-
-  const rows = roster.map(p => {
-    const active = p.is_active && p.auth_user_id;
-    const isMe = p.id === myParticipant.id;
-    return `
-      <tr>
-        <td>${escHtml(p.full_name || '—')}</td>
-        <td>${escHtml(p.email || '—')}</td>
-        <td><span class="reg-card-status-badge ${active ? 'attended' : 'no_show'}">${active ? 'Active' : 'Removed'}</span></td>
-        <td>${active && !isMe ? `<button class="btn-sm btn-sm-danger" onclick="removeMember('${p.id}', '${escHtml(p.full_name || 'this member').replace(/'/g, "\\'")}')">Remove</button>` : (isMe ? '<span class="empty-hint">You</span>' : '—')}</td>
-      </tr>
-    `;
-  }).join('');
-
-  container.innerHTML = `
-    ${seatLine}
     <div class="responses-table-wrap">
-      <table class="responses-table">
+      <table class="responses-table portal-training-table">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Status</th><th></th></tr>
+          <tr><th>Employee</th><th>Training</th><th>Date</th><th>Status</th><th>Certificate</th></tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>
+          ${rows.map(record => `
+            <tr>
+              <td>
+                <strong>${escHtml(record.participant?.full_name || '—')}</strong>
+                <span class="portal-table-secondary">${escHtml(record.participant?.email || '')}</span>
+              </td>
+              <td>
+                <strong>${escHtml(record.workshop?.title || 'Workshop')}</strong>
+                <span class="portal-table-secondary">${escHtml(record.workshop?.facilitator ? `Facilitated by ${record.workshop.facilitator}` : '')}</span>
+              </td>
+              <td>${escHtml(portalFormatWorkshopDate(record.workshop))}</td>
+              <td><span class="reg-card-status-badge ${escHtml(record.status || 'registered')}">${escHtml(portalStatusLabel(record.status))}</span></td>
+              <td>${record.certificate_issued
+                ? `<a class="btn-sm btn-sm-ghost" href="/portal/certificate.html?id=${encodeURIComponent(record.id)}">View / Print</a>`
+                : '<span class="portal-table-secondary">—</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
       </table>
     </div>
   `;
-}
-
-async function removeMember(participantId, name) {
-  if (!confirm(`Remove ${name} from the portal? They will lose access immediately.`)) return;
-
-  const { data: { session } } = await pdb.auth.getSession();
-  const resp = await fetch('/.netlify/functions/portal-remove-member', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessToken: session.access_token, targetParticipantId: participantId })
-  });
-  const result = await resp.json().catch(() => ({}));
-
-  if (!resp.ok || !result.success) {
-    alert(result.error || 'Could not remove member.');
-    return;
-  }
-  loadCompanyView();
 }
 
 async function portalSignOut() {
@@ -428,6 +304,15 @@ function portalFormatWorkshopDate(workshop) {
   if (workshop.scheduled_at) return portalFormatDate(workshop.scheduled_at);
   if (workshop.workshop_date) return portalFormatDate(workshop.workshop_date);
   return 'Date TBD';
+}
+
+function portalStatusLabel(status) {
+  return ({
+    registered: 'Registered',
+    attended: 'Attended',
+    completed: 'Completed',
+    no_show: 'No show'
+  })[status] || status || 'Registered';
 }
 
 function escHtml(str) {

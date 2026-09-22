@@ -22,18 +22,12 @@
         <img src="../assets/logo-white.png" alt="" class="sidebar-logo-img" onerror="this.style.display='none'" />
         <div>
           <div class="sidebar-brand">GUARDIAN GROUP</div>
-          <div class="sidebar-tag">Client Portal</div>
+          <div class="sidebar-tag">Training Portal</div>
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-view="registrations" onclick="setView('registrations', this)">
-          <span class="nav-icon">◫</span> My Registrations
-        </button>
-        <button class="nav-item" data-view="certificates" onclick="setView('certificates', this)">
-          <span class="nav-icon">◆</span> My Certificates
-        </button>
-        <button class="nav-item" data-view="company" id="companyNavItem" onclick="setView('company', this)" style="display:none">
-          <span class="nav-icon">◉</span> Company
+        <button class="nav-item active" data-view="training-records">
+          <span class="nav-icon">◫</span> Training Records
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -51,35 +45,30 @@
         </div>
       </div>
 
-      <!-- VIEW: MY REGISTRATIONS -->
-      <div class="view active" id="view-registrations">
+      <!-- VIEW: ORGANIZATION TRAINING RECORDS -->
+      <div class="view active" id="view-training-records">
         <div class="view-header">
-          <h1 class="view-title">My Registrations</h1>
-          <p class="view-sub">Workshops you've registered for.</p>
+          <h1 class="view-title">Training Records</h1>
+          <p class="view-sub" id="trainingRecordsSub">Training history for your organization.</p>
         </div>
-        <div id="registrationsContent">
-          <p class="empty-hint">Loading...</p>
+        <div class="portal-summary-grid" id="trainingSummary" aria-label="Training record summary"></div>
+        <div class="portal-record-filters">
+          <label class="field-group">
+            <span class="field-label">Search records</span>
+            <input class="field-input" id="trainingSearch" type="search" placeholder="Employee or training name" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Status</span>
+            <select class="field-input" id="trainingStatusFilter">
+              <option value="">All statuses</option>
+              <option value="registered">Registered</option>
+              <option value="attended">Attended</option>
+              <option value="completed">Completed</option>
+              <option value="no_show">No show</option>
+            </select>
+          </label>
         </div>
-      </div>
-
-      <!-- VIEW: MY CERTIFICATES -->
-      <div class="view" id="view-certificates">
-        <div class="view-header">
-          <h1 class="view-title">My Certificates</h1>
-          <p class="view-sub">Certificates are issued once a workshop is marked complete.</p>
-        </div>
-        <div id="certificatesContent">
-          <p class="empty-hint">Loading...</p>
-        </div>
-      </div>
-
-      <!-- VIEW: COMPANY (org admins only) -->
-      <div class="view" id="view-company">
-        <div class="view-header">
-          <h1 class="view-title">Company</h1>
-          <p class="view-sub" id="companySub">Training status for everyone at your organization.</p>
-        </div>
-        <div id="companyContent">
+        <div id="trainingRecordsContent" aria-live="polite">
           <p class="empty-hint">Loading...</p>
         </div>
       </div>
