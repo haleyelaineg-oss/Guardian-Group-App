@@ -50,10 +50,6 @@ a { color: inherit; text-decoration: none; }
 ul { list-style: none; }
 img { max-width: 100%; display: block; }
 
-.placeholder {
-  color: var(--gg-muted);
-}
-
 /* ── BUTTONS ─────────────────────────────────────────────── */
 .btn {
   display: inline-block;
@@ -98,6 +94,21 @@ img { max-width: 100%; display: block; }
   background: var(--gg-white);
   color: var(--gg-dark);
   border-color: var(--gg-white);
+}
+.btn:focus-visible,
+.nav-link:focus-visible,
+.nav-login:focus-visible,
+.nav-logo:focus-visible,
+.nav-dropdown-toggle:focus-visible,
+.nav-toggle:focus-visible,
+.info-card:focus-visible,
+.footer-links a:focus-visible {
+  outline: 3px solid var(--gg-light);
+  outline-offset: 3px;
+}
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 /* ── NAV ─────────────────────────────────────────────────── */
@@ -198,7 +209,8 @@ img { max-width: 100%; display: block; }
   transition: all var(--transition);
 }
 .nav-dropdown-toggle:hover,
-.nav-dropdown.open .nav-dropdown-toggle {
+.nav-dropdown.open .nav-dropdown-toggle,
+.nav-dropdown.current .nav-dropdown-toggle {
   color: var(--gg-white);
   background: rgba(255,255,255,0.08);
 }
@@ -337,8 +349,8 @@ img { max-width: 100%; display: block; }
   pointer-events: none;
 }
 .hero-inner {
-  max-width: 900px;
-  margin: 0 48px 0 auto;
+  max-width: 780px;
+  margin: 0 auto;
   position: relative;
   z-index: 1;
 }
@@ -374,7 +386,12 @@ img { max-width: 100%; display: block; }
   transform: translateX(20px);
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-rotator-word { transition: none; }
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 .hero-subtitle {
   max-width: 800px;
@@ -397,7 +414,7 @@ img { max-width: 100%; display: block; }
   padding: 64px 24px 56px;
   text-align: left;
 }
-.page-hero .hero-inner { max-width: 1000px; }
+.page-hero .hero-inner { max-width: 780px; }
 .page-hero .hero-title { font-size: clamp(30px, 4.5vw, 44px); }
 .page-hero .hero-subtitle { font-size: 17px; margin-bottom: 0; }
 
@@ -821,6 +838,8 @@ textarea.field-input { resize: vertical; min-height: 110px; }
   .card-grid.cols-2,
   .card-grid.cols-3 { grid-template-columns: 1fr; }
   .hero { padding: 72px 20px 64px; }
+  .hero-inner { margin: 0; }
+  .hero-title { white-space: normal; }
   .hero::before { width: 320px; height: 320px; left: -80px; }
   .section { padding: 64px 20px; }
   .cta-band { padding: 56px 20px; }
