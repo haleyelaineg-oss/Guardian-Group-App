@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — Guardian Group Safety &amp; Leadership Solutions</title>
+  <meta name="description" content="Talk with Guardian Group about safety consulting, technical training, professional development, or a speaking engagement." />
+  <link rel="icon" href="../assets/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/site.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <header class="site-nav">
+    <div class="nav-inner">
+      <a href="../" class="nav-logo">
+        <img src="../assets/logo-white.png" alt="Guardian Group" class="nav-logo-img" onerror="this.style.display='none'" />
+        <span>
+          <span class="nav-logo-text">GUARDIAN GROUP</span>
+          <span class="nav-logo-tag">Safety &amp; Leadership Solutions</span>
+        </span>
+      </a>
+      <nav class="nav-links">
+        <a href="../" class="nav-link">Home</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button">About <span class="nav-caret">▾</span></button>
+          <div class="nav-dropdown-menu">
+            <a href="../about/#story">Our Story</a>
+            <a href="../about/#the-guardian-group-way">The Guardian Group Way</a>
+            <a href="../about/#team">Our Team</a>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" type="button">Services <span class="nav-caret">▾</span></button>
+          <div class="nav-dropdown-menu">
+            <a href="../services/">All Services</a>
+            <a href="../services/safety-through-operations-consulting/">Safety through Operations Consulting</a>
+            <a href="../services/technical-training/">Technical Training</a>
+            <a href="../services/professional-development/">Professional Development</a>
+            <a href="../services/speaking-engagements/">Speaking Engagements</a>
+          </div>
+        </div>
+        <a href="../contact/" class="nav-link active">Contact</a>
+        <a href="https://app.guardiangroupsls.com/portal/" class="nav-link nav-link-mobile-only">Member Login</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="https://app.guardiangroupsls.com/portal/" class="nav-login">Member Login</a>
+      </div>
+      <button class="nav-toggle" type="button" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE HERO -->
+  <section class="hero page-hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">Get In Touch</div>
+      <h1 class="hero-title">Contact Us</h1>
+      <p class="hero-subtitle">Tell us what your team is facing, what you want to improve, or what kind of program you have in mind. We’ll help you find a practical next step.</p>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="contact-grid">
+
+        <!-- INFO -->
+        <div>
+          <div class="section-eyebrow">Reach Us</div>
+          <h2 class="section-title">Let's start a conversation.</h2>
+          <p class="section-lead">Share a little about your organization and the challenge in front of you. We’ll follow up to learn more and talk through the right fit.</p>
+          <div class="contact-info-list">
+            <div class="contact-info-item">
+              <span class="contact-info-label">Email</span>
+              <span class="contact-info-value"><a href="mailto:info@guardiangroupsls.com">info@guardiangroupsls.com</a></span>
+            </div>
+            <div class="contact-info-item">
+              <span class="contact-info-label">Service Area</span>
+              <span class="contact-info-value">Based in West Michigan and available for on-site work nationwide.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM -->
+        <form class="contact-form" id="contactForm" name="contact" method="POST" action="/api/contact">
+          <p style="display:none">
+            <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+          </p>
+
+          <div class="field-group">
+            <label class="field-label" for="contactName">Name</label>
+            <input type="text" id="contactName" name="name" class="field-input" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="contactEmail">Email</label>
+            <input type="email" id="contactEmail" name="email" class="field-input" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="contactOrg">Company / Organization</label>
+            <input type="text" id="contactOrg" name="organization" class="field-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="contactMessage">Message</label>
+            <textarea id="contactMessage" name="message" class="field-input" required></textarea>
+          </div>
+
+          <div id="contactFormError" role="alert" style="display:none; color:#c0392b; font-size:14px;"></div>
+          <div id="contactFormSuccess" role="status" aria-live="polite" tabindex="-1" style="display:none; color:#165b3c; font-size:17px; font-weight:600;">
+            Thanks — your message is in. We'll be in touch soon.
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
+        </form>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <img src="../assets/logo-white.png" alt="Guardian Group" class="footer-brand-logo" onerror="this.style.display='none'" />
+        <div class="footer-brand-text">GUARDIAN GROUP</div>
+        <p class="footer-brand-desc">Practical safety, leadership, and operational support for high-risk teams.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Site</div>
+        <div class="footer-links">
+          <a href="../">Home</a>
+          <a href="../about/">About</a>
+          <a href="../services/">Services</a>
+          <a href="../contact/">Contact</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Contact</div>
+        <div class="footer-links">
+          <a href="mailto:info@guardiangroupsls.com">info@guardiangroupsls.com</a>
+          <a href="https://app.guardiangroupsls.com/portal/">Member Login</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="footerYear"></span> Guardian Group Safety &amp; Leadership Solutions</span>
+      <span>Beyond Compliance</span>
+    </div>
+  </footer>
+
+  <script src="../js/site.js"></script>
+  <script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+    const contactForm = document.getElementById('contactForm');
+    const contactSuccess = document.getElementById('contactFormSuccess');
+    const showContactSuccess = () => {
+      Array.from(contactForm.children).forEach((child) => {
+        if (child !== contactSuccess) child.style.display = 'none';
+      });
+      contactSuccess.style.display = 'block';
+      contactSuccess.focus?.();
+    };
+
+    if (new URLSearchParams(window.location.search).get('success') === 'true') {
+      showContactSuccess();
+    }
+
+    contactForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const btn = document.getElementById('contactSubmitBtn');
+      const errEl = document.getElementById('contactFormError');
+
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(form)).toString()
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error('Form submission failed');
+          showContactSuccess();
+        })
+        .catch(() => {
+          errEl.textContent = 'Something went wrong sending your message — please email info@guardiangroupsls.com directly.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Send Message';
+        });
+    });
+  </script>
+</body>
+</html>
