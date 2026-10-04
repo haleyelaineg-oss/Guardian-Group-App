@@ -28,6 +28,16 @@
   line-height: 1.6;
 }
 
+.portal-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 18px;
+  text-decoration: none;
+}
+
 .login-success {
   background: #eef6f0;
   border: 1px solid #bfe0c8;
