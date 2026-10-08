@@ -75,6 +75,145 @@
   line-height: 1.6;
 }
 
+/* ── CLIENT PORTAL DASHBOARD ────────────────────────────── */
+.portal-eyebrow {
+  margin: 0 0 6px;
+  color: var(--gg-steel);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.portal-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr);
+  gap: 18px;
+}
+
+.portal-panel {
+  min-width: 0;
+  padding: 24px;
+  background: white;
+  border: 1px solid var(--gg-pale);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.portal-panel h2 {
+  margin: 0;
+  color: var(--gg-dark);
+  font-family: var(--font-display);
+  font-size: 21px;
+}
+
+.portal-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.portal-text-action {
+  flex: 0 0 auto;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--gg-mid);
+  font: 600 13px var(--font-display);
+  cursor: pointer;
+}
+
+.portal-text-action:hover,
+.portal-text-action:focus-visible { color: var(--gg-dark); }
+
+.portal-recent-list {
+  border-top: 1px solid var(--gg-off);
+}
+
+.portal-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--gg-off);
+}
+
+.portal-recent-row:last-child { border-bottom: 0; }
+.portal-recent-row strong { display: block; color: var(--gg-dark); font-size: 14px; }
+.portal-recent-row > div:first-child span { display: block; margin-top: 3px; color: var(--gg-muted); font-size: 12px; }
+
+.portal-recent-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--gg-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.portal-empty-compact {
+  padding: 30px 10px 14px;
+  color: var(--gg-muted);
+  text-align: center;
+}
+
+.portal-empty-compact p { margin: 0; }
+
+.portal-quick-links {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.portal-quick-links h2 { margin-bottom: 16px; }
+
+.portal-quick-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 15px 16px;
+  border: 1px solid var(--gg-pale);
+  border-radius: 9px;
+  background: var(--gg-off);
+  color: var(--gg-dark);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.portal-quick-link:hover,
+.portal-quick-link:focus-visible {
+  border-color: var(--gg-steel);
+  background: white;
+}
+
+.portal-quick-link strong { font: 700 15px var(--font-display); }
+.portal-quick-link span { color: var(--gg-muted); font-size: 12px; }
+
+/* ── EMPLOYEE ROSTER ───────────────────────────────────── */
+.portal-roster-editor { max-width: 900px; }
+.portal-roster-actions { align-items: center; }
+.portal-feedback { margin: 0 0 18px; }
+.portal-roster-table tr { cursor: default; }
+.portal-roster-inactive td { background: rgba(238, 242, 244, 0.55); color: var(--gg-muted); }
+
+.portal-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.portal-row-actions .portal-table-secondary { margin: 0; white-space: nowrap; }
+
 /* ── ORGANIZATION TRAINING RECORDS ───────────────────────── */
 .portal-summary-grid {
   display: grid;
@@ -157,10 +296,17 @@
 
 @media (max-width: 860px) {
   .portal-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portal-overview-grid { grid-template-columns: 1fr; }
   .portal-record-filters { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
+  .portal-panel { padding: 18px; }
+  .portal-panel-heading { align-items: flex-end; }
+  .portal-recent-row { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .portal-recent-meta { justify-content: space-between; width: 100%; text-align: left; }
+  .portal-roster-actions { align-items: stretch; flex-direction: column-reverse; }
+  .portal-roster-actions .btn { width: 100%; }
   .portal-summary-grid { grid-template-columns: 1fr 1fr; }
   .portal-summary-card { min-height: 82px; padding: 14px; }
   .portal-summary-card strong { font-size: 26px; }

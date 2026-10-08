@@ -16,8 +16,16 @@
 
   <div class="dashboard" id="dashboard">
 
+    <header class="mobile-topbar">
+      <div class="mobile-topbar-brand">Guardian Group</div>
+      <button type="button" class="mobile-menu-button" id="portalMenuButton" aria-label="Open navigation menu" aria-controls="portalNavigation" aria-expanded="false">
+        <span aria-hidden="true">☰</span>
+      </button>
+    </header>
+    <button type="button" class="mobile-nav-scrim" id="portalNavScrim" aria-label="Close navigation menu" tabindex="-1"></button>
+
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="portalNavigation">
       <div class="sidebar-logo">
         <img src="../assets/logo-white.png" alt="" class="sidebar-logo-img" onerror="this.style.display='none'" />
         <div>
@@ -26,8 +34,14 @@
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-view="training-records">
-          <span class="nav-icon">◫</span> Training Records
+        <button class="nav-item active" data-view="overview">
+          <span class="nav-icon" aria-hidden="true">⌂</span> Overview
+        </button>
+        <button class="nav-item" data-view="roster">
+          <span class="nav-icon" aria-hidden="true">♙</span> Employee Roster
+        </button>
+        <button class="nav-item" data-view="training-records">
+          <span class="nav-icon" aria-hidden="true">◫</span> Training Records
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -45,8 +59,82 @@
         </div>
       </div>
 
+      <!-- VIEW: OVERVIEW -->
+      <div class="view active" id="view-overview">
+        <div class="view-header">
+          <div>
+            <p class="portal-eyebrow">Client Portal</p>
+            <h1 class="view-title">Welcome, <span id="overviewCompanyName">Guardian Group Client</span></h1>
+            <p class="view-sub">A quick look at your organization’s training activity.</p>
+          </div>
+        </div>
+        <div id="overviewContent" aria-live="polite">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
+      <!-- VIEW: EMPLOYEE ROSTER -->
+      <div class="view" id="view-roster">
+        <div class="view-header">
+          <div>
+            <h1 class="view-title">Employee Roster</h1>
+            <p class="view-sub" id="rosterSub">Manage the employees connected to your organization.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="addRosterMemberBtn">+ Add Employee</button>
+        </div>
+
+        <form class="create-form-card portal-roster-editor" id="rosterEditor" style="display:none" novalidate>
+          <h2 class="card-title" id="rosterEditorTitle">Add Employee</h2>
+          <input type="hidden" id="rosterMemberId" />
+          <div class="fields-grid">
+            <label class="field-group half">
+              <span class="field-label">Full name <span class="required">*</span></span>
+              <input class="field-input" id="rosterFullName" autocomplete="name" required />
+            </label>
+            <label class="field-group half">
+              <span class="field-label">Job title</span>
+              <input class="field-input" id="rosterTitle" autocomplete="organization-title" />
+            </label>
+            <label class="field-group half">
+              <span class="field-label">Email</span>
+              <input class="field-input" id="rosterEmail" type="email" autocomplete="email" />
+            </label>
+            <label class="field-group half">
+              <span class="field-label">Phone</span>
+              <input class="field-input" id="rosterPhone" type="tel" autocomplete="tel" />
+            </label>
+          </div>
+          <p class="field-hint">Adding an employee creates a roster record only. Individual portal invitations will be added in a future phase.</p>
+          <div class="create-form-actions portal-roster-actions">
+            <button type="button" class="btn btn-ghost" id="cancelRosterEditorBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveRosterMemberBtn">Save Employee</button>
+          </div>
+        </form>
+
+        <div class="login-success portal-feedback" id="rosterSuccess" style="display:none" role="status"></div>
+        <div class="login-error portal-feedback" id="rosterError" style="display:none" role="alert"></div>
+
+        <div class="portal-record-filters">
+          <label class="field-group">
+            <span class="field-label">Search employees</span>
+            <input class="field-input" id="rosterSearch" type="search" placeholder="Name, email, or job title" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Status</span>
+            <select class="field-input" id="rosterStatusFilter">
+              <option value="active">Active employees</option>
+              <option value="inactive">Inactive employees</option>
+              <option value="">All employees</option>
+            </select>
+          </label>
+        </div>
+        <div id="rosterContent" aria-live="polite">
+          <p class="empty-hint">Loading...</p>
+        </div>
+      </div>
+
       <!-- VIEW: ORGANIZATION TRAINING RECORDS -->
-      <div class="view active" id="view-training-records">
+      <div class="view" id="view-training-records">
         <div class="view-header">
           <h1 class="view-title">Training Records</h1>
           <p class="view-sub" id="trainingRecordsSub">Training history for your organization.</p>

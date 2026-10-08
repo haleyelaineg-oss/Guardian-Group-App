@@ -123,8 +123,11 @@ async function initSetPasswordPage() {
 let portalAccount = null;
 let myCompany = null;
 let trainingRecords = [];
+let portalRoster = [];
 
 async function initDashboardPage() {
+  initPortalNavigation();
+
   const { data: { session } } = await pdb.auth.getSession();
   if (!session) { window.location.href = '/portal/index.html'; return; }
 
@@ -135,11 +138,15 @@ async function initDashboardPage() {
     .single();
 
   if (accountError || !account) {
-    document.getElementById('trainingRecordsContent').innerHTML = `
+    const accessMessage = `
       <div class="portal-empty-state">
         <h2>This login is not connected to a client organization.</h2>
         <p>Please contact <a href="mailto:info@guardiangroupsls.com">info@guardiangroupsls.com</a> for help.</p>
       </div>`;
+    document.getElementById('overviewContent').innerHTML = accessMessage;
+    document.getElementById('rosterContent').innerHTML = accessMessage;
+    document.getElementById('trainingRecordsContent').innerHTML = accessMessage;
+    document.getElementById('addRosterMemberBtn').disabled = true;
     document.getElementById('portalUserTag').textContent = session.user.email || '';
     return;
   }
@@ -152,19 +159,323 @@ async function initDashboardPage() {
     .single();
 
   if (companyError || !company) {
-    document.getElementById('trainingRecordsContent').innerHTML =
-      '<p class="empty-hint">We couldn\'t load your organization. Please contact Guardian Group.</p>';
+    const companyMessage = '<div class="portal-empty-state"><h2>We couldn\'t load your organization.</h2><p>Please contact Guardian Group for help.</p></div>';
+    document.getElementById('overviewContent').innerHTML = companyMessage;
+    document.getElementById('rosterContent').innerHTML = companyMessage;
+    document.getElementById('trainingRecordsContent').innerHTML = companyMessage;
+    document.getElementById('addRosterMemberBtn').disabled = true;
     return;
   }
 
   myCompany = company;
   document.getElementById('welcomeLabel').textContent = company.name;
+  document.getElementById('overviewCompanyName').textContent = company.name;
   document.getElementById('portalUserTag').textContent = account.email || session.user.email || '';
+  document.getElementById('rosterSub').textContent = `Manage the employees connected to ${company.name}.`;
   document.getElementById('trainingRecordsSub').textContent = `Training history for everyone at ${company.name}.`;
   document.getElementById('trainingSearch').addEventListener('input', renderTrainingRecords);
   document.getElementById('trainingStatusFilter').addEventListener('change', renderTrainingRecords);
+  document.getElementById('rosterSearch').addEventListener('input', renderRoster);
+  document.getElementById('rosterStatusFilter').addEventListener('change', renderRoster);
+  document.getElementById('addRosterMemberBtn').addEventListener('click', () => openRosterEditor());
+  document.getElementById('cancelRosterEditorBtn').addEventListener('click', closeRosterEditor);
+  document.getElementById('rosterEditor').addEventListener('submit', saveRosterMember);
+  document.getElementById('rosterContent').addEventListener('click', handleRosterAction);
 
-  loadTrainingRecords();
+  await Promise.all([loadRoster(), loadTrainingRecords()]);
+  renderOverview();
+}
+
+function initPortalNavigation() {
+  const sidebar = document.getElementById('portalNavigation');
+  const menuButton = document.getElementById('portalMenuButton');
+  const scrim = document.getElementById('portalNavScrim');
+
+  function closeMenu() {
+    sidebar.classList.remove('mobile-open');
+    scrim.classList.remove('visible');
+    scrim.tabIndex = -1;
+    menuButton.setAttribute('aria-expanded', 'false');
+    menuButton.setAttribute('aria-label', 'Open navigation menu');
+    menuButton.querySelector('span').textContent = '☰';
+  }
+
+  menuButton.addEventListener('click', () => {
+    const opening = !sidebar.classList.contains('mobile-open');
+    sidebar.classList.toggle('mobile-open', opening);
+    scrim.classList.toggle('visible', opening);
+    scrim.tabIndex = opening ? 0 : -1;
+    menuButton.setAttribute('aria-expanded', String(opening));
+    menuButton.setAttribute('aria-label', opening ? 'Close navigation menu' : 'Open navigation menu');
+    menuButton.querySelector('span').textContent = opening ? '×' : '☰';
+  });
+
+  scrim.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeMenu();
+  });
+
+  document.querySelectorAll('.nav-item[data-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      showPortalView(button.dataset.view);
+      closeMenu();
+    });
+  });
+
+  document.getElementById('dashboard').addEventListener('click', (event) => {
+    const shortcut = event.target.closest('[data-portal-view]');
+    if (shortcut) showPortalView(shortcut.dataset.portalView);
+  });
+}
+
+function showPortalView(viewName) {
+  document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-view]').forEach(button => {
+    button.classList.toggle('active', button.dataset.view === viewName);
+  });
+  document.getElementById(`view-${viewName}`)?.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function loadRoster() {
+  const container = document.getElementById('rosterContent');
+  container.innerHTML = '<p class="empty-hint">Loading...</p>';
+
+  const { data, error } = await pdb
+    .from('participants')
+    .select('id, full_name, email, phone, title, is_active, auth_user_id, created_at')
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    container.innerHTML = '<div class="portal-empty-state"><h2>We couldn\'t load your roster.</h2><p>Please try again shortly.</p></div>';
+    return;
+  }
+
+  portalRoster = data || [];
+  renderRoster();
+}
+
+function renderOverview() {
+  const activeEmployees = portalRoster.filter(member => member.is_active !== false).length;
+  const completedCount = trainingRecords.filter(record => record.status === 'completed').length;
+  const certificateCount = trainingRecords.filter(record => record.certificate_issued).length;
+  const recentRecords = trainingRecords.slice(0, 5);
+  const recentMarkup = recentRecords.length
+    ? `<div class="portal-recent-list">${recentRecords.map(record => `
+        <div class="portal-recent-row">
+          <div>
+            <strong>${escHtml(record.participant?.full_name || 'Employee')}</strong>
+            <span>${escHtml(record.workshop?.title || record.training_title || 'Training')}</span>
+          </div>
+          <div class="portal-recent-meta">
+            <span>${escHtml(record.workshop ? portalFormatWorkshopDate(record.workshop) : portalFormatDate(record.training_date))}</span>
+            <span class="reg-card-status-badge ${escHtml(record.status || 'registered')}">${escHtml(portalStatusLabel(record.status))}</span>
+          </div>
+        </div>`).join('')}</div>`
+    : '<div class="portal-empty-compact"><p>Training activity will appear here once employees have records.</p></div>';
+
+  document.getElementById('overviewContent').innerHTML = `
+    <div class="portal-summary-grid">
+      <div class="portal-summary-card"><strong>${activeEmployees}</strong><span>Active employees</span></div>
+      <div class="portal-summary-card"><strong>${trainingRecords.length}</strong><span>Training records</span></div>
+      <div class="portal-summary-card"><strong>${completedCount}</strong><span>Completed</span></div>
+      <div class="portal-summary-card"><strong>${certificateCount}</strong><span>Certificates</span></div>
+    </div>
+    <div class="portal-overview-grid">
+      <section class="portal-panel">
+        <div class="portal-panel-heading">
+          <div><p class="portal-eyebrow">Latest activity</p><h2>Recent training records</h2></div>
+          <button type="button" class="portal-text-action" data-portal-view="training-records">View all →</button>
+        </div>
+        ${recentMarkup}
+      </section>
+      <section class="portal-panel portal-quick-links">
+        <p class="portal-eyebrow">Quick links</p>
+        <h2>Manage your organization</h2>
+        <button type="button" class="portal-quick-link" data-portal-view="roster"><strong>Employee Roster</strong><span>Add or update employees →</span></button>
+        <button type="button" class="portal-quick-link" data-portal-view="training-records"><strong>Training Records</strong><span>Search your organization’s history →</span></button>
+      </section>
+    </div>`;
+}
+
+function rosterCounts() {
+  const counts = new Map();
+  trainingRecords.forEach(record => {
+    const id = record.participant?.id;
+    if (!id) return;
+    const current = counts.get(id) || { records: 0, certificates: 0 };
+    current.records += 1;
+    if (record.certificate_issued) current.certificates += 1;
+    counts.set(id, current);
+  });
+  return counts;
+}
+
+function renderRoster() {
+  const container = document.getElementById('rosterContent');
+  const query = document.getElementById('rosterSearch')?.value.trim().toLowerCase() || '';
+  const status = document.getElementById('rosterStatusFilter')?.value || '';
+  const counts = rosterCounts();
+  const members = portalRoster.filter(member => {
+    const searchable = `${member.full_name || ''} ${member.email || ''} ${member.title || ''}`.toLowerCase();
+    const memberStatus = member.is_active === false ? 'inactive' : 'active';
+    return (!query || searchable.includes(query)) && (!status || memberStatus === status);
+  });
+
+  if (!members.length) {
+    container.innerHTML = `<div class="portal-empty-state"><h2>${portalRoster.length ? 'No matching employees' : 'No employees yet'}</h2><p>${portalRoster.length ? 'Try changing your search or status filter.' : 'Add your first employee to begin building the company roster.'}</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="responses-table-wrap">
+      <table class="responses-table portal-roster-table">
+        <thead><tr><th>Employee</th><th>Job Title</th><th>Training</th><th>Certificates</th><th>Status</th><th></th></tr></thead>
+        <tbody>${members.map(member => {
+          const total = counts.get(member.id) || { records: 0, certificates: 0 };
+          const active = member.is_active !== false;
+          const managedAccount = Boolean(member.auth_user_id);
+          return `<tr class="${active ? '' : 'portal-roster-inactive'}">
+            <td><strong>${escHtml(member.full_name || '—')}</strong><span class="portal-table-secondary">${escHtml(member.email || member.phone || '')}</span></td>
+            <td>${escHtml(member.title || '—')}</td>
+            <td>${total.records}</td>
+            <td>${total.certificates}</td>
+            <td><span class="reg-card-status-badge ${active ? 'attended' : 'no_show'}">${active ? 'Active' : 'Inactive'}</span></td>
+            <td><div class="portal-row-actions">
+              ${managedAccount ? '<span class="portal-table-secondary">Managed account</span>' : `
+                <button type="button" class="btn-sm btn-sm-ghost" data-roster-action="edit" data-id="${escHtml(member.id)}">Edit</button>
+                <button type="button" class="btn-sm ${active ? 'btn-sm-danger' : 'btn-sm-ghost'}" data-roster-action="${active ? 'deactivate' : 'reactivate'}" data-id="${escHtml(member.id)}">${active ? 'Deactivate' : 'Reactivate'}</button>`}
+            </div></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+function openRosterEditor(member = null) {
+  hideRosterFeedback();
+  document.getElementById('rosterEditorTitle').textContent = member ? 'Edit Employee' : 'Add Employee';
+  document.getElementById('rosterMemberId').value = member?.id || '';
+  document.getElementById('rosterFullName').value = member?.full_name || '';
+  document.getElementById('rosterTitle').value = member?.title || '';
+  document.getElementById('rosterEmail').value = member?.email || '';
+  document.getElementById('rosterPhone').value = member?.phone || '';
+  document.getElementById('rosterEditor').style.display = 'block';
+  document.getElementById('rosterFullName').focus();
+}
+
+function closeRosterEditor() {
+  document.getElementById('rosterEditor').style.display = 'none';
+  document.getElementById('rosterEditor').reset();
+  document.getElementById('rosterMemberId').value = '';
+}
+
+async function saveRosterMember(event) {
+  event.preventDefault();
+  const form = document.getElementById('rosterEditor');
+  if (!form.reportValidity()) return;
+
+  const id = document.getElementById('rosterMemberId').value;
+  const fullName = document.getElementById('rosterFullName').value.trim();
+  const email = document.getElementById('rosterEmail').value.trim();
+  const phone = document.getElementById('rosterPhone').value.trim();
+  const title = document.getElementById('rosterTitle').value.trim();
+  const saveButton = document.getElementById('saveRosterMemberBtn');
+  const current = id ? portalRoster.find(member => member.id === id) : null;
+
+  if (!fullName) {
+    showRosterFeedback('error', 'Enter the employee\'s full name.');
+    document.getElementById('rosterFullName').focus();
+    return;
+  }
+
+  const payload = {
+    full_name: fullName,
+    email: email || null,
+    phone: phone || null,
+    title: title || null,
+    company_id: portalAccount.company_id,
+    is_active: current ? current.is_active !== false : true,
+  };
+
+  hideRosterFeedback();
+  saveButton.disabled = true;
+  saveButton.textContent = 'Saving...';
+
+  let result;
+  try {
+    result = id
+      ? await pdb.from('participants').update(payload).eq('id', id).select('id').single()
+      : await pdb.from('participants').insert(payload).select('id').single();
+  } catch (error) {
+    result = { error };
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = 'Save Employee';
+  }
+
+  if (result.error) {
+    showRosterFeedback('error', rosterErrorMessage(result.error));
+    return;
+  }
+
+  closeRosterEditor();
+  await loadRoster();
+  renderOverview();
+  showRosterFeedback('success', id ? 'Employee updated.' : 'Employee added to the roster.');
+}
+
+async function handleRosterAction(event) {
+  const button = event.target.closest('[data-roster-action]');
+  if (!button) return;
+  const member = portalRoster.find(item => item.id === button.dataset.id);
+  if (!member) return;
+
+  if (button.dataset.rosterAction === 'edit') {
+    openRosterEditor(member);
+    return;
+  }
+
+  const activating = button.dataset.rosterAction === 'reactivate';
+  if (!activating && !confirm(`Mark ${member.full_name} inactive? Their training history will be preserved.`)) return;
+
+  button.disabled = true;
+  const { error } = await pdb
+    .from('participants')
+    .update({ is_active: activating })
+    .eq('id', member.id)
+    .select('id')
+    .single();
+
+  if (error) {
+    button.disabled = false;
+    showRosterFeedback('error', rosterErrorMessage(error));
+    return;
+  }
+
+  await loadRoster();
+  renderOverview();
+  showRosterFeedback('success', activating ? `${member.full_name} reactivated.` : `${member.full_name} marked inactive.`);
+}
+
+function rosterErrorMessage(error) {
+  if (error?.code === '23505' || /duplicate key|unique/i.test(error?.message || '')) {
+    return 'That email is already connected to another roster contact. Please use a different email or contact Guardian Group for help.';
+  }
+  if (error?.code === '42501') return 'Your account does not have permission to make that roster change.';
+  return 'We couldn\'t save that employee. Please try again.';
+}
+
+function showRosterFeedback(type, message) {
+  hideRosterFeedback();
+  const element = document.getElementById(type === 'success' ? 'rosterSuccess' : 'rosterError');
+  element.textContent = message;
+  element.style.display = 'block';
+}
+
+function hideRosterFeedback() {
+  document.getElementById('rosterSuccess').style.display = 'none';
+  document.getElementById('rosterError').style.display = 'none';
 }
 
 async function loadTrainingRecords() {
