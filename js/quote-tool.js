@@ -76,6 +76,7 @@ function paymentMethodLabel(s) {
 }
 
 let state = {
+  initializing: true,
   view: 'editor',
 
   currentDocId: null,
@@ -266,6 +267,8 @@ async function init() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { (window.top || window).location.href = '/admin/'; return; }
 
+  const params = new URLSearchParams(window.location.search);
+  state.view = params.get('view') === 'list' ? 'list' : 'editor';
   render();
   let biz = {};
   try { biz = JSON.parse(localStorage.getItem('gg_qt_business_info_v1') || '{}'); } catch (e) {}
@@ -275,7 +278,6 @@ async function init() {
 
   await Promise.all([loadClients(), loadEvents(), loadTrainings(), loadSpeakingEngagements(), loadIncomes(), loadCatalog()]);
 
-  const params = new URLSearchParams(window.location.search);
   const docId = params.get('doc');
   if (docId) {
     await qtOpenDocument(docId);
@@ -289,6 +291,8 @@ async function init() {
     resetToBlank(newMode);
     if (params.get('source') && params.get('sourceId')) await qtApplyEngagementContext(params);
   }
+  state.initializing = false;
+  render();
 }
 
 // ── Data loading ─────────────────────────────────────────────
@@ -300,32 +304,32 @@ function qtFirstPhone(company) {
 async function loadClients() {
   if (!sb) return;
   const { data } = await sb.from('companies').select('id,name,contact_name,contact_email,phones').order('name');
-  if (data) { state.clients = data; render(); }
+  if (data) state.clients = data;
 }
 async function loadEvents() {
   if (!sb) return;
   const { data } = await sb.from('events').select('id,title,event_type,starts_at,company_id').order('starts_at', { ascending: false, nullsFirst: false });
-  if (data) { state.events = data; render(); }
+  if (data) state.events = data;
 }
 async function loadTrainings() {
   if (!sb) return;
   const { data } = await sb.from('training_engagements').select('id,title,event_id,company_id,starts_at').order('starts_at', { ascending: false, nullsFirst: false });
-  if (data) { state.trainings = data; render(); }
+  if (data) state.trainings = data;
 }
 async function loadSpeakingEngagements() {
   if (!sb) return;
   const { data } = await sb.from('speaking_engagements').select('id,event_name,event_id,event_start_date').order('event_start_date', { ascending: false, nullsFirst: false });
-  if (data) { state.speakingEngagements = data; render(); }
+  if (data) state.speakingEngagements = data;
 }
 async function loadIncomes() {
   if (!sb) return;
   const { data } = await sb.from('income').select('id,description,amount,certainty_status').neq('certainty_status', 'cancelled').order('expected_on', { ascending: false });
-  if (data) { state.incomes = data; render(); }
+  if (data) state.incomes = data;
 }
 async function loadCatalog() {
   if (!sb) return;
   const { data } = await sb.from('service_items').select('*').order('description');
-  if (data) { state.catalogItems = data; render(); }
+  if (data) state.catalogItems = data;
 }
 async function loadDocumentsList() {
   if (!sb) return;
@@ -906,6 +910,12 @@ function renderApp() {
 
 function renderUnlocked() {
   const s = state;
+  if (s.initializing) {
+    return `<div class="qt-startup" role="status" aria-live="polite">
+      <div class="qt-startup-spinner" aria-hidden="true"></div>
+      <div>Loading quote tool…</div>
+    </div>`;
+  }
   const isListView = s.view === 'list';
   const isEditorView = s.view === 'editor';
   return `
