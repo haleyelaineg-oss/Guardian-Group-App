@@ -1,16 +1,37 @@
 import { supabase } from '../../lib/supabase.js';
 import { fetchCompaniesForSelect } from '../clients/clientsService.js';
+import { isCancelledTrainingStatus, normalizeTrainingStatus, trainingCalendarStatus } from './statuses.js';
 function fail(error) { if (error) throw error; }
-export async function fetchTrainings() { const { data, error } = await supabase.from('training_engagements').select('*,companies(name)').order('starts_at', { ascending: true, nullsFirst: false }); fail(error); return data || []; }
-export async function fetchTrainingDetail(id) { const { data, error } = await supabase.from('training_engagements').select('*,companies(name)').eq('id', id).single(); fail(error); return data; }
+const normalizeTraining = (training) => training ? { ...training, status: normalizeTrainingStatus(training.status) } : training;
+export async function fetchTrainings() { const { data, error } = await supabase.from('training_engagements').select('*,companies(name)').order('starts_at', { ascending: true, nullsFirst: false }); fail(error); return (data || []).map(normalizeTraining); }
+export async function fetchTrainingDetail(id) { const { data, error } = await supabase.from('training_engagements').select('*,companies(name)').eq('id', id).single(); fail(error); return normalizeTraining(data); }
 export async function createTraining(values) { const { data, error } = await supabase.from('training_engagements').insert(values).select().single(); fail(error); return syncTrainingCalendar(data); }
+export async function duplicateTraining(training) {
+  const copiedFields = [
+    'company_id', 'contact_participant_id', 'training_type', 'description',
+    'delivery_method', 'instructors', 'time_zone', 'attendee_count',
+    'site_location', 'site_address', 'onsite_contact_name', 'onsite_contact_phone',
+    'site_access_notes', 'ppe_requirements', 'equipment_requirements',
+    'materials_requirements', 'virtual_platform', 'virtual_meeting_link',
+    'virtual_meeting_id', 'virtual_passcode', 'virtual_host', 'technical_contact',
+    'tech_check_required', 'recording_allowed', 'recording_required', 'notes',
+  ];
+  const values = Object.fromEntries(copiedFields.filter((field) => training[field] !== undefined).map((field) => [field, training[field]]));
+  return createTraining({
+    ...values,
+    title: `${training.title} (Copy)`,
+    status: 'inquiry',
+    starts_at: null,
+    ends_at: null,
+    tech_check_at: null,
+  });
+}
 export async function updateTraining(id, values) { const { data, error } = await supabase.from('training_engagements').update(values).eq('id', id).select().single(); fail(error); await syncTrainingRosterSnapshot(data); return data; }
 export async function deleteTraining(id) { const { error } = await supabase.from('training_engagements').delete().eq('id', id); fail(error); }
 export async function deleteTrainingAndCalendar(training) { if (training.event_id) { const { error } = await supabase.from('events').delete().eq('id', training.event_id); fail(error); } await deleteTraining(training.id); }
 export async function listTrainingCompanies() { return fetchCompaniesForSelect(); }
 export async function listTrainingContacts(companyId) { if (!companyId) return []; const { data, error } = await supabase.from('participants').select('id,full_name').eq('company_id', companyId).order('full_name'); fail(error); return data || []; }
-function eventStatus(status) { if (['scheduled', 'planning', 'ready'].includes(status)) return 'confirmed'; if (['completed', 'invoice_sent', 'payment_pending', 'paid'].includes(status)) return 'completed'; if (status === 'cancelled') return 'cancelled'; return 'planning'; }
-export async function syncTrainingCalendar(training) { const cancelled = training.status === 'cancelled'; const eventPayload = { title: training.title, event_type: 'training', company_id: training.company_id, starts_at: cancelled ? null : training.starts_at, ends_at: cancelled ? null : training.ends_at || null, all_day: true, location: training.delivery_method === 'in_person' ? training.site_location || null : null, status: eventStatus(training.status) }; if (training.event_id) { const { error } = await supabase.from('events').update(eventPayload).eq('id', training.event_id); fail(error); return training; } if (!training.starts_at || cancelled) return training; const { data: event, error } = await supabase.from('events').insert(eventPayload).select().single(); fail(error); return updateTraining(training.id, { event_id: event.id }); }
+export async function syncTrainingCalendar(training) { const cancelled = isCancelledTrainingStatus(training.status); const eventPayload = { title: training.title, event_type: 'training', company_id: training.company_id, starts_at: cancelled ? null : training.starts_at, ends_at: cancelled ? null : training.ends_at || null, all_day: true, location: training.delivery_method === 'in_person' ? training.site_location || null : null, status: trainingCalendarStatus(training.status) }; if (training.event_id) { const { error } = await supabase.from('events').update(eventPayload).eq('id', training.event_id); fail(error); return training; } if (!training.starts_at || cancelled) return training; const { data: event, error } = await supabase.from('events').insert(eventPayload).select().single(); fail(error); return updateTraining(training.id, { event_id: event.id }); }
 export async function saveTrainingAndLink(id, values) { return syncTrainingCalendar(await updateTraining(id, values)); }
 
 function trainingFacilitator(training) {

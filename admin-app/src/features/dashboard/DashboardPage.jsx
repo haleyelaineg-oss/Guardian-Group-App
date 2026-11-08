@@ -81,7 +81,7 @@ export default function DashboardPage() {
       const [events, tasks, speaking, trainings, incomes, links, paymentAllocations, allEvents, trainingOptions, speakingOptions] = await Promise.all([
         supabase.from('events').select('id,title,event_type,starts_at,ends_at,all_day,location,status').gte('starts_at', new Date().toISOString()).neq('status', 'cancelled').order('starts_at').limit(8),
         supabase.from('tasks').select('id,title,due_date,status,owner,event_id').neq('status', 'done').order('due_date', { ascending: true, nullsFirst: false }).limit(8),
-        supabase.from('speaking_engagements').select('id', { count: 'exact', head: true }).in('status', ['selected', 'contracting', 'planning', 'ready']),
+        supabase.from('speaking_engagements').select('id', { count: 'exact', head: true }).in('status', ['selected', 'contracting', 'submission_accepted', 'planning', 'ready', 'confirmed']),
         supabase.from('training_engagements').select('id', { count: 'exact', head: true }).in('status', ['scheduled', 'planning', 'ready']),
         supabase.from('income').select('id,amount,certainty_status,income_kind,payment_path'),
         supabase.from('income_document_links').select('income_id,allocated_amount,documents(id,doc_type,status,due_date)'),

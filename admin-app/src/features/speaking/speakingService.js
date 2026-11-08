@@ -15,7 +15,7 @@ export async function createSpeakingSession(eventId, values) { const { error } =
 export async function updateSpeakingSession(id, values) { const { error } = await supabase.from('event_itinerary_items').update(values).eq('id', id); fail(error); }
 export async function deleteSpeakingSession(id) { const { error } = await supabase.from('event_itinerary_items').delete().eq('id', id); fail(error); }
 
-function eventStatus(status) { const value = normalizeSpeakingStatus(status); if (['submission_accepted', 'planning', 'ready'].includes(value)) return 'confirmed'; if (['completed_payment_pending', 'completed_paid'].includes(value)) return 'completed'; if (CALENDAR_REMOVAL_STATUSES.has(value)) return 'cancelled'; return 'planning'; }
+function eventStatus(status) { const value = normalizeSpeakingStatus(status); if (['submission_accepted', 'confirmed'].includes(value)) return 'confirmed'; if (['completed_payment_pending', 'completed_paid'].includes(value)) return 'completed'; if (CALENDAR_REMOVAL_STATUSES.has(value)) return 'cancelled'; return 'planning'; }
 export function isCalendarRemovalStatus(status) { return CALENDAR_REMOVAL_STATUSES.has(normalizeSpeakingStatus(status)); }
 export async function syncSpeakingCalendar(engagement) {
   const location = [engagement.venue, engagement.city, engagement.region].filter(Boolean).join(', ') || null;

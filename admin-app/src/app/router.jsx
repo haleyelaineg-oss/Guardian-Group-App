@@ -1,6 +1,7 @@
 // Route config lives here (not inline JSX) so the Sidebar can be driven off
 // the same list instead of hand-duplicating nav items and <Route>s.
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage.jsx'));
 const CalendarPage = lazy(() => import('../features/calendar/CalendarPage.jsx'));
@@ -16,10 +17,8 @@ const ExpensesPage = lazy(() => import('../features/expenses/ExpensesPage.jsx'))
 const ReceiptInboxPage = lazy(() => import('../features/expenses/ReceiptInboxPage.jsx'));
 const MobileReceiptCapturePage = lazy(() => import('../features/expenses/MobileReceiptCapturePage.jsx'));
 const QuoteToolPage = lazy(() => import('../features/financial/QuoteToolPage.jsx'));
-const SpeakingListPage = lazy(() => import('../features/speaking/SpeakingListPage.jsx'));
 const SpeakingDetailPage = lazy(() => import('../features/speaking/SpeakingDetailPage.jsx'));
 const SpeakingCreatePage = lazy(() => import('../features/speaking/SpeakingCreatePage.jsx'));
-const TrainingListPage = lazy(() => import('../features/trainings/TrainingListPage.jsx'));
 const TrainingDetailPage = lazy(() => import('../features/trainings/TrainingDetailPage.jsx'));
 const SessionsPage = lazy(() => import('../features/sessions/SessionsPage.jsx'));
 const SessionDetailPage = lazy(() => import('../features/sessions/SessionDetailPage.jsx'));
@@ -35,22 +34,12 @@ export const navSections = [
   },
   {
     icon: 'calendar-days',
-    label: 'Calendar',
-    path: '/admin/calendar',
+    label: 'Events',
+    path: '/admin/events',
     children: [
-      { label: 'Events', path: '/admin/events' },
+      { label: 'Calendar', path: '/admin/calendar' },
       { label: 'Tasks', path: '/admin/tasks' },
     ],
-  },
-  {
-    icon: 'presentation',
-    label: 'Speaking Engagements',
-    path: '/admin/speaking',
-  },
-  {
-    icon: 'graduation-cap',
-    label: 'Trainings',
-    path: '/admin/trainings',
   },
   {
     icon: 'receipt',
@@ -107,14 +96,14 @@ export const routes = [
   { path: '/admin/receipts', element: <ReceiptInboxPage /> },
   { path: '/admin/receipts/capture', element: <MobileReceiptCapturePage /> },
   { path: '/admin/quotes', element: <QuoteToolPage /> },
-  { path: '/admin/speaking', element: <SpeakingListPage /> },
+  { path: '/admin/speaking', element: <Navigate to="/admin/events" replace /> },
   { path: '/admin/speaking/new', element: <SpeakingCreatePage /> },
   { path: '/admin/speaking/:id', element: <SpeakingDetailPage /> },
   { path: '/admin/sessions', element: <SessionsPage /> },
   { path: '/admin/sessions/:id', element: <SessionDetailPage /> },
   { path: '/admin/resources', element: <ResourceLibraryPage /> },
   { path: '/admin/resources/:category', element: <ResourceLibraryPage /> },
-  { path: '/admin/trainings', element: <TrainingListPage /> },
+  { path: '/admin/trainings', element: <Navigate to="/admin/events" replace /> },
   { path: '/admin/trainings/:id', element: <TrainingDetailPage /> },
   { path: '/admin/settings', element: <SettingsPage /> },
 ];

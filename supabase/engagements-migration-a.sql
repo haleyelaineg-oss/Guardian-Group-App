@@ -32,9 +32,10 @@ create table if not exists speaking_engagements (
   updated_at                    timestamptz not null default now(),
   event_id                      uuid references events(id) on delete set null,
   status                        text not null default 'opportunity',
-    -- 'opportunity' | 'preparing_submission' | 'applied' | 'under_review' | 'selected'
-    -- | 'contracting' | 'planning' | 'ready' | 'completed' | 'payment_pending' | 'closed'
-    -- | 'declined' | 'withdrawn' | 'cancelled'
+    -- 'opportunity' | 'preparing_submission' | 'applied' | 'application_pending_response'
+    -- | 'submission_accepted' | 'submission_rejected' | 'confirmed'
+    -- | 'completed_payment_pending' | 'completed_paid'
+    -- | 'cancelled_submission_withdrawn' | 'cancelled_event_cancelled'
   event_name                    text not null,
   organization_name             text,
   event_website                 text,
@@ -114,8 +115,8 @@ create table if not exists training_engagements (
   company_id                uuid not null references companies(id) on delete restrict,
   contact_participant_id    uuid references participants(id) on delete set null,
   status                    text not null default 'inquiry',
-    -- 'inquiry' | 'proposal_sent' | 'contract_pending' | 'scheduled' | 'planning'
-    -- | 'ready' | 'completed' | 'invoice_sent' | 'payment_pending' | 'paid' | 'cancelled'
+    -- 'inquiry' | 'proposal_sent' | 'contract_pending' | 'scheduled' | 'completed'
+    -- | 'invoice_sent' | 'paid' | 'cancelled_by_client' | 'cancelled_by_guardian_group'
   title                     text not null,
   training_type             text,
   description               text,

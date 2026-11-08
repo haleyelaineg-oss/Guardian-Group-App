@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import SaveButton from '../../components/SaveButton.jsx';
 import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import Checklist from '../engagements/Checklist.jsx';
@@ -17,6 +17,8 @@ export default function SpeakingDetailPage() {
     id
   } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const closeTo = location.state?.returnTo || '/admin/events';
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('Overview');
   const reload = () => fetchSpeakingDetail(id).then(setData).catch(err => alert(err.message));
@@ -32,12 +34,12 @@ export default function SpeakingDetailPage() {
     if (!confirm(`Delete “${engagement.event_name}”? This will also remove it from the Calendar. Its planning records, documents, expenses, and care arrangements will be kept.`)) return;
     try {
       await deleteSpeakingEngagementAndCalendar(engagement);
-      navigate('/admin/speaking');
+      navigate(closeTo);
     } catch (error) {
       alert(error.message);
     }
   };
-  return <div className="view active"><Link to="/admin/speaking" aria-label="Close speaking engagement workspace">← Speaking Engagements</Link><div className="view-header event-workspace-header"><h1 className="view-title">{engagement.event_name}</h1></div><div className="tab-bar">{tabs.map(name => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{tab === 'Overview' && <Overview engagement={engagement} onSaved={reload} onDelete={remove} />}{tab === 'Submissions' && <SpeakingSubmissions engagementId={engagement.id} submissions={data.submissions} onSaved={reload} />}{tab === 'Sessions' && <SpeakingSessions eventId={engagement.event_id} />}{tab === 'Prep' && <Checklist kind="speaking" engagementId={engagement.id} />}{tab === 'Travel' && <ItineraryManager eventId={engagement.event_id} itemTypes={TRAVEL_TYPES} title="Travel Details" />}{tab === 'Care' && <CareArrangements eventId={engagement.event_id} />}{tab === 'Financials' && <EngagementFinancials sourceType="speaking" sourceId={engagement.id} eventId={engagement.event_id} title={engagement.event_name} expectedOn={engagement.event_start_date} initialValue={engagement.offered_fee ?? ''} initialCertainty={['submission_accepted', 'planning', 'ready', 'completed_payment_pending', 'completed_paid'].includes(normalizeSpeakingStatus(engagement.status)) ? 'confirmed' : 'potential'} onValueSaved={async amount => {
+  return <div className="view active"><Link to={closeTo} aria-label="Close speaking engagement workspace">← Events</Link><div className="view-header event-workspace-header"><h1 className="view-title">{engagement.event_name}</h1></div><div className="tab-bar">{tabs.map(name => <button key={name} className={`tab-btn ${tab === name ? 'active' : ''}`} onClick={() => setTab(name)}>{name}</button>)}</div>{tab === 'Overview' && <Overview engagement={engagement} onSaved={reload} onDelete={remove} />}{tab === 'Submissions' && <SpeakingSubmissions engagementId={engagement.id} submissions={data.submissions} onSaved={reload} />}{tab === 'Sessions' && <SpeakingSessions eventId={engagement.event_id} />}{tab === 'Prep' && <Checklist kind="speaking" engagementId={engagement.id} />}{tab === 'Travel' && <ItineraryManager eventId={engagement.event_id} itemTypes={TRAVEL_TYPES} title="Travel Details" />}{tab === 'Care' && <CareArrangements eventId={engagement.event_id} />}{tab === 'Financials' && <EngagementFinancials sourceType="speaking" sourceId={engagement.id} eventId={engagement.event_id} title={engagement.event_name} expectedOn={engagement.event_start_date} initialValue={engagement.offered_fee ?? ''} initialCertainty={['submission_accepted', 'confirmed', 'completed_payment_pending', 'completed_paid'].includes(normalizeSpeakingStatus(engagement.status)) ? 'confirmed' : 'potential'} onValueSaved={async amount => {
         await updateSpeakingEngagement(engagement.id, {
           offered_fee: amount
         });

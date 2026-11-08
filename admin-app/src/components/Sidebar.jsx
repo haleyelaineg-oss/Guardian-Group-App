@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  ShieldCheck, CalendarDays, Receipt, UsersRound, Presentation,
-  GraduationCap, ChevronDown, LibraryBig, Settings,
+  ShieldCheck, CalendarDays, Receipt, UsersRound,
+  ChevronDown, LibraryBig, Settings,
 } from 'lucide-react';
 import { navSections } from '../app/router.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -12,8 +12,6 @@ const ICONS = {
   'calendar-days': CalendarDays,
   receipt: Receipt,
   'users-round': UsersRound,
-  presentation: Presentation,
-  'graduation-cap': GraduationCap,
   'library-big': LibraryBig,
   settings: Settings,
 };
