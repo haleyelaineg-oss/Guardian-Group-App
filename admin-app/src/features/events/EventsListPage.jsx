@@ -31,13 +31,28 @@ function rowDate(row) {
   return '—';
 }
 
+const SORT_VALUE = {
+  title: (row) => row.title || '',
+  type: (row) => typeLabel(row) || '',
+  organization: (row) => row.organization || '',
+  date: (row) => row.startsAt || row.dateFallback || '',
+  status: (row) => rowStatusLabel(row) || '',
+  location: (row) => row.location || '',
+};
+
+function SortableHeader({ label, sortKey, activeKey, direction, onSort }) {
+  const active = sortKey === activeKey;
+  return <th aria-sort={active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className={`event-sort-header ${active ? 'active' : ''}`} onClick={() => onSort(sortKey)}><span>{label}</span><span className="event-sort-indicator" aria-hidden="true">{active ? (direction === 'asc' ? '▲' : '▼') : '↕'}</span></button></th>;
+}
+
 export default function EventsListPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [typeFilters, setTypeFilters] = useState([]);
   const [statusFilters, setStatusFilters] = useState([]);
-  const [sortBy, setSortBy] = useState('date');
+  const [sortKey, setSortKey] = useState('date');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [showCancelled, setShowCancelled] = useState(false);
   const navigate = useNavigate();
 
@@ -72,9 +87,22 @@ export default function EventsListPage() {
       && (statusFilters.length === 0 || statusFilters.includes(rowStatusLabel(row)))
     ))
     .sort((left, right) => {
-      if (sortBy === 'name') return (left.title || '').localeCompare(right.title || '');
-      return (left.startsAt || left.dateFallback || '9999-12-31').localeCompare(right.startsAt || right.dateFallback || '9999-12-31');
+      const valueFor = SORT_VALUE[sortKey];
+      const leftValue = valueFor(left);
+      const rightValue = valueFor(right);
+      if (!leftValue && rightValue) return 1;
+      if (leftValue && !rightValue) return -1;
+      const comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+      return sortDirection === 'asc' ? comparison : -comparison;
     });
+
+  const changeSort = (nextKey) => {
+    if (nextKey === sortKey) setSortDirection((current) => current === 'asc' ? 'desc' : 'asc');
+    else {
+      setSortKey(nextKey);
+      setSortDirection('asc');
+    }
+  };
 
   const open = (row) => navigate(row.path, { state: { returnTo: '/admin/events' } });
   const onRowKeyDown = (keyEvent, row) => {
@@ -97,10 +125,9 @@ export default function EventsListPage() {
     <div className="event-list-controls" aria-label="Event list controls">
       <div className="event-filter-group"><span className="event-filter-label">Type</span><MultiSelectPills options={TYPE_OPTIONS} value={typeFilters} onChange={setTypeFilters} ariaLabel="Filter events by type" /></div>
       <div className="event-filter-group"><span className="event-filter-label">Status</span><MultiSelectPills options={statusOptions} value={statusFilters} onChange={setStatusFilters} ariaLabel="Filter events by status" /></div>
-      <label className="event-sort-control"><span>Sort By</span><select className="field-input" value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="date">Date</option><option value="name">Name (A–Z)</option></select></label>
       <button type="button" className={`pill-btn event-cancelled-filter ${showCancelled ? 'active' : ''}`} aria-pressed={showCancelled} onClick={() => setShowCancelled((current) => !current)}>Show Cancelled</button>
       {(typeFilters.length > 0 || statusFilters.length > 0 || showCancelled) && <button type="button" className="btn-sm btn-sm-ghost event-clear-filters" onClick={() => { setTypeFilters([]); setStatusFilters([]); setShowCancelled(false); }}>Clear Filters</button>}
     </div>
-    {error ? <section className="empty-hint" role="alert">Couldn’t load events. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading events…" /> : <div className="responses-table-wrap"><table className="responses-table event-list-table"><thead><tr><th>Event</th><th>Type</th><th>Organization / Client</th><th>Date</th><th>Status</th><th>Location</th></tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr className="client-list-row clickable-row" key={row.key} tabIndex="0" role="button" aria-label={`Open ${row.title}`} onClick={() => open(row)} onKeyDown={(keyEvent) => onRowKeyDown(keyEvent, row)}><td>{row.title}</td><td>{typeLabel(row)}</td><td>{row.organization || '—'}</td><td>{rowDate(row)}</td><td><StatusBadge status={row.status} label={rowStatusLabel(row)} /></td><td>{row.location || '—'}</td></tr>) : <tr><td colSpan="6">No events match these filters.</td></tr>}</tbody></table></div>}
+    {error ? <section className="empty-hint" role="alert">Couldn’t load events. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading events…" /> : <div className="responses-table-wrap"><table className="responses-table event-list-table"><thead><tr><SortableHeader label="Event" sortKey="title" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Type" sortKey="type" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Organization / Client" sortKey="organization" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Date" sortKey="date" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Location" sortKey="location" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /></tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr className="client-list-row clickable-row" key={row.key} tabIndex="0" role="button" aria-label={`Open ${row.title}`} onClick={() => open(row)} onKeyDown={(keyEvent) => onRowKeyDown(keyEvent, row)}><td>{row.title}</td><td>{typeLabel(row)}</td><td>{row.organization || '—'}</td><td>{rowDate(row)}</td><td><StatusBadge status={row.status} label={rowStatusLabel(row)} /></td><td>{row.location || '—'}</td></tr>) : <tr><td colSpan="6">No events match these filters.</td></tr>}</tbody></table></div>}
   </div>;
 }
