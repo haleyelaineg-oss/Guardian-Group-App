@@ -263,6 +263,19 @@ select.qt-select {
 .qt-invoice-link { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; }
 .qt-invoice-link label { color: var(--gg-muted); font-size: 12px; font-weight: 600; }
 .qt-invoice-link .qt-select { flex: 1; min-width: 0; }
+.qt-invoice-link-stack { align-items: stretch; flex-direction: column; }
+.qt-linked-records, .qt-income-links { display: grid; gap: 6px; margin: 8px 0 4px; }
+.qt-linked-record, .qt-income-link-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; align-items: center; gap: 10px; padding: 8px 10px; background: var(--gg-off); border: 1px solid var(--gg-pale); border-radius: var(--radius-sm); font-size: 13px; }
+.qt-linked-record > span, .qt-income-link-row > span { min-width: 0; overflow-wrap: anywhere; }
+.qt-linked-record .qt-field-line, .qt-income-link-row .qt-field-line { width: 100%; box-sizing: border-box; }
+.qt-event-checklist { display: grid; gap: 5px; max-height: 190px; overflow-y: auto; padding: 8px 10px; border: 1px solid var(--gg-pale); border-radius: var(--radius-sm); background: var(--gg-white); }
+.qt-event-checklist label { display: flex; align-items: flex-start; gap: 7px; color: var(--gg-text); font-size: 13px; font-weight: 400; cursor: pointer; }
+.qt-event-checklist input { margin-top: 2px; }
+.qt-help { color: var(--gg-muted); font-size: 12px; }
+@media (max-width: 640px) {
+  .qt-linked-record, .qt-income-link-row { grid-template-columns: 1fr 100px; }
+  .qt-linked-record .qt-btn, .qt-income-link-row .qt-btn { grid-column: 1 / -1; justify-self: start; }
+}
 .qt-party input.qt-field-line { display: block; margin-top: 3px; font-size: 13px; color: var(--gg-text); width: 100%; box-sizing: border-box; }
 .qt-party input.qt-field-line.first { margin-top: 6px; }
 .qt-party .qt-field-line.company { display: block; margin-top: 8px; width: 100%; box-sizing: border-box; font-size: 16px; font-weight: 700; color: var(--gg-dark); }

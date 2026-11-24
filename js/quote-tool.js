@@ -102,14 +102,9 @@ let state = {
   clientPersonName: '',
   clientEmail: '',
   clientPhone: '',
-  eventId: null,
-  incomeId: null,
-  incomeAllocation: '',
-  sourceType: null,
-  sourceId: null,
-  sourceTitle: '',
-  sourceExpectedOn: '',
-  contextAmbiguous: false,
+  eventIds: [],
+  incomeLinks: [],
+  sourceContexts: [],
   showNewClientModal: false,
   newClientSaving: false,
   newClientDraft: { name: '', contactName: '', email: '', phone: '' },
@@ -323,7 +318,7 @@ async function loadSpeakingEngagements() {
 }
 async function loadIncomes() {
   if (!sb) return;
-  const { data } = await sb.from('income').select('id,description,amount,certainty_status').neq('certainty_status', 'cancelled').order('expected_on', { ascending: false });
+  const { data } = await sb.from('income').select('id,description,amount,certainty_status,source_type,event_id,training_engagement_id,speaking_engagement_id').neq('certainty_status', 'cancelled').order('expected_on', { ascending: false });
   if (data) state.incomes = data;
 }
 async function loadCatalog() {
@@ -369,36 +364,54 @@ function qtSelectClientOption(value) {
   state.clientPhone = company ? qtFirstPhone(company) : '';
   render();
 }
-function qtSetEventLink(value) {
-  state.eventId = value || null;
+function qtToggleEventLink(value, checked) {
+  state.eventIds = checked
+    ? Array.from(new Set([...state.eventIds, value]))
+    : state.eventIds.filter((id) => String(id) !== String(value));
   render();
 }
-function qtSetIncomeLink(value) {
-  state.incomeId = value || null;
+function qtAddIncomeLink(value) {
+  if (!value || state.incomeLinks.some((link) => String(link.incomeId) === String(value))) return;
   const income = state.incomes.find((row) => String(row.id) === String(value));
-  if (income && !state.incomeAllocation) state.incomeAllocation = String(income.amount || '');
+  state.incomeLinks.push({ incomeId: value, allocation: String(income?.amount || '') });
   render();
 }
-function qtSetIncomeAllocation(value) { state.incomeAllocation = value; }
+function qtRemoveIncomeLink(value) {
+  state.incomeLinks = state.incomeLinks.filter((link) => String(link.incomeId) !== String(value));
+  state.sourceContexts = state.sourceContexts.map((context) => String(context.incomeId) === String(value) ? { ...context, incomeId: null } : context);
+  render();
+}
+function qtSetIncomeAllocation(incomeId, value) {
+  const link = state.incomeLinks.find((row) => String(row.incomeId) === String(incomeId));
+  if (link) link.allocation = value;
+}
+function qtSetPendingContextAllocation(sourceType, sourceId, value) {
+  const context = state.sourceContexts.find((row) => row.sourceType === sourceType && String(row.sourceId) === String(sourceId));
+  if (context) context.allocation = value;
+}
 async function qtApplyEngagementContext(params) {
   const sourceType = params.get('source');
   const sourceId = params.get('sourceId');
   const sourceField = { event: 'event_id', training: 'training_engagement_id', speaking: 'speaking_engagement_id' }[sourceType];
   if (!sourceField || !sourceId) return;
-  state.sourceType = sourceType;
-  state.sourceId = sourceId;
-  state.sourceTitle = params.get('sourceTitle') || 'Engagement';
-  state.sourceExpectedOn = params.get('expectedOn') || '';
-  state.eventId = params.get('eventId') || null;
+  const title = params.get('sourceTitle') || 'Engagement';
+  const expectedOn = params.get('expectedOn') || '';
+  const eventId = params.get('eventId') || null;
+  if (eventId && !state.eventIds.some((id) => String(id) === String(eventId))) state.eventIds.push(eventId);
   const companyId = params.get('companyId');
   if (companyId) qtSelectClientOption(companyId);
   const { data, error } = await sb.from('income').select('id,amount').eq(sourceField, sourceId).eq('income_kind', 'service_revenue').neq('certainty_status', 'cancelled').order('created_at');
   if (error) return;
-  state.contextAmbiguous = (data || []).length > 1;
+  const existingContext = state.sourceContexts.find((row) => row.sourceType === sourceType && String(row.sourceId) === String(sourceId));
+  const context = existingContext || { sourceType, sourceId, title, expectedOn, eventId, incomeId: null, allocation: '', ambiguous: false };
+  context.ambiguous = (data || []).length > 1;
   if ((data || []).length === 1) {
-    state.incomeId = data[0].id;
-    state.incomeAllocation = String(data[0].amount || '');
+    context.incomeId = data[0].id;
+    if (!state.incomeLinks.some((link) => String(link.incomeId) === String(data[0].id))) {
+      state.incomeLinks.push({ incomeId: data[0].id, allocation: String(data[0].amount || '') });
+    }
   }
+  if (!existingContext) state.sourceContexts.push(context);
   render();
 }
 async function qtSetEngagementContext(value) {
@@ -409,22 +422,55 @@ async function qtSetEngagementContext(value) {
   else if (source === 'speaking') record = state.speakingEngagements.find((row) => String(row.id) === sourceId);
   else record = state.events.find((row) => String(row.id) === sourceId);
   if (!record) return;
+  if (state.clientCompanyId && record.company_id && String(state.clientCompanyId) !== String(record.company_id)) {
+    flashMessage('All trainings on one invoice must belong to the same client.');
+    return;
+  }
   const title = source === 'speaking' ? record.event_name : record.title;
   const expectedOn = (record.starts_at || record.event_start_date || '').slice(0, 10);
   const params = new URLSearchParams({ source, sourceId, sourceTitle: title || 'Engagement', ...(expectedOn ? { expectedOn } : {}), ...(record.event_id || source === 'event' ? { eventId: record.event_id || record.id } : {}), ...(record.company_id ? { companyId: record.company_id } : {}) });
   await qtApplyEngagementContext(params);
 }
-function qtClearEngagementContext() {
-  state.sourceType = null; state.sourceId = null; state.sourceTitle = ''; state.sourceExpectedOn = ''; state.contextAmbiguous = false; state.incomeId = null; state.incomeAllocation = ''; render();
+function qtRemoveEngagementContext(sourceType, sourceId) {
+  const context = state.sourceContexts.find((row) => row.sourceType === sourceType && String(row.sourceId) === String(sourceId));
+  if (!context) return;
+  state.sourceContexts = state.sourceContexts.filter((row) => row !== context);
+  if (context.incomeId) qtRemoveIncomeLink(context.incomeId);
+  if (context.eventId && !state.sourceContexts.some((row) => String(row.eventId) === String(context.eventId))) {
+    state.eventIds = state.eventIds.filter((id) => String(id) !== String(context.eventId));
+  }
+  render();
 }
-async function qtEnsureContextIncome(total) {
-  if (state.incomeId || !state.sourceType || !state.sourceId || !['quote', 'invoice'].includes(state.mode) || total <= 0) return;
-  const sourceField = { event: 'event_id', training: 'training_engagement_id', speaking: 'speaking_engagement_id' }[state.sourceType];
-  if (!sourceField) return;
-  const { data, error } = await sb.from('income').insert({ description: state.sourceTitle || 'Engagement value', amount: total, expected_on: state.sourceExpectedOn || state.docDate || null, certainty_status: state.mode === 'invoice' ? 'confirmed' : 'potential', income_kind: 'service_revenue', company_id: state.clientCompanyId || null, source_type: state.sourceType, [sourceField]: state.sourceId }).select('id,amount').single();
-  if (error) throw error;
-  state.incomeId = data.id;
-  state.incomeAllocation = String(data.amount || total);
+function qtPendingContextAmount(context, total) {
+  const fallback = state.sourceContexts.length === 1 && state.incomeLinks.length === 0 ? total : NaN;
+  const allocation = parseFloat(context.allocation);
+  const amount = Number.isFinite(allocation) ? allocation : fallback;
+  if (!Number.isFinite(amount) || amount < 0) throw new Error(`Enter an invoice allocation for ${context.title}.`);
+  return amount;
+}
+function qtValidateProjectedAllocations(total) {
+  const linkedTotal = state.incomeLinks.reduce((sum, link) => {
+    const amount = parseFloat(link.allocation);
+    if (!Number.isFinite(amount) || amount < 0) throw new Error('Enter a valid allocation for each linked income record.');
+    return sum + amount;
+  }, 0);
+  const pending = state.sourceContexts.filter((row) => !row.incomeId && !row.ambiguous);
+  const pendingTotal = pending.reduce((sum, context) => sum + qtPendingContextAmount(context, total), 0);
+  const hasAllocations = state.incomeLinks.length > 0 || pending.length > 0;
+  if (hasAllocations && Math.abs(linkedTotal + pendingTotal - total) > 0.009) throw new Error(`Income allocations must total ${fmt(total)}.`);
+}
+async function qtEnsureContextIncomes(total) {
+  if (!['quote', 'invoice'].includes(state.mode) || total <= 0) return;
+  for (const context of state.sourceContexts.filter((row) => !row.incomeId && !row.ambiguous)) {
+    const sourceField = { event: 'event_id', training: 'training_engagement_id', speaking: 'speaking_engagement_id' }[context.sourceType];
+    if (!sourceField) continue;
+    const amount = qtPendingContextAmount(context, total);
+    const { data, error } = await sb.from('income').insert({ description: context.title || 'Engagement value', amount, expected_on: context.expectedOn || state.docDate || null, certainty_status: state.mode === 'invoice' ? 'confirmed' : 'potential', income_kind: 'service_revenue', company_id: state.clientCompanyId || null, source_type: context.sourceType, [sourceField]: context.sourceId }).select('id,amount,description,certainty_status,source_type,event_id,training_engagement_id,speaking_engagement_id').single();
+    if (error) throw error;
+    context.incomeId = data.id;
+    state.incomes.unshift(data);
+    state.incomeLinks.push({ incomeId: data.id, allocation: String(amount) });
+  }
 }
 function qtEventLabel(event) {
   const type = event.event_type ? labelize(event.event_type) : 'Event';
@@ -548,7 +594,10 @@ function buildDocPayload(totals) {
     client_person_name: s.clientPersonName,
     client_email: s.clientEmail,
     client_phone: s.clientPhone,
-    event_id: s.eventId || null,
+    // Preserve the legacy single-event behavior only for documents with one
+    // event. Shared invoices live exclusively in the junction table so an
+    // event deletion cannot mistake the whole invoice for single-event data.
+    event_id: s.eventIds.length === 1 ? s.eventIds[0] : null,
     company_id: s.clientCompanyId || null,
     business_contact_name: s.businessContactName,
     business_phone: s.businessPhone,
@@ -577,19 +626,40 @@ function buildDocPayload(totals) {
   };
 }
 
-async function qtLoadIncomeLink(documentId) {
-  const { data } = await sb.from('income_document_links').select('income_id,allocated_amount').eq('document_id', documentId).limit(1);
-  state.incomeId = data?.[0]?.income_id || null;
-  state.incomeAllocation = data?.[0] ? String(data[0].allocated_amount) : '';
+async function qtLoadDocumentLinks(documentId, legacyEventId) {
+  const [incomeResult, eventResult] = await Promise.all([
+    sb.from('income_document_links').select('income_id,allocated_amount').eq('document_id', documentId),
+    sb.from('document_event_links').select('event_id').eq('document_id', documentId),
+  ]);
+  state.incomeLinks = (incomeResult.data || []).map((row) => ({ incomeId: row.income_id, allocation: String(row.allocated_amount) }));
+  state.eventIds = (eventResult.data || []).map((row) => row.event_id);
+  if (!state.eventIds.length && legacyEventId) state.eventIds = [legacyEventId];
 }
-async function qtSaveIncomeLink(documentId, total) {
+function qtValidatedAllocations(total) {
+  const allocations = state.incomeLinks.map((link) => ({ ...link, amount: parseFloat(link.allocation) }));
+  if (allocations.some((link) => !Number.isFinite(link.amount) || link.amount < 0)) throw new Error('Enter a valid allocation for each linked income record.');
+  const allocationTotal = allocations.reduce((sum, link) => sum + link.amount, 0);
+  if (allocations.length && Math.abs(allocationTotal - total) > 0.009) throw new Error(`Income allocations must total ${fmt(total)}.`);
+  return allocations;
+}
+async function qtSaveDocumentLinks(documentId, total) {
   if (!sb || !['quote', 'invoice'].includes(state.mode)) return;
-  const { error: clearError } = await sb.from('income_document_links').delete().eq('document_id', documentId);
-  if (clearError) throw clearError;
-  if (!state.incomeId) return;
-  const allocated = parseFloat(state.incomeAllocation);
-  const { error } = await sb.from('income_document_links').insert({ income_id: state.incomeId, document_id: documentId, allocated_amount: Number.isFinite(allocated) ? allocated : total });
-  if (error) throw error;
+  const allocations = qtValidatedAllocations(total);
+
+  const [clearIncome, clearEvents] = await Promise.all([
+    sb.from('income_document_links').delete().eq('document_id', documentId),
+    sb.from('document_event_links').delete().eq('document_id', documentId),
+  ]);
+  if (clearIncome.error) throw clearIncome.error;
+  if (clearEvents.error) throw clearEvents.error;
+  if (allocations.length) {
+    const { error } = await sb.from('income_document_links').insert(allocations.map((link) => ({ income_id: link.incomeId, document_id: documentId, allocated_amount: link.amount })));
+    if (error) throw error;
+  }
+  if (state.eventIds.length) {
+    const { error } = await sb.from('document_event_links').insert(state.eventIds.map((eventId) => ({ document_id: documentId, event_id: eventId })));
+    if (error) throw error;
+  }
 }
 
 async function qtSaveDocument() {
@@ -608,7 +678,9 @@ async function qtSaveDocument() {
       state.dueDate = computeDueDate(state.docDate, state.dueTerms);
     }
     const totals = computeTotals(state);
-    await qtEnsureContextIncome(totals.afterDiscount);
+    qtValidateProjectedAllocations(totals.afterDiscount);
+    await qtEnsureContextIncomes(totals.afterDiscount);
+    qtValidatedAllocations(totals.afterDiscount);
     const clientId = await upsertClient();
     const payload = Object.assign({}, buildDocPayload(totals), { doc_number: docNumber, client_id: clientId });
     let result;
@@ -618,7 +690,7 @@ async function qtSaveDocument() {
       result = await sb.from('documents').insert(payload).select().single();
     }
     if (result.error) throw result.error;
-    await qtSaveIncomeLink(result.data.id, totals.afterDiscount);
+    await qtSaveDocumentLinks(result.data.id, totals.afterDiscount);
     state.currentDocId = result.data.id;
     state.clientId = clientId;
     state.saving = false;
@@ -627,7 +699,7 @@ async function qtSaveDocument() {
   } catch (e) {
     state.saving = false;
     render();
-    flashMessage('Save failed — check your connection and try again.');
+    flashMessage(e?.message || 'Save failed — check your connection and try again.');
   }
 }
 
@@ -702,12 +774,9 @@ async function qtOpenDocument(id) {
     clientPersonName: data.client_person_name || '',
     clientEmail: data.client_email || '',
     clientPhone: data.client_phone || '',
-    eventId: data.event_id || null,
-    sourceType: null,
-    sourceId: null,
-    sourceTitle: '',
-    sourceExpectedOn: '',
-    contextAmbiguous: false,
+    eventIds: data.event_id ? [data.event_id] : [],
+    incomeLinks: [],
+    sourceContexts: [],
     items: items,
     discountType: data.discount_type || '$',
     discountValue: String(data.discount_value != null ? data.discount_value : 0),
@@ -718,7 +787,7 @@ async function qtOpenDocument(id) {
     notesReceipt: data.doc_type === 'receipt' ? (data.notes || state.notesReceipt) : state.notesReceipt,
     saveMessage: ''
   });
-  await qtLoadIncomeLink(data.id);
+  await qtLoadDocumentLinks(data.id, data.event_id);
   render();
 }
 
@@ -730,6 +799,7 @@ async function qtConvertToInvoice() {
     const { data: numData, error: numErr } = await sb.rpc('next_doc_number', { p_type: 'invoice' });
     if (numErr) throw numErr;
     const totals = computeTotals(state);
+    qtValidatedAllocations(totals.afterDiscount);
     const newDocDate = formatToday();
     const newDueDate = computeDueDate(newDocDate, 'Net 14');
     const payload = Object.assign({}, buildDocPayload(totals), {
@@ -753,7 +823,7 @@ async function qtConvertToInvoice() {
     });
     const ins = await sb.from('documents').insert(payload).select().single();
     if (ins.error) throw ins.error;
-    await qtSaveIncomeLink(ins.data.id, totals.afterDiscount);
+    await qtSaveDocumentLinks(ins.data.id, totals.afterDiscount);
     await sb.from('documents').update({ status: 'accepted' }).eq('id', state.currentDocId);
     Object.assign(state, {
       currentDocId: ins.data.id,
@@ -774,7 +844,7 @@ async function qtConvertToInvoice() {
   } catch (e) {
     state.saving = false;
     render();
-    flashMessage('Could not convert — try again.');
+    flashMessage(e?.message || 'Could not convert — try again.');
   }
 }
 
@@ -802,14 +872,9 @@ function resetToBlank(mode) {
     clientPersonName: '',
     clientEmail: '',
     clientPhone: '',
-    eventId: null,
-    incomeId: null,
-    incomeAllocation: '',
-    sourceType: null,
-    sourceId: null,
-    sourceTitle: '',
-    sourceExpectedOn: '',
-    contextAmbiguous: false,
+    eventIds: [],
+    incomeLinks: [],
+    sourceContexts: [],
     items: [{ id: 1, date: '', description: '', type: 'flat', qty: '1', rate: '0' }],
     discountType: '$',
     discountValue: '0',
@@ -1115,31 +1180,35 @@ function renderEditorView() {
       </div>
     </div>
 
-    ${(isQuote || isInvoice) && !s.sourceType ? `<div class="qt-invoice-link" data-noprint>
-      <label for="qtEngagementContext">What is this for?</label>
-      <select id="qtEngagementContext" class="qt-select" onchange="qtSetEngagementContext(this.value)">
-        <option value="">Other / no engagement</option>
-        ${s.trainings.map(training => `<option value="training:${escAttr(String(training.id))}">Training · ${esc(training.title || 'Untitled')}</option>`).join('')}
-        ${s.speakingEngagements.map(engagement => `<option value="speaking:${escAttr(String(engagement.id))}">Speaking · ${esc(engagement.event_name || 'Untitled')}</option>`).join('')}
-        ${s.events.filter(event => !['training', 'speaking'].includes(event.event_type)).map(event => `<option value="event:${escAttr(String(event.id))}">Event · ${esc(event.title || 'Untitled')}</option>`).join('')}
-      </select>
-    </div>` : ''}
-
-    ${isInvoice ? `<div class="qt-invoice-link" data-noprint>
-      <label for="qtEventLink">Linked engagement / event</label>
-      <select id="qtEventLink" class="qt-select" onchange="qtSetEventLink(this.value)">
-        <option value="">— No linked engagement or event —</option>
-        ${s.events.map(event => `<option value="${escAttr(String(event.id))}" ${String(s.eventId) === String(event.id) ? 'selected' : ''}>${esc(qtEventLabel(event))}</option>`).join('')}
-      </select>
-    </div>` : ''}
-
     ${(isQuote || isInvoice) ? `<div class="qt-invoice-link" data-noprint>
-      ${s.sourceType && !s.contextAmbiguous ? `<label>For</label><div class="qt-field-line">${esc(s.sourceTitle || 'Linked engagement')} <button class="qt-btn qt-btn-ghost" type="button" onclick="qtClearEngagementContext()">Change</button></div>` : `<label for="qtIncomeLink">${s.contextAmbiguous ? 'Choose engagement value' : 'Income record (optional)'}</label>`}
-      ${(!s.sourceType || s.contextAmbiguous) ? `<select id="qtIncomeLink" class="qt-select" onchange="qtSetIncomeLink(this.value)">
-        <option value="">— No linked Income record —</option>
-        ${s.incomes.map(income => `<option value="${escAttr(String(income.id))}" ${String(s.incomeId) === String(income.id) ? 'selected' : ''}>${esc(income.description)} · ${fmt(Number(income.amount || 0))}</option>`).join('')}
-      </select>` : ''}
-      ${s.incomeId ? `<input class="qt-field-line" style="max-width:110px" type="number" min="0" step="0.01" value="${escAttr(s.incomeAllocation)}" placeholder="Allocation" oninput="qtSetIncomeAllocation(this.value)">` : ''}
+      <label for="qtEngagementContext">Add training or event</label>
+      <select id="qtEngagementContext" class="qt-select" onchange="qtSetEngagementContext(this.value); this.value='';">
+        <option value="">Choose another training or event…</option>
+        ${s.trainings.filter(training => !s.sourceContexts.some(context => context.sourceType === 'training' && String(context.sourceId) === String(training.id))).map(training => `<option value="training:${escAttr(String(training.id))}">Training · ${esc(training.title || 'Untitled')}</option>`).join('')}
+        ${s.speakingEngagements.filter(engagement => !s.sourceContexts.some(context => context.sourceType === 'speaking' && String(context.sourceId) === String(engagement.id))).map(engagement => `<option value="speaking:${escAttr(String(engagement.id))}">Speaking · ${esc(engagement.event_name || 'Untitled')}</option>`).join('')}
+        ${s.events.filter(event => !['training', 'speaking'].includes(event.event_type) && !s.sourceContexts.some(context => context.sourceType === 'event' && String(context.sourceId) === String(event.id))).map(event => `<option value="event:${escAttr(String(event.id))}">Event · ${esc(event.title || 'Untitled')}</option>`).join('')}
+      </select>
+    </div>
+    ${s.sourceContexts.length ? `<div class="qt-linked-records" data-noprint>${s.sourceContexts.map(context => `<div class="qt-linked-record">
+      <span>${esc(context.title || 'Linked engagement')}${context.ambiguous ? ' · choose its income record below' : ''}</span>
+      ${!context.incomeId && !context.ambiguous ? `<input class="qt-field-line" type="number" min="0" step="0.01" value="${escAttr(context.allocation || '')}" placeholder="Allocation" aria-label="Allocation for ${escAttr(context.title)}" oninput="qtSetPendingContextAllocation('${escAttr(context.sourceType)}','${escAttr(String(context.sourceId))}',this.value)">` : ''}
+      <button class="qt-btn qt-btn-ghost" type="button" onclick="qtRemoveEngagementContext('${escAttr(context.sourceType)}','${escAttr(String(context.sourceId))}')">Remove</button>
+    </div>`).join('')}</div>` : ''}` : ''}
+
+    ${isInvoice ? `<div class="qt-invoice-link qt-invoice-link-stack" data-noprint>
+      <label>Linked calendar events</label>
+      <div class="qt-event-checklist">
+        ${s.events.map(event => `<label><input type="checkbox" value="${escAttr(String(event.id))}" ${s.eventIds.some(id => String(id) === String(event.id)) ? 'checked' : ''} onchange="qtToggleEventLink(this.value,this.checked)"> <span>${esc(qtEventLabel(event))}</span></label>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${(isQuote || isInvoice) ? `<div class="qt-invoice-link qt-invoice-link-stack" data-noprint>
+      <label for="qtIncomeLink">Income allocations</label>
+      <select id="qtIncomeLink" class="qt-select" onchange="qtAddIncomeLink(this.value); this.value='';">
+        <option value="">Add an income record…</option>
+        ${s.incomes.filter(income => !s.incomeLinks.some(link => String(link.incomeId) === String(income.id))).map(income => `<option value="${escAttr(String(income.id))}">${esc(income.description)} · ${fmt(Number(income.amount || 0))}</option>`).join('')}
+      </select>
+      ${s.incomeLinks.length ? `<div class="qt-income-links">${s.incomeLinks.map(link => { const income = s.incomes.find(row => String(row.id) === String(link.incomeId)); const isContextIncome = s.sourceContexts.some(context => String(context.incomeId) === String(link.incomeId)); return `<div class="qt-income-link-row"><span>${esc(income?.description || 'Income record')}</span><input class="qt-field-line" type="number" min="0" step="0.01" value="${escAttr(link.allocation)}" placeholder="Allocation" aria-label="Allocation for ${escAttr(income?.description || 'income record')}" oninput="qtSetIncomeAllocation('${escAttr(String(link.incomeId))}',this.value)">${isContextIncome ? '<span class="qt-help">Linked above</span>' : `<button class="qt-btn qt-btn-ghost" type="button" onclick="qtRemoveIncomeLink('${escAttr(String(link.incomeId))}')">Remove</button>`}</div>`; }).join('')}</div>` : '<span class="qt-help">No income records linked yet.</span>'}
     </div>` : ''}
 
     <div class="qt-items-wrap">
