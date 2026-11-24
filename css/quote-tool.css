@@ -59,12 +59,13 @@
   box-sizing: border-box;
 }
 
-@page { size: letter; margin: 0.2in 0.35in; }
+/* Keep the invoice comfortably below the page edge in printed/PDF output. */
+@page { size: letter; margin: 0.5in 0.35in 0.3in; }
 @media print {
   [data-noprint] { display: none !important; }
   [data-printonly] { display: inline !important; }
   body { background: #fff !important; }
-  #docPage { box-shadow: none !important; margin: 0.15in auto 0 !important; max-width: none !important; width: auto !important; border-radius: 0 !important; padding: 0.08in 0.25in !important; zoom: 0.9; }
+  #docPage { box-shadow: none !important; margin: 0 auto !important; max-width: none !important; width: auto !important; border-radius: 0 !important; padding: 0.08in 0.25in !important; zoom: 0.9; }
   #app { padding: 0 !important; background: #fff !important; }
 
   /* Keep standard invoices compact enough to export as one Letter page. */
