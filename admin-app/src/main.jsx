@@ -8,6 +8,14 @@ import App from './app/App.jsx';
 import '../../css/survey.css';
 import '../../css/admin.css';
 
+// An open admin tab can briefly reference route chunks from the previous
+// deployment. Vite reports that as a preload error; a full reload fetches the
+// current HTML and its current chunk names.
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  window.location.reload();
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     {/* No basename yet — the production mount path is still an open

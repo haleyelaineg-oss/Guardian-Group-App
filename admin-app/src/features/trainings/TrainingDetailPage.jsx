@@ -11,19 +11,7 @@ import ItineraryManager, { TRAVEL_TYPES } from '../itinerary/ItineraryManager.js
 import TrainingAttendanceRoster from './TrainingAttendanceRoster.jsx';
 import { createTraining, deleteTrainingAndCalendar, duplicateTraining, fetchTrainingDetail, listTrainingCompanies, listTrainingContacts, syncTrainingCalendar, updateTraining } from './trainingService.js';
 import { isConfirmedTrainingStatus, TRAINING_STATUSES, trainingStatusLabel } from './statuses.js';
-const INSTRUCTOR_OPTIONS = [{
-  value: 'dave',
-  label: 'Dave',
-  instructors: ['Dave']
-}, {
-  value: 'haley',
-  label: 'Haley',
-  instructors: ['Haley']
-}, {
-  value: 'both',
-  label: 'Both',
-  instructors: ['Dave', 'Haley']
-}];
+import { peopleChoice, peopleForChoice, PERSON_CHOICES } from '../../utils/people.js';
 const blank = {
   company_id: '',
   contact_participant_id: '',
@@ -106,14 +94,12 @@ function Overview({
 }) {
   const [companies, setCompanies] = useState([]);
   const [contacts, setContacts] = useState([]);
-  const instructorNames = Array.isArray(training.instructors) ? training.instructors.map(person => typeof person === 'string' ? person : person.name) : [];
-  const instructorChoice = instructorNames.includes('Dave') && instructorNames.includes('Haley') ? 'both' : instructorNames.includes('Dave') ? 'dave' : instructorNames.includes('Haley') ? 'haley' : '';
   const [v, setV] = useState(() => ({
     company_id: training.company_id,
     contact_participant_id: training.contact_participant_id || '',
     title: training.title || '',
     training_type: training.training_type || '',
-    instructor_choice: instructorChoice,
+    instructor_choice: peopleChoice(training.instructors),
     status: training.status,
     delivery_method: training.delivery_method,
     starts_at: training.starts_at ? training.starts_at.slice(0, 16) : '',
@@ -137,7 +123,7 @@ function Overview({
     contact_participant_id: v.contact_participant_id || null,
     title: v.title.trim(),
     training_type: nil(v.training_type),
-    instructors: INSTRUCTOR_OPTIONS.find(option => option.value === v.instructor_choice)?.instructors || [],
+    instructors: peopleForChoice(v.instructor_choice),
     status: v.status,
     delivery_method: v.delivery_method,
     starts_at: v.starts_at || null,
@@ -156,7 +142,7 @@ function Overview({
       await onSaved();
     }
   };
-  return <section>{training.event_id && <p className="field-hint">On Calendar · <Link to={`/admin/calendar`}>View on Calendar →</Link></p>}<div className="fields-grid"><label className="field-group half"><span className="field-label">Client</span><select className="field-input" value={v.company_id} onChange={e => set('company_id', e.target.value)}><option value="">— Client —</option>{companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="field-group half"><span className="field-label">Primary contact</span><select className="field-input" value={v.contact_participant_id} onChange={e => set('contact_participant_id', e.target.value)}><option value="">— None —</option>{contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}</select></label><Field v={v} set={set} name="title" label="Training title" /><Field v={v} set={set} name="training_type" label="Training type" /><label className="field-group half"><span className="field-label">Instructor</span><select className="field-input" value={v.instructor_choice} onChange={e => set('instructor_choice', e.target.value)}><option value="">— Select instructor —</option>{INSTRUCTOR_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{TRAINING_STATUSES.map(s => <option key={s} value={s}>{trainingStatusLabel(s)}</option>)}</select></label><label className="field-group half"><span className="field-label">Delivery</span><select className="field-input" value={v.delivery_method} onChange={e => set('delivery_method', e.target.value)}><option value="in_person">In Person</option><option value="virtual">Virtual</option></select></label><Field v={v} set={set} name="starts_at" label="Starts" type="datetime-local" /><Field v={v} set={set} name="ends_at" label="Ends" type="datetime-local" /><Field v={v} set={set} name="attendee_count" label="Expected attendees" type="number" /><label className="field-group full"><span className="field-label">Description</span><textarea className="field-input" value={v.description} onChange={e => set('description', e.target.value)} /></label><label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label={creating ? 'Create Training →' : 'Save Training →'} />{onDelete && <button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Training</button>}</div></section>;
+  return <section>{training.event_id && <p className="field-hint">On Calendar · <Link to={`/admin/calendar`}>View on Calendar →</Link></p>}<div className="fields-grid"><label className="field-group half"><span className="field-label">Client</span><select className="field-input" value={v.company_id} onChange={e => set('company_id', e.target.value)}><option value="">— Client —</option>{companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="field-group half"><span className="field-label">Primary contact</span><select className="field-input" value={v.contact_participant_id} onChange={e => set('contact_participant_id', e.target.value)}><option value="">— None —</option>{contacts.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}</select></label><Field v={v} set={set} name="title" label="Training title" /><Field v={v} set={set} name="training_type" label="Training type" /><label className="field-group half"><span className="field-label">Trainer</span><select className="field-input" value={v.instructor_choice} onChange={e => set('instructor_choice', e.target.value)}><option value="">— Select trainer —</option>{PERSON_CHOICES.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{TRAINING_STATUSES.map(s => <option key={s} value={s}>{trainingStatusLabel(s)}</option>)}</select></label><label className="field-group half"><span className="field-label">Delivery</span><select className="field-input" value={v.delivery_method} onChange={e => set('delivery_method', e.target.value)}><option value="in_person">In Person</option><option value="virtual">Virtual</option></select></label><Field v={v} set={set} name="starts_at" label="Starts" type="datetime-local" /><Field v={v} set={set} name="ends_at" label="Ends" type="datetime-local" /><Field v={v} set={set} name="attendee_count" label="Expected attendees" type="number" /><label className="field-group full"><span className="field-label">Description</span><textarea className="field-input" value={v.description} onChange={e => set('description', e.target.value)} /></label><label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label={creating ? 'Create Training →' : 'Save Training →'} />{onDelete && <button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Training</button>}</div></section>;
 }
 function Delivery({
   training,

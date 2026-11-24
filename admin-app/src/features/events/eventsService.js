@@ -3,6 +3,7 @@ import { fetchSpeakingEngagements } from '../speaking/speakingService.js';
 import { normalizeSpeakingStatus, SPEAKING_STATUS_LABELS } from '../speaking/statuses.js';
 import { fetchTrainings } from '../trainings/trainingService.js';
 import { isCancelledTrainingStatus, trainingStatusLabel } from '../trainings/statuses.js';
+import { peopleFromValue } from '../../utils/people.js';
 function fail(error) { if (error) throw error; }
 export async function fetchEvents() { const { data, error } = await supabase.from('events').select('*,companies!company_id(name)').order('starts_at', { ascending: true, nullsFirst: false }); fail(error); return data || []; }
 
@@ -30,6 +31,7 @@ export async function fetchEventHubRows() {
       dateFallback: null,
       location: event.location,
       organization: event.companies?.name,
+      people: peopleFromValue(event.assigned_people),
       subtype: event.event_type,
       cancelled: event.status === 'cancelled',
       path: `/admin/events/${event.id}`,
@@ -46,6 +48,7 @@ export async function fetchEventHubRows() {
     dateFallback: null,
     location: training.delivery_method === 'virtual' ? 'Virtual' : training.site_location || training.site_address,
     organization: training.companies?.name,
+    people: peopleFromValue(training.instructors),
     subtype: training.delivery_method,
     cancelled: isCancelledTrainingStatus(training.status),
     path: `/admin/trainings/${training.id}`,
@@ -64,6 +67,7 @@ export async function fetchEventHubRows() {
       dateFallback: engagement.cfp_deadline,
       location: [engagement.venue, engagement.city, engagement.region].filter(Boolean).join(', '),
       organization: engagement.organization_name,
+      people: peopleFromValue(engagement.speakers),
       subtype: null,
       cancelled: status.startsWith('cancelled_'),
       path: `/admin/speaking/${engagement.id}`,

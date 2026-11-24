@@ -13,7 +13,7 @@ export default class AppErrorBoundary extends Component {
 
   render() {
     if (this.state.error) {
-      return <div className="view active error-state"><h1 className="view-title">This page couldn’t load</h1><p className="empty-hint">Try loading it again. If the problem persists, return to the dashboard and try once more.</p><button className="btn btn-primary" onClick={() => this.setState({ error: null })}>Try Again</button></div>;
+      return <div className="view active error-state"><h1 className="view-title">This page couldn’t load</h1><p className="empty-hint">The app may have been updated while this tab was open. Reload to open the latest version.</p><button className="btn btn-primary" onClick={() => window.location.reload()}>Reload Page</button></div>;
     }
 
     return this.props.children;

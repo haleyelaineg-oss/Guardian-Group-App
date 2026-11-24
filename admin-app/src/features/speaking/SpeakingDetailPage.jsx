@@ -11,6 +11,7 @@ import SpeakingSubmissions from './SpeakingSubmissions.jsx';
 import SpeakingSessions from './SpeakingSessions.jsx';
 import { deleteSpeakingEngagementAndCalendar, fetchSpeakingDetail, isCalendarRemovalStatus, removeSpeakingFromCalendar, syncSpeakingCalendar, updateSpeakingEngagement } from './speakingService.js';
 import { normalizeSpeakingStatus, SPEAKING_STATUSES, SPEAKING_STATUS_LABELS } from './statuses.js';
+import { peopleChoice, peopleForChoice, PERSON_CHOICES } from '../../utils/people.js';
 const text = value => value.trim() || null;
 export default function SpeakingDetailPage() {
   const {
@@ -70,6 +71,7 @@ function Overview({
     contact_phone: engagement.contact_phone || '',
     requested_fee: engagement.requested_fee ?? '',
     offered_fee: engagement.offered_fee ?? '',
+    speaker_choice: peopleChoice(engagement.speakers),
     status: normalizeSpeakingStatus(engagement.status),
     notes: engagement.notes || ''
   }));
@@ -80,8 +82,10 @@ function Overview({
   const field = (key, label, type = 'text') => <label className="field-group half"><span className="field-label">{label}</span><input className="field-input" type={type} value={v[key]} onChange={e => set(key, e.target.value)} /></label>;
   async function save() {
     if (!v.event_name.trim()) throw new Error('Event name is required.');
+    const { speaker_choice: speakerChoice, ...engagementValues } = v;
     const values = {
-      ...v,
+      ...engagementValues,
+      speakers: peopleForChoice(speakerChoice),
       event_name: v.event_name.trim(),
       organization_name: text(v.organization_name),
       event_website: text(v.event_website),
@@ -108,7 +112,7 @@ function Overview({
     } else if (!isCalendarRemovalStatus(saved.status)) await syncSpeakingCalendar(saved);
     await onSaved();
   }
-  return <section>{engagement.event_id && !isCalendarRemovalStatus(engagement.status) && <p className="field-hint">On Calendar · <Link to="/admin/calendar">View on Calendar →</Link></p>}<div className="fields-grid"><label className="field-group full"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{SPEAKING_STATUSES.map(status => <option key={status} value={status}>{SPEAKING_STATUS_LABELS[status]}</option>)}</select></label>{field('event_name', 'Event name')}{field('organization_name', 'Organization')}{field('event_website', 'Website')}{field('application_url', 'Application URL')}{field('venue', 'Venue name')}{field('venue_address', 'Venue address')}{field('city', 'City')}{field('region', 'State / region')}{field('country', 'Country')}{field('zip_code', 'ZIP code')}{field('event_start_date', 'Event start date', 'date')}{field('event_end_date', 'Event end date', 'date')}{field('cfp_deadline', 'CFP deadline', 'date')}{field('contact_name', 'Contact name')}{field('contact_email', 'Contact email')}{field('contact_phone', 'Contact phone')}{field('requested_fee', 'Requested fee', 'number')}{field('offered_fee', 'Offered fee', 'number')}<label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label="Save Engagement →" /><button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Engagement</button></div></section>;
+  return <section>{engagement.event_id && !isCalendarRemovalStatus(engagement.status) && <p className="field-hint">On Calendar · <Link to="/admin/calendar">View on Calendar →</Link></p>}<div className="fields-grid"><label className="field-group half"><span className="field-label">Status</span><select className="field-input" value={v.status} onChange={e => set('status', e.target.value)}>{SPEAKING_STATUSES.map(status => <option key={status} value={status}>{SPEAKING_STATUS_LABELS[status]}</option>)}</select></label><label className="field-group half"><span className="field-label">Speaker</span><select className="field-input" value={v.speaker_choice} onChange={e => set('speaker_choice', e.target.value)}><option value="">— Select speaker —</option>{PERSON_CHOICES.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>{field('event_name', 'Event name')}{field('organization_name', 'Organization')}{field('event_website', 'Website')}{field('application_url', 'Application URL')}{field('venue', 'Venue name')}{field('venue_address', 'Venue address')}{field('city', 'City')}{field('region', 'State / region')}{field('country', 'Country')}{field('zip_code', 'ZIP code')}{field('event_start_date', 'Event start date', 'date')}{field('event_end_date', 'Event end date', 'date')}{field('cfp_deadline', 'CFP deadline', 'date')}{field('contact_name', 'Contact name')}{field('contact_email', 'Contact email')}{field('contact_phone', 'Contact phone')}{field('requested_fee', 'Requested fee', 'number')}{field('offered_fee', 'Offered fee', 'number')}<label className="field-group full"><span className="field-label">Notes</span><textarea className="field-input" value={v.notes} onChange={e => set('notes', e.target.value)} /></label></div><div className="create-form-actions"><SaveButton onSave={save} label="Save Engagement →" /><button className="btn-sm btn-sm-danger" onClick={onDelete}>Delete Engagement</button></div></section>;
 }
 function PostEvent({
   engagement,

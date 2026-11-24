@@ -4,6 +4,7 @@ import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import MultiSelectPills from '../../components/MultiSelectPills.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import { formatDate, formatLabel, formatShortDate } from '../../utils/format.js';
+import { peopleFromValue, peopleLabel, PERSON_FILTER_OPTIONS } from '../../utils/people.js';
 import { fetchEventHubRows } from './eventsService.js';
 
 const TYPE_LABELS = {
@@ -12,6 +13,10 @@ const TYPE_LABELS = {
   event: 'Other Event',
 };
 const TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+const DATE_OPTIONS = [
+  { value: 'past', label: 'Past Events' },
+  { value: 'upcoming', label: 'Upcoming Events' },
+];
 
 function typeLabel(row) {
   if (row.kind !== 'event') return TYPE_LABELS[row.kind];
@@ -38,6 +43,7 @@ const SORT_VALUE = {
   date: (row) => row.startsAt || row.dateFallback || '',
   status: (row) => rowStatusLabel(row) || '',
   location: (row) => row.location || '',
+  people: (row) => peopleLabel(row.people),
 };
 
 function SortableHeader({ label, sortKey, activeKey, direction, onSort }) {
@@ -49,8 +55,10 @@ export default function EventsListPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [typeFilters, setTypeFilters] = useState([]);
-  const [statusFilters, setStatusFilters] = useState([]);
+  const [typeFilters, setTypeFilters] = useState(() => TYPE_OPTIONS.map((option) => option.value));
+  const [statusFilters, setStatusFilters] = useState(null);
+  const [dateFilters, setDateFilters] = useState(() => DATE_OPTIONS.map((option) => option.value));
+  const [personFilters, setPersonFilters] = useState(() => PERSON_FILTER_OPTIONS.map((option) => option.value));
   const [sortKey, setSortKey] = useState('date');
   const [sortDirection, setSortDirection] = useState('asc');
   const [showCancelled, setShowCancelled] = useState(false);
@@ -70,7 +78,7 @@ export default function EventsListPage() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const statusOptions = useMemo(() => {
+  const allStatusOptions = useMemo(() => {
     const options = new Map();
     rows.forEach((row) => {
       const label = rowStatusLabel(row);
@@ -78,14 +86,31 @@ export default function EventsListPage() {
     });
     return [...options.values()].sort((left, right) => left.label.localeCompare(right.label));
   }, [rows]);
+  const statusOptions = useMemo(() => allStatusOptions.filter((option) => showCancelled || !option.cancelled), [allStatusOptions, showCancelled]);
+  const defaultStatusValues = useMemo(() => allStatusOptions.filter((option) => !option.cancelled).map((option) => option.value), [allStatusOptions]);
 
-  const cancelledStatusFilters = new Set(statusOptions.filter((option) => option.cancelled && statusFilters.includes(option.value)).map((option) => option.value));
+  useEffect(() => {
+    if (statusFilters === null && statusOptions.length > 0) setStatusFilters(statusOptions.map((option) => option.value));
+  }, [statusFilters, statusOptions]);
+
+  const allTypesSelected = typeFilters.length === TYPE_OPTIONS.length;
+  const allStatusesSelected = statusFilters === null || (statusFilters.length === statusOptions.length && statusOptions.every((option) => statusFilters.includes(option.value)));
+  const allDatesSelected = dateFilters.length === DATE_OPTIONS.length;
+  const allPeopleSelected = personFilters.length === PERSON_FILTER_OPTIONS.length;
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const visibleRows = rows
-    .filter((row) => (
-      (showCancelled || cancelledStatusFilters.has(rowStatusLabel(row)) || !row.cancelled)
-      && (typeFilters.length === 0 || typeFilters.includes(row.kind))
-      && (statusFilters.length === 0 || statusFilters.includes(rowStatusLabel(row)))
-    ))
+    .filter((row) => {
+      const eventDate = row.startsAt?.slice(0, 10) || '';
+      const dateBucket = eventDate ? (eventDate < todayKey ? 'past' : 'upcoming') : null;
+      const matchesDate = allDatesSelected || (dateBucket && dateFilters.includes(dateBucket));
+      const matchesPerson = allPeopleSelected || peopleFromValue(row.people).some((person) => personFilters.includes(person));
+      return (showCancelled || !row.cancelled)
+        && typeFilters.includes(row.kind)
+        && (statusFilters === null || statusFilters.includes(rowStatusLabel(row)))
+        && matchesDate
+        && matchesPerson;
+    })
     .sort((left, right) => {
       const valueFor = SORT_VALUE[sortKey];
       const leftValue = valueFor(left);
@@ -102,6 +127,16 @@ export default function EventsListPage() {
       setSortKey(nextKey);
       setSortDirection('asc');
     }
+  };
+
+  const toggleCancelled = () => {
+    const next = !showCancelled;
+    const cancelledValues = allStatusOptions.filter((option) => option.cancelled).map((option) => option.value);
+    setShowCancelled(next);
+    setStatusFilters((current) => {
+      const selected = current || [];
+      return next ? Array.from(new Set([...selected, ...cancelledValues])) : selected.filter((value) => !cancelledValues.includes(value));
+    });
   };
 
   const open = (row) => navigate(row.path, { state: { returnTo: '/admin/events' } });
@@ -124,10 +159,12 @@ export default function EventsListPage() {
     </div>
     <div className="event-list-controls" aria-label="Event list controls">
       <div className="event-filter-group"><span className="event-filter-label">Type</span><MultiSelectPills options={TYPE_OPTIONS} value={typeFilters} onChange={setTypeFilters} ariaLabel="Filter events by type" /></div>
-      <div className="event-filter-group"><span className="event-filter-label">Status</span><MultiSelectPills options={statusOptions} value={statusFilters} onChange={setStatusFilters} ariaLabel="Filter events by status" /></div>
-      <button type="button" className={`pill-btn event-cancelled-filter ${showCancelled ? 'active' : ''}`} aria-pressed={showCancelled} onClick={() => setShowCancelled((current) => !current)}>Show Cancelled</button>
-      {(typeFilters.length > 0 || statusFilters.length > 0 || showCancelled) && <button type="button" className="btn-sm btn-sm-ghost event-clear-filters" onClick={() => { setTypeFilters([]); setStatusFilters([]); setShowCancelled(false); }}>Clear Filters</button>}
+      <div className="event-filter-group"><span className="event-filter-label">Date</span><MultiSelectPills options={DATE_OPTIONS} value={dateFilters} onChange={setDateFilters} ariaLabel="Filter events by date" /></div>
+      <div className="event-filter-group"><span className="event-filter-label">Who</span><MultiSelectPills options={PERSON_FILTER_OPTIONS} value={personFilters} onChange={setPersonFilters} ariaLabel="Filter events by person" /></div>
+      <div className="event-filter-group"><span className="event-filter-label">Status</span><MultiSelectPills options={statusOptions} value={statusFilters || []} onChange={setStatusFilters} ariaLabel="Filter events by status" /></div>
+      <button type="button" className={`pill-btn event-cancelled-filter ${showCancelled ? 'active' : ''}`} aria-pressed={showCancelled} onClick={toggleCancelled}>Show Cancelled</button>
+      {(!allTypesSelected || !allDatesSelected || !allPeopleSelected || !allStatusesSelected || showCancelled) && <button type="button" className="btn-sm btn-sm-ghost event-clear-filters" onClick={() => { setTypeFilters(TYPE_OPTIONS.map((option) => option.value)); setDateFilters(DATE_OPTIONS.map((option) => option.value)); setPersonFilters(PERSON_FILTER_OPTIONS.map((option) => option.value)); setStatusFilters(defaultStatusValues); setShowCancelled(false); }}>Reset Filters</button>}
     </div>
-    {error ? <section className="empty-hint" role="alert">Couldn’t load events. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading events…" /> : <div className="responses-table-wrap"><table className="responses-table event-list-table"><thead><tr><SortableHeader label="Event" sortKey="title" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Type" sortKey="type" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Organization / Client" sortKey="organization" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Date" sortKey="date" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Location" sortKey="location" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /></tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr className="client-list-row clickable-row" key={row.key} tabIndex="0" role="button" aria-label={`Open ${row.title}`} onClick={() => open(row)} onKeyDown={(keyEvent) => onRowKeyDown(keyEvent, row)}><td>{row.title}</td><td>{typeLabel(row)}</td><td>{row.organization || '—'}</td><td>{rowDate(row)}</td><td><StatusBadge status={row.status} label={rowStatusLabel(row)} /></td><td>{row.location || '—'}</td></tr>) : <tr><td colSpan="6">No events match these filters.</td></tr>}</tbody></table></div>}
+    {error ? <section className="empty-hint" role="alert">Couldn’t load events. <button className="btn-sm btn-sm-ghost" onClick={reload}>Try Again</button></section> : loading ? <LoadingIndicator label="Loading events…" /> : <div className="responses-table-wrap"><table className="responses-table event-list-table"><thead><tr><SortableHeader label="Event" sortKey="title" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Type" sortKey="type" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Organization / Client" sortKey="organization" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Date" sortKey="date" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Who" sortKey="people" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /><SortableHeader label="Location" sortKey="location" activeKey={sortKey} direction={sortDirection} onSort={changeSort} /></tr></thead><tbody>{visibleRows.length ? visibleRows.map((row) => <tr className="client-list-row clickable-row" key={row.key} tabIndex="0" role="button" aria-label={`Open ${row.title}`} onClick={() => open(row)} onKeyDown={(keyEvent) => onRowKeyDown(keyEvent, row)}><td>{row.title}</td><td>{typeLabel(row)}</td><td>{row.organization || '—'}</td><td>{rowDate(row)}</td><td>{peopleLabel(row.people) || '—'}</td><td><StatusBadge status={row.status} label={rowStatusLabel(row)} /></td><td>{row.location || '—'}</td></tr>) : <tr><td colSpan="7">No events match these filters.</td></tr>}</tbody></table></div>}
   </div>;
 }

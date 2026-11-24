@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase.js';
 import { normalizeSpeakingStatus } from './statuses.js';
+import { peopleFromValue } from '../../utils/people.js';
 
 function fail(error) { if (error) throw error; }
 const CALENDAR_REMOVAL_STATUSES = new Set(['submission_rejected', 'cancelled_submission_withdrawn', 'cancelled_event_cancelled', 'closed', 'declined', 'withdrawn', 'cancelled']);
@@ -19,7 +20,7 @@ function eventStatus(status) { const value = normalizeSpeakingStatus(status); if
 export function isCalendarRemovalStatus(status) { return CALENDAR_REMOVAL_STATUSES.has(normalizeSpeakingStatus(status)); }
 export async function syncSpeakingCalendar(engagement) {
   const location = [engagement.venue, engagement.city, engagement.region].filter(Boolean).join(', ') || null;
-  const eventPayload = { title: engagement.event_name, event_type: 'speaking', starts_at: engagement.event_start_date ? new Date(`${engagement.event_start_date}T00:00:00`).toISOString() : null, ends_at: engagement.event_end_date ? new Date(`${engagement.event_end_date}T00:00:00`).toISOString() : null, all_day: true, location, status: eventStatus(engagement.status), income_amount: engagement.offered_fee, link_url: engagement.application_url };
+  const eventPayload = { title: engagement.event_name, event_type: 'speaking', assigned_people: peopleFromValue(engagement.speakers), starts_at: engagement.event_start_date ? new Date(`${engagement.event_start_date}T00:00:00`).toISOString() : null, ends_at: engagement.event_end_date ? new Date(`${engagement.event_end_date}T00:00:00`).toISOString() : null, all_day: true, location, status: eventStatus(engagement.status), income_amount: engagement.offered_fee, link_url: engagement.application_url };
   if (engagement.event_id) { const { error } = await supabase.from('events').update(eventPayload).eq('id', engagement.event_id); fail(error); return engagement; }
   if (isCalendarRemovalStatus(engagement.status)) return engagement;
   if (!engagement.event_start_date) return engagement;

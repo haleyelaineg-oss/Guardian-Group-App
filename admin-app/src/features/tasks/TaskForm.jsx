@@ -74,8 +74,9 @@ export default function TaskForm({ mode, initialTask, eventOptions, onSubmit, on
             value={values.owner} onChange={(e) => setField('owner', e.target.value)}
           >
             <option value="Unassigned">Unassigned</option>
-            <option value="Dave">Dave</option>
             <option value="Haley">Haley</option>
+            <option value="Dave">Dave</option>
+            <option value="Both">Both</option>
           </select>
         </div>
         <div className="field-group half">
