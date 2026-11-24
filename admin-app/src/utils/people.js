@@ -5,7 +5,6 @@ export const PERSON_CHOICES = [
 ];
 
 export const PERSON_FILTER_OPTIONS = PERSON_CHOICES
-  .filter((choice) => choice.value !== 'both')
   .map((choice) => ({ value: choice.label, label: choice.label }));
 
 function storedName(person) {

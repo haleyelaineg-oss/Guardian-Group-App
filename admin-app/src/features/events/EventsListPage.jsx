@@ -4,7 +4,7 @@ import LoadingIndicator from '../../components/LoadingIndicator.jsx';
 import MultiSelectPills from '../../components/MultiSelectPills.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import { formatDate, formatLabel, formatShortDate } from '../../utils/format.js';
-import { peopleFromValue, peopleLabel, PERSON_FILTER_OPTIONS } from '../../utils/people.js';
+import { peopleLabel, PERSON_FILTER_OPTIONS } from '../../utils/people.js';
 import { fetchEventHubRows } from './eventsService.js';
 
 const TYPE_LABELS = {
@@ -104,7 +104,7 @@ export default function EventsListPage() {
       const eventDate = row.startsAt?.slice(0, 10) || '';
       const dateBucket = eventDate ? (eventDate < todayKey ? 'past' : 'upcoming') : null;
       const matchesDate = allDatesSelected || (dateBucket && dateFilters.includes(dateBucket));
-      const matchesPerson = allPeopleSelected || peopleFromValue(row.people).some((person) => personFilters.includes(person));
+      const matchesPerson = allPeopleSelected || personFilters.includes(peopleLabel(row.people));
       return (showCancelled || !row.cancelled)
         && typeFilters.includes(row.kind)
         && (statusFilters === null || statusFilters.includes(rowStatusLabel(row)))
