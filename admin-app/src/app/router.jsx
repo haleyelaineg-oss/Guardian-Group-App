@@ -46,7 +46,7 @@ export const navSections = [
     label: 'Financial',
     path: '/admin/financial',
     children: [
-      { label: 'Quotes / Invoices / Receipts', path: '/admin/quotes' },
+      { label: 'Quotes & Invoices', path: '/admin/quotes' },
       { label: 'Income', path: '/admin/income' },
       { label: 'Expenses', path: '/admin/expenses' },
       { label: 'Receipt Inbox', path: '/admin/receipts' },
