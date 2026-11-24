@@ -860,6 +860,8 @@ a.nav-item { text-decoration: none; box-sizing: border-box; }
 .income-table-wrap .responses-table td:last-child { min-width: 168px; }
 .income-table-wrap .income-column-filters th { padding: 8px 6px; background: var(--gg-off); }
 .income-table-wrap .income-column-filters .field-input { width: 100%; min-width: 76px; padding: 6px 7px; font-size: 12px; }
+.income-status-filters { margin-bottom: 12px; }
+.income-status-filter-summary { color: var(--gg-muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .income-table-wrap .attachment-delete-button { min-width: 22px; padding: 1px 5px; margin-left: 4px; line-height: 1.1; }
 
 .income-column-filters th:last-child .btn-sm,
